@@ -1,7 +1,7 @@
-// Data-access layer. All pages read through these functions so the mock
-// source (lib/data.ts) can be swapped for Supabase without touching the UI.
+// Pure scheduling/statistics helpers. State lives in lib/state.tsx (the
+// interactive prototype store); in the Supabase phase these same functions
+// run against rows from the database.
 
-import { clients, seriesTemplates } from "./data";
 import type {
   Client,
   ClientProgram,
@@ -9,22 +9,6 @@ import type {
   SeriesTemplate,
   SessionKey,
 } from "./types";
-
-export function getClients(): Client[] {
-  return clients;
-}
-
-export function getClient(id: string): Client | undefined {
-  return clients.find((c) => c.id === id);
-}
-
-export function getSeriesTemplates(): SeriesTemplate[] {
-  return seriesTemplates;
-}
-
-export function getSeriesTemplate(id: string): SeriesTemplate | undefined {
-  return seriesTemplates.find((s) => s.id === id);
-}
 
 // ——— dates ————————————————————————————————————————————————
 
@@ -53,6 +37,13 @@ export function fmtWeekday(d: Date): string {
 function sessionDate(program: ClientProgram, key: SessionKey): Date | null {
   const s = program.sessions.find((x) => x.key === key);
   return s?.date ? new Date(`${s.date}T00:00:00`) : null;
+}
+
+export function findTemplate(
+  templates: SeriesTemplate[],
+  id: string
+): SeriesTemplate | undefined {
+  return templates.find((t) => t.id === id);
 }
 
 // ——— scheduling ———————————————————————————————————————————
@@ -110,12 +101,16 @@ export interface UpcomingSend extends ScheduledStep {
 }
 
 /** All future sends across all clients, soonest first. */
-export function upcomingSends(today: Date = new Date()): UpcomingSend[] {
+export function upcomingSends(
+  clients: Client[],
+  templates: SeriesTemplate[],
+  today: Date = new Date()
+): UpcomingSend[] {
   const out: UpcomingSend[] = [];
-  for (const client of getClients()) {
+  for (const client of clients) {
     for (const program of client.programs) {
       for (const seriesId of program.seriesIds) {
-        const series = getSeriesTemplate(seriesId);
+        const series = findTemplate(templates, seriesId);
         if (!series) continue;
         for (const item of computeSchedule(program, series, today)) {
           if (item.status === "scheduled" && item.date) {
@@ -130,36 +125,40 @@ export function upcomingSends(today: Date = new Date()): UpcomingSend[] {
 
 export interface DashboardStats {
   activeClients: number;
+  onboardingClients: number;
   membersEnrolled: number;
   scheduledNext30: number;
   seriesInLibrary: number;
   totalLessons: number;
 }
 
-export function dashboardStats(today: Date = new Date()): DashboardStats {
-  const all = getClients();
-  const sends = upcomingSends(today);
-  const in30 = sends.filter(
-    (s) => s.date! <= addDays(today, 30)
-  ).length;
+export function dashboardStats(
+  clients: Client[],
+  templates: SeriesTemplate[],
+  today: Date = new Date()
+): DashboardStats {
+  const sends = upcomingSends(clients, templates, today);
+  const in30 = sends.filter((s) => s.date! <= addDays(today, 30)).length;
   return {
-    activeClients: all.filter((c) => c.status === "active").length,
-    membersEnrolled: all.reduce((n, c) => n + c.members.length, 0),
+    activeClients: clients.filter((c) => c.status === "active").length,
+    onboardingClients: clients.filter((c) => c.status === "onboarding").length,
+    membersEnrolled: clients.reduce((n, c) => n + c.members.length, 0),
     scheduledNext30: in30,
-    seriesInLibrary: seriesTemplates.length,
-    totalLessons: seriesTemplates.reduce((n, s) => n + s.steps.length, 0),
+    seriesInLibrary: templates.length,
+    totalLessons: templates.reduce((n, s) => n + s.steps.length, 0),
   };
 }
 
 /** Overall program completion, measured in sent steps vs total steps. */
 export function programCompletion(
   program: ClientProgram,
+  templates: SeriesTemplate[],
   today: Date = new Date()
 ): { sent: number; total: number; pct: number } {
   let sent = 0;
   let total = 0;
   for (const id of program.seriesIds) {
-    const series = getSeriesTemplate(id);
+    const series = findTemplate(templates, id);
     if (!series) continue;
     const p = seriesProgress(program, series, today);
     sent += p.sent;

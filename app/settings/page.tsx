@@ -1,5 +1,8 @@
+"use client";
+
 import {
   Building2,
+  DatabaseBackup,
   Mail,
   Palette,
   Plug,
@@ -7,6 +10,7 @@ import {
 } from "lucide-react";
 import { PageHeader, Chip, GhostButton } from "@/components/ui";
 import { team } from "@/lib/data";
+import { useData } from "@/lib/state";
 
 const palette = [
   { hex: "#050714", name: "Ink" },
@@ -41,6 +45,7 @@ const integrations = [
 ];
 
 export default function SettingsPage() {
+  const { dispatch } = useData();
   return (
     <>
       <PageHeader
@@ -138,6 +143,29 @@ export default function SettingsPage() {
           <p className="mt-4 text-xs text-mist">
             Logo placeholder in use — swap in the official logo file when provided.
           </p>
+        </section>
+
+        {/* Prototype data */}
+        <section className="card p-6 xl:col-span-2">
+          <h2 className="mb-2 flex items-center gap-2 text-base font-bold">
+            <DatabaseBackup size={17} className="text-mist" /> Prototype data
+          </h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-mist">
+            In this mockup phase, your edits (clients, dates, emails, series) are
+            saved in this browser only. The Supabase phase moves everything to a
+            shared database with Google sign-in for the team.
+          </p>
+          <div className="mt-4">
+            <GhostButton
+              onClick={() => {
+                if (confirm("Reset all prototype data back to the demo state?")) {
+                  dispatch({ type: "reset" });
+                }
+              }}
+            >
+              Reset demo data
+            </GhostButton>
+          </div>
         </section>
 
         {/* Integrations */}

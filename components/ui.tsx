@@ -20,17 +20,35 @@ export function PageHeader({
   );
 }
 
-export function GradientButton({ children }: { children: ReactNode }) {
+export function GradientButton({
+  children,
+  onClick,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+}) {
   return (
-    <button className="brand-gradient cursor-pointer rounded-xl px-4 py-2.5 text-sm font-semibold text-paper shadow-lg shadow-flame/20 transition-transform hover:scale-[1.02]">
+    <button
+      onClick={onClick}
+      className="brand-gradient cursor-pointer rounded-xl px-4 py-2.5 text-sm font-semibold text-paper shadow-lg shadow-flame/20 transition-transform hover:scale-[1.02]"
+    >
       {children}
     </button>
   );
 }
 
-export function GhostButton({ children }: { children: ReactNode }) {
+export function GhostButton({
+  children,
+  onClick,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+}) {
   return (
-    <button className="cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper">
+    <button
+      onClick={onClick}
+      className="cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+    >
       {children}
     </button>
   );

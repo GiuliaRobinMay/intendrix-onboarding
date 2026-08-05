@@ -1,11 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CalendarDays, Mail, ArrowRight } from "lucide-react";
 import { PageHeader, StatCard, Chip, StatusChip, ProgressBar, GradientButton } from "@/components/ui";
+import { useData } from "@/lib/state";
 import {
   dashboardStats,
   upcomingSends,
-  getClients,
-  getSeriesTemplate,
+  findTemplate,
   programCompletion,
   seriesProgress,
   fmtDate,
@@ -14,10 +17,12 @@ import {
 } from "@/lib/store";
 
 export default function DashboardPage() {
+  const { clients, templates } = useData();
+  const router = useRouter();
   const today = new Date();
-  const stats = dashboardStats(today);
-  const sends = upcomingSends(today).slice(0, 6);
-  const activeClients = getClients().filter((c) => c.status === "active");
+  const stats = dashboardStats(clients, templates, today);
+  const sends = upcomingSends(clients, templates, today).slice(0, 6);
+  const activeClients = clients.filter((c) => c.status === "active");
 
   return (
     <>
@@ -25,20 +30,29 @@ export default function DashboardPage() {
         title="Dashboard"
         subtitle={`Today is ${fmtDate(today)} — here's what's moving.`}
         action={
-          <Link href="/clients">
-            <GradientButton>+ New client</GradientButton>
-          </Link>
+          <GradientButton onClick={() => router.push("/clients?new=1")}>
+            + New client
+          </GradientButton>
         }
       />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatCard accent label="Active clients" value={stats.activeClients} hint="1 more onboarding" />
+        <StatCard
+          accent
+          label="Active clients"
+          value={stats.activeClients}
+          hint={
+            stats.onboardingClients
+              ? `${stats.onboardingClients} more onboarding`
+              : "all live"
+          }
+        />
         <StatCard label="Members enrolled" value={stats.membersEnrolled} hint="across all programs" />
         <StatCard label="Sends · next 30 days" value={stats.scheduledNext30} hint="emails scheduled" />
         <StatCard
           label="Module library"
           value={stats.seriesInLibrary}
-          hint={`${stats.totalLessons} lessons in 5 series`}
+          hint={`${stats.totalLessons} lessons in ${stats.seriesInLibrary} series`}
         />
       </div>
 
@@ -103,7 +117,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-5">
             {activeClients.map((client) =>
               client.programs.map((program) => {
-                const completion = programCompletion(program, today);
+                const completion = programCompletion(program, templates, today);
                 return (
                   <Link
                     key={program.id}
@@ -114,7 +128,9 @@ export default function DashboardPage() {
                       <p className="text-sm font-bold">{client.name}</p>
                       <StatusChip status={client.status} />
                     </div>
-                    <p className="mt-0.5 text-xs text-mist">{program.code} · {client.members.length} members</p>
+                    <p className="mt-0.5 text-xs text-mist">
+                      {program.code} · {client.members.length} members
+                    </p>
                     <div className="mt-3">
                       <ProgressBar pct={completion.pct} />
                       <p className="mt-1.5 text-[11px] text-mist">
@@ -123,7 +139,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {program.seriesIds.map((id) => {
-                        const series = getSeriesTemplate(id);
+                        const series = findTemplate(templates, id);
                         if (!series) return null;
                         const p = seriesProgress(program, series, today);
                         return (
@@ -136,6 +152,9 @@ export default function DashboardPage() {
                   </Link>
                 );
               })
+            )}
+            {activeClients.length === 0 && (
+              <p className="text-sm text-mist">No active programs yet.</p>
             )}
           </div>
         </section>

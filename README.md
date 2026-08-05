@@ -5,11 +5,20 @@ lesson trajectories (drip series of Intendrix lessons + emails) per client
 organization. The client-facing side will live inside Mighty Networks and is
 a later phase.
 
-## Current phase: UX mockup on the real app shell
+## Current phase: interactive prototype on the real app shell
 
-This is the production Next.js app, running on a **mock data layer** — no
-database, no auth yet. All screens read through `lib/store.ts`, so swapping
-the mock source (`lib/data.ts`) for Supabase later does not touch the UI.
+This is the production Next.js app, running as a **fully clickable prototype
+with no database or auth yet**. State is seeded from `lib/data.ts`, managed by
+the reducer in `lib/state.tsx`, and persisted per-browser in localStorage
+(reset it under Settings → Prototype data). Scheduling/statistics logic lives
+in pure functions in `lib/store.ts`. In the Supabase phase the reducer actions
+become database mutations behind the same interface — the UI doesn't change.
+
+Working flows: create a client · load module templates into a program (all
+five, or one at a time) · set/change session dates (series schedule
+recompute live) · add/remove members with Leader/Participant/Coach roles ·
+edit every email subject/body, lesson label/URL, cadence offset and send
+time inline · add/remove/reorder lessons in a series · create new series.
 
 - **Dashboard** — stats, upcoming sends, program overview
 - **Clients** — client organizations; detail view with session dates, loaded

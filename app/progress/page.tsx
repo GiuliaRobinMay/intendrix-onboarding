@@ -1,8 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { PageHeader, Chip, StatusChip, ProgressBar } from "@/components/ui";
+import { useData } from "@/lib/state";
 import {
-  getClients,
-  getSeriesTemplate,
+  findTemplate,
   computeSchedule,
   programCompletion,
   fmtDate,
@@ -11,8 +13,9 @@ import {
 } from "@/lib/store";
 
 export default function ProgressPage() {
+  const { clients, templates } = useData();
   const today = new Date();
-  const clientsWithPrograms = getClients().filter((c) => c.programs.length > 0);
+  const clientsWithPrograms = clients.filter((c) => c.programs.length > 0);
 
   return (
     <>
@@ -22,9 +25,14 @@ export default function ProgressPage() {
       />
 
       <div className="flex flex-col gap-8">
+        {clientsWithPrograms.length === 0 && (
+          <div className="card p-10 text-center text-sm text-mist">
+            No programs yet — create a client and load a module to see progress here.
+          </div>
+        )}
         {clientsWithPrograms.map((client) =>
           client.programs.map((program) => {
-            const completion = programCompletion(program, today);
+            const completion = programCompletion(program, templates, today);
             return (
               <section key={program.id} className="card p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -49,7 +57,7 @@ export default function ProgressPage() {
 
                 <div className="mt-6 flex flex-col gap-6">
                   {program.seriesIds.map((sid) => {
-                    const series = getSeriesTemplate(sid);
+                    const series = findTemplate(templates, sid);
                     if (!series) return null;
                     const schedule = computeSchedule(program, series, today);
                     const session = program.sessions.find(

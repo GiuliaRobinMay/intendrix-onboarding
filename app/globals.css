@@ -11,6 +11,7 @@
 }
 
 body {
+  color-scheme: dark;
   background-color: var(--color-ink);
   background-image:
     radial-gradient(900px 500px at 85% -10%, rgba(44, 45, 131, 0.35), transparent 60%),

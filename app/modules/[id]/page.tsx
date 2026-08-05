@@ -1,47 +1,75 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
   Clock,
   Crown,
   ExternalLink,
   Mail,
+  Plus,
+  Trash2,
   TriangleAlert,
   Users,
   Zap,
 } from "lucide-react";
-import { PageHeader, Chip, GhostButton, GradientButton } from "@/components/ui";
-import { getSeriesTemplate } from "@/lib/store";
-import type { SeriesStep, StepContent } from "@/lib/types";
+import { PageHeader, Chip, GhostButton } from "@/components/ui";
+import { EditableText } from "@/components/editable";
+import { useData, type Action } from "@/lib/state";
+import type { SeriesStep, SeriesTemplate, StepContent } from "@/lib/types";
 
-function LinkRow({ link }: { link: { label: string; url: string | null } }) {
-  if (!link.url) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#eb320f]/15 px-2.5 py-1 text-xs font-semibold text-[#ff7a55]">
-        <TriangleAlert size={12} /> {link.label} — link missing
-      </span>
-    );
-  }
+function LessonLinkEditor({
+  content,
+  onPatch,
+}: {
+  content: StepContent;
+  onPatch: (patch: Partial<StepContent>) => void;
+}) {
+  const lesson = content.lesson;
+  if (!lesson) return null;
   return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-xs font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+    <div
+      className={`rounded-lg px-2.5 py-1.5 ${
+        lesson.url ? "bg-white/5" : "bg-[#eb320f]/15"
+      }`}
     >
-      <ExternalLink size={12} /> {link.label}
-    </a>
+      <div className="flex items-center gap-1.5">
+        {lesson.url ? (
+          <a href={lesson.url} target="_blank" rel="noreferrer" className="shrink-0">
+            <ExternalLink size={12} className="text-mist hover:text-paper" />
+          </a>
+        ) : (
+          <TriangleAlert size={12} className="shrink-0 text-[#ff7a55]" />
+        )}
+        <EditableText
+          value={lesson.label}
+          onCommit={(v) => onPatch({ lesson: { ...lesson, label: v } })}
+          className="text-xs font-medium"
+        />
+      </div>
+      <EditableText
+        value={lesson.url ?? ""}
+        placeholder="Paste the intendrix.ai lesson URL…"
+        onCommit={(v) => onPatch({ lesson: { ...lesson, url: v.trim() || null } })}
+        className={`mt-0.5 text-[11px] ${lesson.url ? "text-mist/70" : "text-[#ff7a55]"}`}
+      />
+    </div>
   );
 }
 
-function VariantBlock({
+function VariantEditor({
   label,
   content,
   leader,
+  onPatch,
 }: {
   label: string;
   content: StepContent;
   leader?: boolean;
+  onPatch: (patch: Partial<StepContent>) => void;
 }) {
   return (
     <div className="rounded-xl bg-white/3 p-4">
@@ -49,14 +77,37 @@ function VariantBlock({
         {leader ? <Crown size={12} className="text-[#ff7a55]" /> : <Users size={12} />}
         {label}
       </p>
-      <p className="mt-2 flex items-start gap-1.5 text-sm font-semibold">
-        <Mail size={14} className="mt-0.5 shrink-0 text-mist" />
-        {content.emailSubject}
-      </p>
-      <p className="mt-1.5 text-xs leading-relaxed text-mist">{content.emailBody}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {content.lesson && <LinkRow link={content.lesson} />}
-        {content.extras?.map((x) => <LinkRow key={x.label} link={x} />)}
+      <div className="mt-2 flex items-start gap-1.5">
+        <Mail size={14} className="mt-1 shrink-0 text-mist" />
+        <EditableText
+          value={content.emailSubject}
+          onCommit={(v) => onPatch({ emailSubject: v })}
+          className="text-sm font-semibold"
+        />
+      </div>
+      <div className="mt-1.5">
+        <EditableText
+          multiline
+          value={content.emailBody}
+          onCommit={(v) => onPatch({ emailBody: v })}
+          className="text-xs leading-relaxed text-mist"
+        />
+      </div>
+      <div className="mt-3 flex flex-col gap-1.5">
+        <LessonLinkEditor content={content} onPatch={onPatch} />
+        {content.extras?.map((x) =>
+          x.url ? (
+            <a
+              key={x.label}
+              href={x.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-xs font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+            >
+              <ExternalLink size={12} /> {x.label}
+            </a>
+          ) : null
+        )}
       </div>
       {content.teamMeeting && (
         <p className="mt-3 rounded-lg border border-white/10 bg-navy/60 p-2.5 text-xs leading-relaxed">
@@ -71,47 +122,137 @@ function VariantBlock({
   );
 }
 
-function StepCard({
+function StepEditor({
   step,
   index,
-  color,
+  count,
+  series,
+  dispatch,
 }: {
   step: SeriesStep;
   index: number;
-  color: string;
+  count: number;
+  series: SeriesTemplate;
+  dispatch: (a: Action) => void;
 }) {
   const sameContent =
     JSON.stringify(step.participant) === JSON.stringify(step.leader);
+  const patchContent =
+    (variant: "participant" | "leader" | "both") =>
+    (patch: Partial<StepContent>) => {
+      if (variant === "both") {
+        dispatch({ type: "updateStepContent", templateId: series.id, stepId: step.id, variant: "participant", patch });
+        dispatch({ type: "updateStepContent", templateId: series.id, stepId: step.id, variant: "leader", patch });
+      } else {
+        dispatch({ type: "updateStepContent", templateId: series.id, stepId: step.id, variant, patch });
+      }
+    };
+
   return (
-    <li className="card p-5">
+    <li className="card group p-5">
       <div className="flex flex-wrap items-center gap-3">
         <div
           className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-paper"
-          style={{ backgroundColor: color }}
+          style={{ backgroundColor: series.color }}
         >
           {index + 1}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold">
-            {step.code} · {step.title}
-          </p>
+        <div className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="shrink-0 text-sm font-bold text-mist">
+            <EditableText
+              value={step.code}
+              onCommit={(v) =>
+                dispatch({ type: "updateStepMeta", templateId: series.id, stepId: step.id, patch: { code: v } })
+              }
+              className="w-24 text-sm font-bold"
+            />
+          </span>
+          <EditableText
+            value={step.title}
+            onCommit={(v) =>
+              dispatch({ type: "updateStepMeta", templateId: series.id, stepId: step.id, patch: { title: v } })
+            }
+            className="text-sm font-bold"
+          />
         </div>
-        <Chip color={color}>
-          <Clock size={11} />
-          {index === 0
-            ? `+${step.offsetDays} day${step.offsetDays > 1 ? "s" : ""} after trigger`
-            : `+${step.offsetDays} day${step.offsetDays > 1 ? "s" : ""}`}{" "}
-          · {step.sendTime}
-        </Chip>
+
+        <div className="flex items-center gap-1.5 text-xs text-mist">
+          <Clock size={12} style={{ color: series.color }} />
+          <span>+</span>
+          <input
+            type="number"
+            min={0}
+            value={step.offsetDays}
+            onChange={(e) =>
+              dispatch({
+                type: "updateStepMeta",
+                templateId: series.id,
+                stepId: step.id,
+                patch: { offsetDays: Math.max(0, Number(e.target.value) || 0) },
+              })
+            }
+            className="w-12 rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-center text-xs font-bold tabular-nums focus:border-white/30 focus:outline-none"
+          />
+          <span>{index === 0 ? "days after trigger ·" : "days ·"}</span>
+          <input
+            type="time"
+            value={step.sendTime}
+            onChange={(e) =>
+              dispatch({
+                type: "updateStepMeta",
+                templateId: series.id,
+                stepId: step.id,
+                patch: { sendTime: e.target.value || "08:00" },
+              })
+            }
+            className="rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-xs font-bold tabular-nums focus:border-white/30 focus:outline-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            disabled={index === 0}
+            onClick={() => dispatch({ type: "moveStep", templateId: series.id, stepId: step.id, dir: -1 })}
+            className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
+          >
+            <ArrowUp size={14} />
+          </button>
+          <button
+            disabled={index === count - 1}
+            onClick={() => dispatch({ type: "moveStep", templateId: series.id, stepId: step.id, dir: 1 })}
+            className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
+          >
+            <ArrowDown size={14} />
+          </button>
+          <button
+            onClick={() => dispatch({ type: "removeStep", templateId: series.id, stepId: step.id })}
+            className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       <div className={`mt-4 grid gap-3 ${sameContent ? "" : "lg:grid-cols-2"}`}>
         {sameContent ? (
-          <VariantBlock label="Participant + Leader (identical)" content={step.participant} />
+          <VariantEditor
+            label="Participant + Leader (identical)"
+            content={step.participant}
+            onPatch={patchContent("both")}
+          />
         ) : (
           <>
-            <VariantBlock label="Participant series" content={step.participant} />
-            <VariantBlock label="Leader series" content={step.leader} leader />
+            <VariantEditor
+              label="Participant series"
+              content={step.participant}
+              onPatch={patchContent("participant")}
+            />
+            <VariantEditor
+              label="Leader series"
+              content={step.leader}
+              leader
+              onPatch={patchContent("leader")}
+            />
           </>
         )}
       </div>
@@ -119,14 +260,21 @@ function StepCard({
   );
 }
 
-export default async function ModuleDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const series = getSeriesTemplate(id);
-  if (!series) notFound();
+export default function ModuleDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { templates, dispatch } = useData();
+  const series = templates.find((t) => t.id === id);
+
+  if (!series) {
+    return (
+      <div className="card p-10 text-center text-sm text-mist">
+        Series not found.{" "}
+        <Link href="/modules" className="font-semibold text-paper underline">
+          Back to the library
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -139,12 +287,11 @@ export default async function ModuleDetailPage({
 
       <PageHeader
         title={`${series.code} · ${series.name}`}
-        subtitle={`Focus: ${series.focus}`}
+        subtitle={`Focus: ${series.focus} — click any text to edit it.`}
         action={
-          <div className="flex items-center gap-3">
-            <GhostButton>Edit series</GhostButton>
-            <GradientButton>Load into a client</GradientButton>
-          </div>
+          <GhostButton onClick={() => dispatch({ type: "addStep", templateId: series.id })}>
+            + Add lesson
+          </GhostButton>
         }
       />
 
@@ -157,7 +304,9 @@ export default async function ModuleDetailPage({
         <p className="flex items-center gap-2">
           <Mail size={15} className="text-mist" />
           <span className="text-mist">Sends:</span>
-          <span className="font-semibold">{series.steps.length} lessons, two variants in tandem</span>
+          <span className="font-semibold">
+            {series.steps.length} lessons, two variants in tandem
+          </span>
         </p>
         <p className="text-xs text-mist">
           Both variants always go out on the identical schedule — only the content differs.
@@ -166,9 +315,23 @@ export default async function ModuleDetailPage({
 
       <ol className="flex flex-col gap-4">
         {series.steps.map((step, i) => (
-          <StepCard key={step.id} step={step} index={i} color={series.color} />
+          <StepEditor
+            key={step.id}
+            step={step}
+            index={i}
+            count={series.steps.length}
+            series={series}
+            dispatch={dispatch}
+          />
         ))}
       </ol>
+
+      <button
+        onClick={() => dispatch({ type: "addStep", templateId: series.id })}
+        className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-white/10 py-5 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+      >
+        <Plus size={15} /> Add a lesson to this series
+      </button>
     </>
   );
 }
