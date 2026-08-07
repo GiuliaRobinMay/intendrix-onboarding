@@ -1,7 +1,9 @@
 // Core domain model for the Intendrix team backend.
-// In the mockup phase this is served from lib/data.ts through lib/store.ts;
-// in the Supabase phase the same shapes become tables.
+// In the prototype phase this is served from lib/data.ts through
+// lib/state.tsx; in the Supabase phase the same shapes become tables.
 
+/** Standard session kinds — used to auto-bind series templates when a
+ *  campaign is created. Campaigns can also contain custom sessions. */
 export type SessionKey =
   | "orientation"
   | "workshop"
@@ -46,6 +48,7 @@ export interface SeriesTemplate {
   code: string; // POEA, PWEA, PCS1, PCS2, PLS
   name: string;
   focus: string;
+  /** default binding: the standard session kind that usually triggers this series */
   trigger: SessionKey;
   triggerLabel: string;
   /** series accent colour — a stop on the red→indigo brand ramp */
@@ -63,22 +66,33 @@ export interface Member {
   title?: string;
 }
 
-export interface ProgramSession {
-  key: SessionKey;
+/** A live or online meeting inside a campaign. Campaigns can have any
+ *  number of sessions — zero, five, or more. */
+export interface CampaignSession {
+  id: string;
   name: string;
-  /** ISO date, or null = not yet planned (series stays unscheduled) */
+  /** ISO date, or null = not yet planned (bound series stay unscheduled) */
   date: string | null;
   mode: "virtual" | "in-person";
+  /** standard kind for auto-binding series templates; custom sessions omit it */
+  kind?: SessionKey;
 }
 
-export interface ClientProgram {
+/** A series template loaded into a campaign, bound to the session whose
+ *  date triggers it. Rebinding lets the team mix the series order. */
+export interface LoadedSeries {
+  templateId: string;
+  /** id of the triggering session in this campaign; null = not bound yet */
+  sessionId: string | null;
+}
+
+export interface Campaign {
   id: string;
   code: string; // e.g. TLE-E
   name: string;
   timezone: string;
-  sessions: ProgramSession[];
-  /** series templates loaded into this program (per-client copy in the real build) */
-  seriesIds: string[];
+  sessions: CampaignSession[];
+  series: LoadedSeries[];
 }
 
 export type ClientStatus = "active" | "onboarding" | "archived";
@@ -91,7 +105,7 @@ export interface Client {
   sector: string;
   status: ClientStatus;
   members: Member[];
-  programs: ClientProgram[];
+  campaigns: Campaign[];
 }
 
 export interface ScheduledStep {

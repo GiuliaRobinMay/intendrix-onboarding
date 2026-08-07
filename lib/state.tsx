@@ -14,8 +14,9 @@ import {
 } from "react";
 import { clients as seedClients, seriesTemplates as seedTemplates } from "./data";
 import type {
+  Campaign,
+  CampaignSession,
   Client,
-  ClientProgram,
   MemberRole,
   SeriesStep,
   SeriesTemplate,
@@ -24,7 +25,8 @@ import type {
 } from "./types";
 
 const STORAGE_KEY = "intendrix-prototype";
-const SEED_VERSION = 1;
+/** bump when the seed shape changes so stale storage is discarded */
+const SEED_VERSION = 2;
 
 interface DB {
   seedVersion: number;
@@ -48,12 +50,17 @@ const TRIGGER_LABELS: Record<SessionKey, string> = {
 
 const SERIES_RAMP = ["#eb320f", "#cf3352", "#a1348c", "#6531a5", "#2c2d83"];
 
-const DEFAULT_SESSIONS: ClientProgram["sessions"] = [
-  { key: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
-  { key: "workshop", name: "Workshop", date: null, mode: "in-person" },
-  { key: "coaching1", name: "Coaching Session 1 · Management", date: null, mode: "virtual" },
-  { key: "coaching2", name: "Coaching Session 2 · Coaching", date: null, mode: "in-person" },
-  { key: "launch", name: "Launch Session", date: null, mode: "virtual" },
+/** The standard five-session TLE shape, offered when creating a campaign. */
+export const STANDARD_SESSIONS: Array<{
+  kind: SessionKey;
+  name: string;
+  mode: "virtual" | "in-person";
+}> = [
+  { kind: "orientation", name: "Orientation Session", mode: "virtual" },
+  { kind: "workshop", name: "Workshop", mode: "in-person" },
+  { kind: "coaching1", name: "Coaching Session 1 · Management", mode: "virtual" },
+  { kind: "coaching2", name: "Coaching Session 2 · Coaching", mode: "in-person" },
+  { kind: "launch", name: "Launch Session", mode: "virtual" },
 ];
 
 function uid(prefix: string): string {
@@ -63,7 +70,9 @@ function uid(prefix: string): string {
 export type Action =
   | { type: "hydrate"; db: DB }
   | { type: "reset" }
+  // clients
   | { type: "addClient"; name: string; location: string; sector: string }
+  | { type: "removeClient"; clientId: string }
   | {
       type: "addMember";
       clientId: string;
@@ -73,15 +82,65 @@ export type Action =
       role: MemberRole;
     }
   | { type: "removeMember"; clientId: string; memberId: string }
+  // campaigns
   | {
-      type: "setSessionDate";
+      type: "addCampaign";
       clientId: string;
-      programId: string;
-      sessionKey: SessionKey;
-      date: string | null;
+      name: string;
+      code: string;
+      timezone?: string;
+      /** create the standard five sessions, or start empty */
+      withStandardSessions: boolean;
+      /** load these series templates straight away (auto-bound by kind) */
+      templateIds: string[];
     }
-  | { type: "loadModules"; clientId: string; templateIds: string[] }
-  | { type: "unloadModule"; clientId: string; templateId: string }
+  | { type: "removeCampaign"; clientId: string; campaignId: string }
+  | {
+      type: "updateCampaign";
+      clientId: string;
+      campaignId: string;
+      patch: Partial<Pick<Campaign, "name" | "code" | "timezone">>;
+    }
+  // sessions (variable number per campaign)
+  | { type: "addSession"; clientId: string; campaignId: string; name?: string }
+  | { type: "removeSession"; clientId: string; campaignId: string; sessionId: string }
+  | {
+      type: "updateSession";
+      clientId: string;
+      campaignId: string;
+      sessionId: string;
+      patch: Partial<Pick<CampaignSession, "name" | "date" | "mode">>;
+    }
+  | {
+      type: "moveSession";
+      clientId: string;
+      campaignId: string;
+      sessionId: string;
+      dir: -1 | 1;
+    }
+  // series loaded into a campaign
+  | {
+      type: "loadSeries";
+      clientId: string;
+      campaignId: string;
+      templateIds: string[];
+    }
+  | { type: "unloadSeries"; clientId: string; campaignId: string; templateId: string }
+  | {
+      type: "bindSeries";
+      clientId: string;
+      campaignId: string;
+      templateId: string;
+      sessionId: string | null;
+    }
+  | {
+      type: "moveSeries";
+      clientId: string;
+      campaignId: string;
+      templateId: string;
+      dir: -1 | 1;
+    }
+  // module library
   | {
       type: "updateStepMeta";
       templateId: string;
@@ -124,6 +183,26 @@ function mapClient(db: DB, clientId: string, fn: (c: Client) => Client): DB {
   };
 }
 
+function mapCampaign(
+  db: DB,
+  clientId: string,
+  campaignId: string,
+  fn: (c: Campaign) => Campaign
+): DB {
+  return mapClient(db, clientId, (client) => ({
+    ...client,
+    campaigns: client.campaigns.map((c) => (c.id === campaignId ? fn(c) : c)),
+  }));
+}
+
+function move<T>(list: T[], index: number, dir: -1 | 1): T[] {
+  const j = index + dir;
+  if (index < 0 || j < 0 || j >= list.length) return list;
+  const next = [...list];
+  [next[index], next[j]] = [next[j], next[index]];
+  return next;
+}
+
 function reducer(db: DB, action: Action): DB {
   switch (action.type) {
     case "hydrate":
@@ -131,6 +210,8 @@ function reducer(db: DB, action: Action): DB {
 
     case "reset":
       return seed();
+
+    // ——— clients ———————————————————————————————————————————
 
     case "addClient": {
       const client: Client = {
@@ -141,10 +222,13 @@ function reducer(db: DB, action: Action): DB {
         sector: action.sector || "—",
         status: "onboarding",
         members: [],
-        programs: [],
+        campaigns: [],
       };
       return { ...db, clients: [...db.clients, client] };
     }
+
+    case "removeClient":
+      return { ...db, clients: db.clients.filter((c) => c.id !== action.clientId) };
 
     case "addMember":
       return mapClient(db, action.clientId, (c) => ({
@@ -167,59 +251,143 @@ function reducer(db: DB, action: Action): DB {
         members: c.members.filter((m) => m.id !== action.memberId),
       }));
 
-    case "setSessionDate":
-      return mapClient(db, action.clientId, (c) => ({
-        ...c,
-        programs: c.programs.map((p) =>
-          p.id === action.programId
-            ? {
-                ...p,
-                sessions: p.sessions.map((s) =>
-                  s.key === action.sessionKey ? { ...s, date: action.date } : s
-                ),
-              }
-            : p
-        ),
-      }));
+    // ——— campaigns —————————————————————————————————————————
 
-    case "loadModules":
-      return mapClient(db, action.clientId, (c) => {
-        if (c.programs.length === 0) {
-          const program: ClientProgram = {
-            id: uid("program"),
-            code: "TLE-E",
-            name: "Transformational Leadership Experience for Executives",
-            timezone: "America/New_York",
-            sessions: DEFAULT_SESSIONS,
-            seriesIds: action.templateIds,
-          };
-          return { ...c, status: "active", programs: [program] };
-        }
-        return {
-          ...c,
-          programs: c.programs.map((p, i) =>
-            i === 0
-              ? {
-                  ...p,
-                  seriesIds: [
-                    ...p.seriesIds,
-                    ...action.templateIds.filter((t) => !p.seriesIds.includes(t)),
-                  ],
-                }
-              : p
-          ),
-        };
+    case "addCampaign": {
+      const sessions: CampaignSession[] = action.withStandardSessions
+        ? STANDARD_SESSIONS.map((s) => ({
+            id: uid("session"),
+            kind: s.kind,
+            name: s.name,
+            date: null,
+            mode: s.mode,
+          }))
+        : [];
+
+      // auto-bind each loaded template to the session matching its kind
+      const series = action.templateIds.map((templateId) => {
+        const template = db.templates.find((t) => t.id === templateId);
+        const match = template
+          ? sessions.find((s) => s.kind === template.trigger)
+          : undefined;
+        return { templateId, sessionId: match?.id ?? null };
       });
 
-    case "unloadModule":
+      const campaign: Campaign = {
+        id: uid("campaign"),
+        code: action.code || "TLE",
+        name: action.name,
+        timezone: action.timezone || "America/New_York",
+        sessions,
+        series,
+      };
+
       return mapClient(db, action.clientId, (c) => ({
         ...c,
-        programs: c.programs.map((p, i) =>
-          i === 0
-            ? { ...p, seriesIds: p.seriesIds.filter((t) => t !== action.templateId) }
-            : p
+        status: c.status === "onboarding" ? "active" : c.status,
+        campaigns: [...c.campaigns, campaign],
+      }));
+    }
+
+    case "removeCampaign":
+      return mapClient(db, action.clientId, (c) => ({
+        ...c,
+        campaigns: c.campaigns.filter((x) => x.id !== action.campaignId),
+      }));
+
+    case "updateCampaign":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        ...action.patch,
+      }));
+
+    // ——— sessions ——————————————————————————————————————————
+
+    case "addSession":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        sessions: [
+          ...c.sessions,
+          {
+            id: uid("session"),
+            name: action.name ?? `Session ${c.sessions.length + 1}`,
+            date: null,
+            mode: "virtual",
+          },
+        ],
+      }));
+
+    case "removeSession":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        sessions: c.sessions.filter((s) => s.id !== action.sessionId),
+        // any series bound to the removed session falls back to unbound
+        series: c.series.map((s) =>
+          s.sessionId === action.sessionId ? { ...s, sessionId: null } : s
         ),
       }));
+
+    case "updateSession":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        sessions: c.sessions.map((s) =>
+          s.id === action.sessionId ? { ...s, ...action.patch } : s
+        ),
+      }));
+
+    case "moveSession":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        sessions: move(
+          c.sessions,
+          c.sessions.findIndex((s) => s.id === action.sessionId),
+          action.dir
+        ),
+      }));
+
+    // ——— series inside a campaign ——————————————————————————
+
+    case "loadSeries":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        const fresh = action.templateIds
+          .filter((id) => !c.series.some((s) => s.templateId === id))
+          .map((templateId) => {
+            const template = db.templates.find((t) => t.id === templateId);
+            const match = template
+              ? c.sessions.find((s) => s.kind === template.trigger)
+              : undefined;
+            return { templateId, sessionId: match?.id ?? null };
+          });
+        return { ...c, series: [...c.series, ...fresh] };
+      });
+
+    case "unloadSeries":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        series: c.series.filter((s) => s.templateId !== action.templateId),
+      }));
+
+    case "bindSeries":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        series: c.series.map((s) =>
+          s.templateId === action.templateId
+            ? { ...s, sessionId: action.sessionId }
+            : s
+        ),
+      }));
+
+    case "moveSeries":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        series: move(
+          c.series,
+          c.series.findIndex((s) => s.templateId === action.templateId),
+          action.dir
+        ),
+      }));
+
+    // ——— module library ————————————————————————————————————
 
     case "updateStepMeta":
       return mapTemplate(db, action.templateId, (t) => ({
@@ -265,14 +433,14 @@ function reducer(db: DB, action: Action): DB {
       }));
 
     case "moveStep":
-      return mapTemplate(db, action.templateId, (t) => {
-        const i = t.steps.findIndex((s) => s.id === action.stepId);
-        const j = i + action.dir;
-        if (i < 0 || j < 0 || j >= t.steps.length) return t;
-        const steps = [...t.steps];
-        [steps[i], steps[j]] = [steps[j], steps[i]];
-        return { ...t, steps };
-      });
+      return mapTemplate(db, action.templateId, (t) => ({
+        ...t,
+        steps: move(
+          t.steps,
+          t.steps.findIndex((s) => s.id === action.stepId),
+          action.dir
+        ),
+      }));
 
     case "addSeries": {
       const template: SeriesTemplate = {
@@ -329,7 +497,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [db]);
 
   return (
-    <DataContext.Provider value={{ clients: db.clients, templates: db.templates, dispatch }}>
+    <DataContext.Provider
+      value={{ clients: db.clients, templates: db.templates, dispatch }}
+    >
       {children}
     </DataContext.Provider>
   );

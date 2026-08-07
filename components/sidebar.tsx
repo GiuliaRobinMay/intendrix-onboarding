@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
+  Megaphone,
   Layers,
   Activity,
   Settings,
@@ -13,6 +14,7 @@ import {
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Users },
+  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/modules", label: "Modules", icon: Layers },
   { href: "/progress", label: "Progress", icon: Activity },
   { href: "/settings", label: "Settings", icon: Settings },

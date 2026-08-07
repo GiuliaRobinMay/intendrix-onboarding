@@ -656,20 +656,26 @@ export const clients: Client[] = [
     sector: "Community healthcare",
     status: "active",
     members: careSouthMembers,
-    programs: [
+    campaigns: [
       {
         id: "caresouth-tle-e",
         code: "TLE-E",
-        name: "Transformational Leadership Experience for Executives",
+        name: "TLE for Executives",
         timezone: "America/New_York",
         sessions: [
-          { key: "orientation", name: "Orientation Session", date: "2026-08-05", mode: "virtual" },
-          { key: "workshop", name: "Workshop", date: "2026-09-16", mode: "in-person" },
-          { key: "coaching1", name: "Coaching Session 1 · Management", date: null, mode: "virtual" },
-          { key: "coaching2", name: "Coaching Session 2 · Coaching", date: null, mode: "in-person" },
-          { key: "launch", name: "Launch Session", date: null, mode: "virtual" },
+          { id: "cs-s1", kind: "orientation", name: "Orientation Session", date: "2026-08-05", mode: "virtual" },
+          { id: "cs-s2", kind: "workshop", name: "Workshop", date: "2026-09-16", mode: "in-person" },
+          { id: "cs-s3", kind: "coaching1", name: "Coaching Session 1 · Management", date: null, mode: "virtual" },
+          { id: "cs-s4", kind: "coaching2", name: "Coaching Session 2 · Coaching", date: null, mode: "in-person" },
+          { id: "cs-s5", kind: "launch", name: "Launch Session", date: null, mode: "virtual" },
         ],
-        seriesIds: ["poea", "pwea", "pcs1", "pcs2", "pls"],
+        series: [
+          { templateId: "poea", sessionId: "cs-s1" },
+          { templateId: "pwea", sessionId: "cs-s2" },
+          { templateId: "pcs1", sessionId: "cs-s3" },
+          { templateId: "pcs2", sessionId: "cs-s4" },
+          { templateId: "pls", sessionId: "cs-s5" },
+        ],
       },
     ],
   },
@@ -681,7 +687,7 @@ export const clients: Client[] = [
     sector: "Example client",
     status: "onboarding",
     members: [],
-    programs: [],
+    campaigns: [],
   },
 ];
 
