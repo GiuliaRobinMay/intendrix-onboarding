@@ -16,7 +16,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { PageHeader, Chip, GhostButton } from "@/components/ui";
+import { Chip, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { useData, type Action } from "@/lib/state";
 import type { SeriesStep, SeriesTemplate, StepContent } from "@/lib/types";
@@ -31,11 +31,7 @@ function LessonLinkEditor({
   const lesson = content.lesson;
   if (!lesson) return null;
   return (
-    <div
-      className={`rounded-lg px-2.5 py-1.5 ${
-        lesson.url ? "bg-white/5" : "bg-[#eb320f]/15"
-      }`}
-    >
+    <div className={`rounded-lg px-2.5 py-1.5 ${lesson.url ? "bg-white/5" : "bg-[#eb320f]/15"}`}>
       <div className="flex items-center gap-1.5">
         {lesson.url ? (
           <a href={lesson.url} target="_blank" rel="noreferrer" className="shrink-0">
@@ -135,11 +131,9 @@ function StepEditor({
   series: SeriesTemplate;
   dispatch: (a: Action) => void;
 }) {
-  const sameContent =
-    JSON.stringify(step.participant) === JSON.stringify(step.leader);
+  const sameContent = JSON.stringify(step.participant) === JSON.stringify(step.leader);
   const patchContent =
-    (variant: "participant" | "leader" | "both") =>
-    (patch: Partial<StepContent>) => {
+    (variant: "participant" | "leader" | "both") => (patch: Partial<StepContent>) => {
       if (variant === "both") {
         dispatch({ type: "updateStepContent", templateId: series.id, stepId: step.id, variant: "participant", patch });
         dispatch({ type: "updateStepContent", templateId: series.id, stepId: step.id, variant: "leader", patch });
@@ -260,17 +254,19 @@ function StepEditor({
   );
 }
 
-export default function ModuleDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { templates, dispatch } = useData();
-  const series = templates.find((t) => t.id === id);
+export default function SeriesEditorPage() {
+  const { id, seriesId } = useParams<{ id: string; seriesId: string }>();
+  const { campaignTemplates, templates, dispatch } = useData();
 
-  if (!series) {
+  const ct = campaignTemplates.find((t) => t.id === id);
+  const series = templates.find((t) => t.id === seriesId);
+
+  if (!ct || !series) {
     return (
       <div className="card p-10 text-center text-sm text-mist">
         Series not found.{" "}
-        <Link href="/modules" className="font-semibold text-paper underline">
-          Back to the library
+        <Link href="/settings/campaigns" className="font-semibold text-paper underline">
+          Back to campaigns
         </Link>
       </div>
     );
@@ -279,27 +275,31 @@ export default function ModuleDetailPage() {
   return (
     <>
       <Link
-        href="/modules"
+        href={`/settings/campaigns/${ct.id}`}
         className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mist transition-colors hover:text-paper"
       >
-        <ArrowLeft size={13} /> Module library
+        <ArrowLeft size={13} /> {ct.name}
       </Link>
 
-      <PageHeader
-        title={`${series.code} · ${series.name}`}
-        subtitle={`Focus: ${series.focus} — click any text to edit it.`}
-        action={
-          <GhostButton onClick={() => dispatch({ type: "addStep", templateId: series.id })}>
-            + Add lesson
-          </GhostButton>
-        }
-      />
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">
+            {series.code} · {series.name}
+          </h2>
+          <p className="mt-1 text-sm text-mist">
+            Focus: {series.focus} — click any text to edit it.
+          </p>
+        </div>
+        <GhostButton onClick={() => dispatch({ type: "addStep", templateId: series.id })}>
+          + Add lesson
+        </GhostButton>
+      </div>
 
       <div className="card mb-6 flex flex-wrap items-center gap-x-8 gap-y-3 p-5 text-sm">
         <p className="flex items-center gap-2">
           <Zap size={15} style={{ color: series.color }} />
-          <span className="text-mist">Trigger:</span>
-          <span className="font-semibold">date of {series.triggerLabel}</span>
+          <span className="text-mist">Usually triggered by:</span>
+          <span className="font-semibold">{series.triggerLabel}</span>
         </p>
         <p className="flex items-center gap-2">
           <Mail size={15} className="text-mist" />
@@ -309,7 +309,7 @@ export default function ModuleDetailPage() {
           </span>
         </p>
         <p className="text-xs text-mist">
-          Both variants always go out on the identical schedule — only the content differs.
+          Each client campaign binds this series to one of its own sessions.
         </p>
       </div>
 

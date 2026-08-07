@@ -43,6 +43,14 @@ export function findTemplate(
   return templates.find((t) => t.id === id);
 }
 
+/** The series belonging to one campaign blueprint. */
+export function seriesOfCampaignTemplate(
+  templates: SeriesTemplate[],
+  campaignTemplateId: string
+): SeriesTemplate[] {
+  return templates.filter((t) => t.campaignTemplateId === campaignTemplateId);
+}
+
 /** Locate a campaign (and its client) by campaign id. */
 export function findCampaign(
   clients: Client[],

@@ -27,16 +27,25 @@ send time inline · add/remove/reorder lessons in a series · create new series.
   that client, plus members (Leader vs Participant series assignment)
 - **Campaigns** — overview of all campaigns across all clients; detail view
   holds the sessions and the loaded series with their trigger bindings
-- **Modules** — the reusable series template library (the five TLE-E series
-  from Brad's document, with real lesson links, both variants, cadence,
-  Leaders Guides, and embedded team-meeting instructions)
 - **Progress** — full trajectory per campaign: sent / scheduled /
   awaiting-date per lesson
-- **Settings** — organization, team, email sending, branding, integrations
+- **Settings** — three tabs:
+  - *App settings* — organization, email sending, branding, integrations
+  - *Campaigns* — the campaign blueprint library. The list shows every
+    blueprint; open one to manage its series; open a series to edit its
+    lessons, emails and cadence
+  - *Team* — users and (later) Google sign-in with roles
 
 ### Domain model
 
+Design side (Settings → Campaigns):
+`Campaign blueprint → Series → Steps (lessons)`
+
+Delivery side:
 `Client → Campaign → Sessions + loaded Series → Steps (lessons)`
+
+A client campaign is created **from** a blueprint, which pre-loads its
+series; from there it can be adapted per client.
 
 - A **client** can run many **campaigns** (e.g. TLE-E for the executive team
   and TLE-S&M for middle management, in parallel or sequence).

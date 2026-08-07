@@ -12,10 +12,15 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { clients as seedClients, seriesTemplates as seedTemplates } from "./data";
+import {
+  campaignTemplates as seedCampaignTemplates,
+  clients as seedClients,
+  seriesTemplates as seedTemplates,
+} from "./data";
 import type {
   Campaign,
   CampaignSession,
+  CampaignTemplate,
   Client,
   MemberRole,
   SeriesStep,
@@ -26,17 +31,21 @@ import type {
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 interface DB {
   seedVersion: number;
   clients: Client[];
+  /** campaign blueprints (Settings → Campaigns) */
+  campaignTemplates: CampaignTemplate[];
+  /** series belonging to those blueprints */
   templates: SeriesTemplate[];
 }
 
 const seed = (): DB => ({
   seedVersion: SEED_VERSION,
   clients: seedClients,
+  campaignTemplates: seedCampaignTemplates,
   templates: seedTemplates,
 });
 
@@ -89,6 +98,8 @@ export type Action =
       name: string;
       code: string;
       timezone?: string;
+      /** the campaign blueprint this is created from */
+      fromTemplateId?: string;
       /** create the standard five sessions, or start empty */
       withStandardSessions: boolean;
       /** load these series templates straight away (auto-bound by kind) */
@@ -154,15 +165,25 @@ export type Action =
       variant: "participant" | "leader";
       patch: Partial<StepContent>;
     }
+  | { type: "removeSeries"; templateId: string }
   | { type: "addStep"; templateId: string }
   | { type: "removeStep"; templateId: string; stepId: string }
   | { type: "moveStep"; templateId: string; stepId: string; dir: -1 | 1 }
   | {
       type: "addSeries";
+      campaignTemplateId: string;
       name: string;
       code: string;
       focus: string;
       trigger: SessionKey;
+    }
+  // campaign blueprints
+  | { type: "addCampaignTemplate"; name: string; code: string; description: string }
+  | { type: "removeCampaignTemplate"; templateId: string }
+  | {
+      type: "updateCampaignTemplate";
+      templateId: string;
+      patch: Partial<Pick<CampaignTemplate, "name" | "code" | "description">>;
     };
 
 function mapTemplate(
@@ -278,6 +299,7 @@ function reducer(db: DB, action: Action): DB {
         code: action.code || "TLE",
         name: action.name,
         timezone: action.timezone || "America/New_York",
+        templateId: action.fromTemplateId,
         sessions,
         series,
       };
@@ -407,6 +429,20 @@ function reducer(db: DB, action: Action): DB {
         ),
       }));
 
+    case "removeSeries":
+      return {
+        ...db,
+        templates: db.templates.filter((t) => t.id !== action.templateId),
+        // drop it from any campaign that had it loaded
+        clients: db.clients.map((c) => ({
+          ...c,
+          campaigns: c.campaigns.map((cp) => ({
+            ...cp,
+            series: cp.series.filter((x) => x.templateId !== action.templateId),
+          })),
+        })),
+      };
+
     case "addStep":
       return mapTemplate(db, action.templateId, (t) => {
         const blank: StepContent = {
@@ -443,23 +479,58 @@ function reducer(db: DB, action: Action): DB {
       }));
 
     case "addSeries": {
+      const siblings = db.templates.filter(
+        (t) => t.campaignTemplateId === action.campaignTemplateId
+      );
       const template: SeriesTemplate = {
         id: uid("series"),
+        campaignTemplateId: action.campaignTemplateId,
         code: action.code.toUpperCase(),
         name: action.name,
         focus: action.focus || "—",
         trigger: action.trigger,
         triggerLabel: TRIGGER_LABELS[action.trigger],
-        color: SERIES_RAMP[db.templates.length % SERIES_RAMP.length],
+        color: SERIES_RAMP[siblings.length % SERIES_RAMP.length],
         steps: [],
       };
       return { ...db, templates: [...db.templates, template] };
     }
+
+    case "addCampaignTemplate": {
+      const template: CampaignTemplate = {
+        id: uid("ctpl"),
+        code: action.code.toUpperCase(),
+        name: action.name,
+        description: action.description,
+      };
+      return { ...db, campaignTemplates: [...db.campaignTemplates, template] };
+    }
+
+    case "removeCampaignTemplate":
+      return {
+        ...db,
+        campaignTemplates: db.campaignTemplates.filter(
+          (t) => t.id !== action.templateId
+        ),
+        // its series go with it
+        templates: db.templates.filter(
+          (t) => t.campaignTemplateId !== action.templateId
+        ),
+      };
+
+    case "updateCampaignTemplate":
+      return {
+        ...db,
+        campaignTemplates: db.campaignTemplates.map((t) =>
+          t.id === action.templateId ? { ...t, ...action.patch } : t
+        ),
+      };
   }
 }
 
 interface DataContextValue {
   clients: Client[];
+  campaignTemplates: CampaignTemplate[];
   templates: SeriesTemplate[];
   dispatch: (action: Action) => void;
 }
@@ -498,7 +569,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   return (
     <DataContext.Provider
-      value={{ clients: db.clients, templates: db.templates, dispatch }}
+      value={{
+        clients: db.clients,
+        campaignTemplates: db.campaignTemplates,
+        templates: db.templates,
+        dispatch,
+      }}
     >
       {children}
     </DataContext.Provider>

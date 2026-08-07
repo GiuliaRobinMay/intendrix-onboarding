@@ -93,7 +93,7 @@ export function Chip({
 }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
       style={{
         backgroundColor: color ? `${color}26` : "rgba(174,176,178,0.12)",
         color: color ?? "#aeb0b2",

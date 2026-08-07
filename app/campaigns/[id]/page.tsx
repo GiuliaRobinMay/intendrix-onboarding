@@ -304,7 +304,7 @@ export default function CampaignDetailPage() {
 
                     <div className="min-w-0 flex-1">
                       <Link
-                        href={`/modules/${series.id}`}
+                        href={`/settings/campaigns/${series.campaignTemplateId}/series/${series.id}`}
                         className="text-sm font-bold hover:underline"
                       >
                         {series.name}

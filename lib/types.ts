@@ -43,8 +43,22 @@ export interface SeriesStep {
   leader: StepContent;
 }
 
+/**
+ * A campaign blueprint in Settings → Campaigns: the reusable design of a
+ * whole programme (e.g. TLE for Executives), holding the series that make
+ * it up. Client campaigns are created from one of these.
+ */
+export interface CampaignTemplate {
+  id: string;
+  code: string; // e.g. TLE-E
+  name: string; // e.g. TLE for Executives
+  description: string;
+}
+
 export interface SeriesTemplate {
   id: string;
+  /** the campaign blueprint this series belongs to */
+  campaignTemplateId: string;
   code: string; // POEA, PWEA, PCS1, PCS2, PLS
   name: string;
   focus: string;
@@ -91,6 +105,8 @@ export interface Campaign {
   code: string; // e.g. TLE-E
   name: string;
   timezone: string;
+  /** the campaign blueprint this was created from, if any */
+  templateId?: string;
   sessions: CampaignSession[];
   series: LoadedSeries[];
 }

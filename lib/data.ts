@@ -3,7 +3,7 @@
 // "The New Transformational Leadership Experience for Executives" (7/31/26).
 // Member names (except roles/structure) are SAMPLE DATA.
 
-import type { Client, SeriesTemplate } from "./types";
+import type { CampaignTemplate, Client, SeriesTemplate } from "./types";
 
 const P = "https://intendrix.ai/posts/";
 
@@ -118,9 +118,22 @@ const L = {
   },
 } as const;
 
+// ——— Campaign blueprints (Settings → Campaigns) ——————————————
+
+export const campaignTemplates: CampaignTemplate[] = [
+  {
+    id: "tle-e",
+    code: "TLE-E",
+    name: "TLE for Executives",
+    description:
+      "The Transformational Leadership Experience for an executive team: five sessions over 26 weeks, each followed by its own series of Intendrix lessons.",
+  },
+];
+
 export const seriesTemplates: SeriesTemplate[] = [
   {
     id: "poea",
+    campaignTemplateId: "tle-e",
     code: "POEA",
     name: "Post-Orientation",
     focus: "Getting started & personal mastery",
@@ -229,6 +242,7 @@ export const seriesTemplates: SeriesTemplate[] = [
   },
   {
     id: "pwea",
+    campaignTemplateId: "tle-e",
     code: "PWEA",
     name: "Post-Workshop",
     focus: "Leadership",
@@ -344,6 +358,7 @@ export const seriesTemplates: SeriesTemplate[] = [
   },
   {
     id: "pcs1",
+    campaignTemplateId: "tle-e",
     code: "PCS1",
     name: "Post-Coaching Session 1",
     focus: "Management",
@@ -435,6 +450,7 @@ export const seriesTemplates: SeriesTemplate[] = [
   },
   {
     id: "pcs2",
+    campaignTemplateId: "tle-e",
     code: "PCS2",
     name: "Post-Coaching Session 2",
     focus: "Coaching",
@@ -547,6 +563,7 @@ export const seriesTemplates: SeriesTemplate[] = [
   },
   {
     id: "pls",
+    campaignTemplateId: "tle-e",
     code: "PLS",
     name: "Post-Launch",
     focus: "Integrated life & lasting habits",
@@ -662,6 +679,7 @@ export const clients: Client[] = [
         code: "TLE-E",
         name: "TLE for Executives",
         timezone: "America/New_York",
+        templateId: "tle-e",
         sessions: [
           { id: "cs-s1", kind: "orientation", name: "Orientation Session", date: "2026-08-05", mode: "virtual" },
           { id: "cs-s2", kind: "workshop", name: "Workshop", date: "2026-09-16", mode: "in-person" },
