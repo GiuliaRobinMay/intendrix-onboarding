@@ -106,6 +106,8 @@ export interface StaffMember {
   name: string;
   role: string;
   initials: string;
+  /** the unique sender address their communications go out from */
+  email: string;
 }
 
 /**

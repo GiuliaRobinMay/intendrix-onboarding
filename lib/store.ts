@@ -223,6 +223,71 @@ export function campaignStatus(
   return "active";
 }
 
+// ——— mailbox ———————————————————————————————————————————————
+
+export interface MailboxItem {
+  client: Client;
+  campaign: Campaign;
+  series: SeriesTemplate;
+  step: import("./types").SeriesStep;
+  date: Date | null;
+  status: "sent" | "scheduled" | "unscheduled";
+  /** who this communication goes out from (campaign manager, falling back
+   *  to account manager, then the client-level responsibles) */
+  sender?: StaffMember;
+}
+
+export function senderFor(
+  client: Client,
+  campaign: Campaign,
+  staff: StaffMember[]
+): StaffMember | undefined {
+  return findStaff(
+    staff,
+    campaign.campaignManagerId ??
+      campaign.accountManagerId ??
+      client.projectManagerId ??
+      client.accountManagerId
+  );
+}
+
+/** Every communication across all campaigns — one item per lesson send. */
+export function mailboxItems(
+  clients: Client[],
+  templates: SeriesTemplate[],
+  staff: StaffMember[],
+  today: Date = new Date()
+): MailboxItem[] {
+  const out: MailboxItem[] = [];
+  for (const client of clients) {
+    for (const campaign of client.campaigns) {
+      const sender = senderFor(client, campaign, staff);
+      for (const loaded of campaign.series) {
+        const series = findTemplate(templates, loaded.templateId);
+        if (!series) continue;
+        for (const item of computeSchedule(campaign, loaded, series, today)) {
+          out.push({
+            client,
+            campaign,
+            series,
+            step: item.step,
+            date: item.date,
+            status: item.status,
+            sender,
+          });
+        }
+      }
+    }
+  }
+  // dated items in chronological order, undated ones at the end
+  return out.sort((a, b) => {
+    if (a.date && b.date) return a.date.getTime() - b.date.getTime();
+    if (a.date) return -1;
+    if (b.date) return 1;
+    return a.client.name.localeCompare(b.client.name);
+  });
+}
+
 /** Overall campaign completion, measured in sent steps vs total steps. */
 export function campaignCompletion(
   campaign: Campaign,

@@ -37,6 +37,13 @@ send time inline · add/remove/reorder lessons in a series · create new series.
 - **Calendar** — a month agenda of every client meeting (sessions) and
   campaign start/end milestone across all campaigns, with an upcoming list —
   for following what's going on and spotting room to book new projects
+- **Mailbox** — the team's outbox: every communication that goes out to
+  members (one per lesson send), grouped by day, with the email subject,
+  client, campaign, series, audience, sender (the responsible's address)
+  and status. Scope tabs (today / this week / upcoming / sent / no date),
+  a from–to period, and client / campaign / responsible filters. Rows
+  expand to preview both email variants. Sending itself is the email
+  engine's job in a later phase — this is the view of it
 - **Settings** — three tabs:
   - *App settings* — organization, email sending, branding, integrations
   - *Campaigns* — the campaign blueprint library. The list shows every

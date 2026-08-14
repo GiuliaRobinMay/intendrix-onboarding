@@ -7,6 +7,7 @@ import {
   Users,
   Megaphone,
   CalendarDays,
+  Inbox,
   Settings,
 } from "lucide-react";
 
@@ -15,6 +16,7 @@ const nav = [
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/mailbox", label: "Mailbox", icon: Inbox },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
