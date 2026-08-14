@@ -5,18 +5,21 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  ArrowDown,
-  ArrowUp,
   CalendarDays,
+  ChevronDown,
+  Copy,
+  ExternalLink,
   GripVertical,
   Layers,
+  Link2,
+  Mail,
   MapPin,
   Plus,
   Trash2,
+  User,
   Video,
-  X,
 } from "lucide-react";
-import { Chip, ProgressBar, GhostButton } from "@/components/ui";
+import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { useData } from "@/lib/state";
 import { team } from "@/lib/data";
@@ -29,6 +32,8 @@ import {
   campaignStatus,
   triggerSession,
   fmtDate,
+  fmtDateShort,
+  fmtWeekday,
 } from "@/lib/store";
 import type { CampaignStatus } from "@/lib/types";
 
@@ -87,6 +92,10 @@ export default function CampaignDetailPage() {
   const [pickingModule, setPickingModule] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [seriesDragId, setSeriesDragId] = useState<string | null>(null);
+  const [seriesOverIndex, setSeriesOverIndex] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
   const today = new Date();
 
   const found = findCampaign(clients, id);
@@ -133,6 +142,19 @@ export default function CampaignDetailPage() {
     setDragId(null);
     setOverIndex(null);
   };
+
+  const endSeriesDrag = () => {
+    setSeriesDragId(null);
+    setSeriesOverIndex(null);
+  };
+
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   return (
     <>
@@ -244,6 +266,36 @@ export default function CampaignDetailPage() {
               </span>
               sessions dated
             </span>
+            <span className="flex items-center gap-1.5 text-mist">
+              <span>Runs</span>
+              <input
+                type="date"
+                value={campaign.startDate ?? ""}
+                onChange={(e) =>
+                  dispatch({
+                    type: "updateCampaign",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                    patch: { startDate: e.target.value || null },
+                  })
+                }
+                className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+              />
+              <span>→</span>
+              <input
+                type="date"
+                value={campaign.endDate ?? ""}
+                onChange={(e) =>
+                  dispatch({
+                    type: "updateCampaign",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                    patch: { endDate: e.target.value || null },
+                  })
+                }
+                className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+              />
+            </span>
           </div>
         </div>
 
@@ -263,6 +315,126 @@ export default function CampaignDetailPage() {
               }}
             />
           )}
+        </div>
+      </section>
+
+      {/* Client connection */}
+      <section className="card mb-6 p-6">
+        <h2 className="mb-1 flex items-center gap-2 text-base font-bold">
+          <Link2 size={17} className="text-mist" /> Client connection
+        </h2>
+        <p className="mb-4 text-xs text-mist">
+          The contact for this campaign and the links to their Mighty Networks
+          space — everything you need while working with them.
+        </p>
+        <div className="grid gap-x-8 gap-y-3 md:grid-cols-2">
+          <div className="flex items-center gap-2.5">
+            <User size={14} className="shrink-0 text-mist" />
+            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+              Contact
+            </span>
+            <EditableText
+              value={campaign.contactName ?? ""}
+              placeholder="Contact name…"
+              onCommit={(v) =>
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { contactName: v },
+                })
+              }
+              className="text-sm font-semibold"
+            />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Mail size={14} className="shrink-0 text-mist" />
+            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+              Email
+            </span>
+            <EditableText
+              value={campaign.contactEmail ?? ""}
+              placeholder="contact@client.org"
+              onCommit={(v) =>
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { contactEmail: v },
+                })
+              }
+              className="text-sm"
+            />
+            {campaign.contactEmail && (
+              <a
+                href={`mailto:${campaign.contactEmail}`}
+                className="shrink-0 text-mist hover:text-paper"
+              >
+                <ExternalLink size={13} />
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2.5">
+            <ExternalLink size={14} className="shrink-0 text-mist" />
+            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+              Mighty space
+            </span>
+            <EditableText
+              value={campaign.spaceUrl ?? ""}
+              placeholder="Paste the space URL…"
+              onCommit={(v) =>
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { spaceUrl: v },
+                })
+              }
+              className="text-sm text-mist"
+            />
+            {campaign.spaceUrl && (
+              <a
+                href={campaign.spaceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 text-mist hover:text-paper"
+              >
+                <ExternalLink size={13} />
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Link2 size={14} className="shrink-0 text-mist" />
+            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+              Invite link
+            </span>
+            <EditableText
+              value={campaign.inviteUrl ?? ""}
+              placeholder="Paste the plan invitation link…"
+              onCommit={(v) =>
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { inviteUrl: v },
+                })
+              }
+              className="text-sm text-mist"
+            />
+            {campaign.inviteUrl && (
+              <button
+                title="Copy invite link"
+                onClick={() => {
+                  navigator.clipboard?.writeText(campaign.inviteUrl!);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold text-mist transition-colors hover:border-white/25 hover:text-paper"
+              >
+                <Copy size={11} /> {copied ? "Copied!" : "Copy"}
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -440,24 +612,36 @@ export default function CampaignDetailPage() {
           </ol>
         </section>
 
-        {/* Loaded series */}
+        {/* Campaign series */}
         <section className="card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
-              <Layers size={17} className="text-mist" /> Loaded series
+              <Layers size={17} className="text-mist" /> Campaign series
               <span className="text-sm font-medium text-mist">
                 ({campaign.series.length})
               </span>
             </h2>
-            {unloaded.length > 0 && (
-              <GhostButton onClick={() => setPickingModule((v) => !v)}>
-                + Load module
-              </GhostButton>
-            )}
+            <GhostButton onClick={() => setPickingModule((v) => !v)}>
+              + Add series
+            </GhostButton>
           </div>
+          <p className="mb-4 text-xs text-mist">
+            Click a series to see its lessons; drag it to change the order.
+          </p>
 
-          {pickingModule && unloaded.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2 rounded-xl border border-white/10 p-3">
+          {pickingModule && (
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 p-3">
+              {unloaded.length === 0 && (
+                <p className="text-xs text-mist">
+                  Every series from the library is already in this campaign.{" "}
+                  <Link
+                    href="/settings/campaigns"
+                    className="font-semibold text-paper underline"
+                  >
+                    Create a new series in Settings → Campaigns
+                  </Link>
+                </p>
+              )}
               {unloaded.map((t) => (
                 <button
                   key={t.id}
@@ -485,9 +669,59 @@ export default function CampaignDetailPage() {
               if (!series) return null;
               const p = seriesProgress(campaign, loaded, series, today);
               const session = triggerSession(campaign, loaded);
+              const schedule = computeSchedule(campaign, loaded, series, today);
+              const isExpanded = expanded.has(loaded.templateId);
+              const dragging = seriesDragId === loaded.templateId;
+              const isOver =
+                seriesOverIndex === i && seriesDragId !== null && !dragging;
+
               return (
-                <div key={loaded.templateId} className="card group p-4">
-                  <div className="flex items-center gap-4">
+                <div
+                  key={loaded.templateId}
+                  draggable
+                  onDragStart={(e) => {
+                    setSeriesDragId(loaded.templateId);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", `series:${loaded.templateId}`);
+                  }}
+                  onDragEnd={endSeriesDrag}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (seriesOverIndex !== i) setSeriesOverIndex(i);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const data = e.dataTransfer.getData("text/plain");
+                    const moved = data.startsWith("series:")
+                      ? data.slice(7)
+                      : seriesDragId;
+                    if (moved) {
+                      dispatch({
+                        type: "moveSeriesTo",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        templateId: moved,
+                        toIndex: i,
+                      });
+                    }
+                    endSeriesDrag();
+                  }}
+                  className={`card group cursor-grab transition-all active:cursor-grabbing ${
+                    dragging
+                      ? "rotate-1 scale-[1.02] opacity-70 shadow-2xl shadow-flame/20"
+                      : ""
+                  } ${isOver ? "ring-2 ring-[#ff7a55]" : ""}`}
+                >
+                  {/* header row — click to expand */}
+                  <div
+                    onClick={() => toggleExpanded(loaded.templateId)}
+                    className="flex cursor-pointer items-center gap-4 p-4"
+                  >
+                    <GripVertical
+                      size={14}
+                      className="shrink-0 text-mist/40 group-hover:text-mist"
+                    />
                     <div
                       className="flex size-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-paper"
                       style={{ backgroundColor: series.color }}
@@ -496,17 +730,15 @@ export default function CampaignDetailPage() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/settings/campaigns/${series.campaignTemplateId}/series/${series.id}`}
-                        className="text-sm font-bold hover:underline"
-                      >
+                      <p className="text-sm font-bold">
                         {series.name}
                         <span className="ml-2 font-medium text-mist">· {series.focus}</span>
-                      </Link>
+                      </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-mist">
                         <span>Triggered by</span>
                         <select
                           value={loaded.sessionId ?? ""}
+                          onClick={(e) => e.stopPropagation()}
                           onChange={(e) =>
                             dispatch({
                               type: "bindSeries",
@@ -550,52 +782,81 @@ export default function CampaignDetailPage() {
                       <p className="text-[11px] text-mist">sent</p>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                      <button
-                        disabled={i === 0}
-                        onClick={() =>
-                          dispatch({
-                            type: "moveSeries",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            templateId: loaded.templateId,
-                            dir: -1,
-                          })
-                        }
-                        className="cursor-pointer rounded p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
-                      >
-                        <ArrowUp size={13} />
-                      </button>
-                      <button
-                        disabled={i === campaign.series.length - 1}
-                        onClick={() =>
-                          dispatch({
-                            type: "moveSeries",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            templateId: loaded.templateId,
-                            dir: 1,
-                          })
-                        }
-                        className="cursor-pointer rounded p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
-                      >
-                        <ArrowDown size={13} />
-                      </button>
-                      <button
-                        onClick={() =>
-                          dispatch({
-                            type: "unloadSeries",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            templateId: loaded.templateId,
-                          })
-                        }
-                        className="cursor-pointer rounded p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
+                    <button
+                      title="Remove this series from the campaign"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch({
+                          type: "unloadSeries",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          templateId: loaded.templateId,
+                        });
+                      }}
+                      className="hidden shrink-0 cursor-pointer rounded p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+
+                    <ChevronDown
+                      size={16}
+                      className={`shrink-0 text-mist transition-transform ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
+                    />
                   </div>
+
+                  {/* expanded: the lessons in this series */}
+                  {isExpanded && (
+                    <div className="border-t border-white/5 px-4 py-3">
+                      <ol className="flex flex-col">
+                        {schedule.map((item, si) => (
+                          <li
+                            key={item.step.id}
+                            className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white/4"
+                          >
+                            <span
+                              className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
+                              style={{ backgroundColor: series.color }}
+                            >
+                              {si + 1}
+                            </span>
+                            <span className="w-20 shrink-0 truncate text-xs font-bold text-mist">
+                              {item.step.code}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                              {item.step.title}
+                            </span>
+                            {item.step.leader.teamMeeting && (
+                              <Chip color="#ff7a55">team meeting</Chip>
+                            )}
+                            <span className="w-24 shrink-0 text-right text-[11px] tabular-nums text-mist">
+                              {item.date
+                                ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
+                                : "—"}
+                            </span>
+                            <span className="w-24 shrink-0 text-right">
+                              <StatusChip status={item.status} />
+                            </span>
+                          </li>
+                        ))}
+                        {schedule.length === 0 && (
+                          <li className="px-2 py-2 text-xs text-mist">
+                            No lessons in this series yet.
+                          </li>
+                        )}
+                      </ol>
+                      <div className="mt-2 border-t border-white/5 pt-2 text-right">
+                        <Link
+                          href={`/settings/campaigns/${series.campaignTemplateId}/series/${series.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs font-semibold text-mist transition-colors hover:text-paper"
+                        >
+                          Edit lessons & emails →
+                        </Link>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -605,7 +866,7 @@ export default function CampaignDetailPage() {
                 onClick={() => setPickingModule(true)}
                 className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
               >
-                <Plus size={15} /> Load a series into this campaign
+                <Plus size={15} /> Add a series to this campaign
               </button>
             )}
           </div>

@@ -72,7 +72,7 @@ export default function DashboardPage() {
               <Mail size={17} className="text-mist" /> Upcoming sends
             </h2>
             <Link
-              href="/progress"
+              href="/calendar"
               className="flex items-center gap-1 text-xs font-semibold text-mist transition-colors hover:text-paper"
             >
               View all <ArrowRight size={13} />

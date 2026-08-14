@@ -31,7 +31,7 @@ import type {
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
-const SEED_VERSION = 4;
+const SEED_VERSION = 5;
 
 interface DB {
   seedVersion: number;
@@ -83,6 +83,16 @@ export type Action =
   | { type: "addClient"; name: string; location: string; sector: string }
   | { type: "removeClient"; clientId: string }
   | {
+      type: "updateClient";
+      clientId: string;
+      patch: Partial<
+        Pick<
+          Client,
+          "name" | "location" | "sector" | "status" | "accountManagerId" | "projectManagerId"
+        >
+      >;
+    }
+  | {
       type: "addMember";
       clientId: string;
       name: string;
@@ -121,6 +131,12 @@ export type Action =
           | "accountManagerId"
           | "campaignManagerId"
           | "statusOverride"
+          | "contactName"
+          | "contactEmail"
+          | "spaceUrl"
+          | "inviteUrl"
+          | "startDate"
+          | "endDate"
         >
       >;
     }
@@ -170,6 +186,14 @@ export type Action =
       campaignId: string;
       templateId: string;
       dir: -1 | 1;
+    }
+  /** drag-and-drop reorder: drop a series at an absolute position */
+  | {
+      type: "moveSeriesTo";
+      clientId: string;
+      campaignId: string;
+      templateId: string;
+      toIndex: number;
     }
   // module library
   | {
@@ -270,6 +294,9 @@ function reducer(db: DB, action: Action): DB {
 
     case "removeClient":
       return { ...db, clients: db.clients.filter((c) => c.id !== action.clientId) };
+
+    case "updateClient":
+      return mapClient(db, action.clientId, (c) => ({ ...c, ...action.patch }));
 
     case "addMember":
       return mapClient(db, action.clientId, (c) => ({
@@ -442,6 +469,18 @@ function reducer(db: DB, action: Action): DB {
           action.dir
         ),
       }));
+
+    case "moveSeriesTo":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        const from = c.series.findIndex((s) => s.templateId === action.templateId);
+        if (from < 0) return c;
+        const to = Math.max(0, Math.min(action.toIndex, c.series.length - 1));
+        if (from === to) return c;
+        const series = [...c.series];
+        const [moved] = series.splice(from, 1);
+        series.splice(to, 0, moved);
+        return { ...c, series };
+      });
 
     // ——— module library ————————————————————————————————————
 

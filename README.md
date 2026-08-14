@@ -23,15 +23,20 @@ roles · edit every email subject/body, lesson label/URL, cadence offset and
 send time inline · add/remove/reorder lessons in a series · create new series.
 
 - **Dashboard** — stats, upcoming sends, campaign overview
-- **Clients** — client organizations; detail view lists every campaign for
-  that client, plus members (Leader vs Participant series assignment)
+- **Clients** — an alphabetical list of every client organization with
+  status, campaigns, members and the Phoenix responsibles (Account Manager
+  and Phoenix PM). Filter by responsible, search, or show only clients with
+  active campaigns. The detail view lists the client's campaigns, the
+  responsible assignments, and members (Leader vs Participant series
+  assignment)
 - **Campaigns** — a filterable list of every campaign across all clients
   (client name first, campaign underneath). Filter by status
   (active / upcoming / closed), by account manager, by campaign manager, or
   search. The detail view holds the sessions, the loaded series with their
   trigger bindings, and the campaign's owners
-- **Progress** — full trajectory per campaign: sent / scheduled /
-  awaiting-date per lesson
+- **Calendar** — a month agenda of every client meeting (sessions) and
+  campaign start/end milestone across all campaigns, with an upcoming list —
+  for following what's going on and spotting room to book new projects
 - **Settings** — three tabs:
   - *App settings* — organization, email sending, branding, integrations
   - *Campaigns* — the campaign blueprint library. The list shows every
@@ -67,9 +72,10 @@ series; from there it can be adapted per client.
   Impactful" lesson link, Amber's pending welcome video).
 
 Member names for CareSouth are **sample data** (roles/structure are real:
-1 CEO leader + 18 participants). Riverside Health Network and Summit School
-District are entirely fictional sample clients, seeded so the campaign
-statuses (closed / upcoming) and the filters are demonstrable.
+1 CEO leader + 18 participants). The other seeded clients (Brio Living
+Services, Merit, The Learning Choice Academy, Zumbro Valley) are the real
+client spaces from Mighty Networks; their campaign details, locations and
+responsible assignments are placeholders to correct in the app.
 
 ### Campaign status
 

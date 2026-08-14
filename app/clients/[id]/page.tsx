@@ -12,7 +12,6 @@ import {
   Layers,
   Plus,
   Trash2,
-  X,
 } from "lucide-react";
 import {
   PageHeader,
@@ -25,8 +24,40 @@ import {
 import { Field } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
+import { team } from "@/lib/data";
 import { findTemplate, campaignCompletion, seriesProgress, fmtDate } from "@/lib/store";
 import type { MemberRole } from "@/lib/types";
+
+/** Phoenix responsible for this organization, with its distinctive label. */
+function ResponsibleSelect({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="brand-gradient rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+      >
+        <option value="">— unassigned —</option>
+        {team.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () => void }) {
   const { dispatch } = useData();
@@ -210,8 +241,42 @@ export default function ClientDetailPage() {
           </div>
         </section>
 
+        {/* Right column */}
+        <div className="flex flex-col gap-6">
+        {/* Phoenix responsibles */}
+        <section className="card p-6">
+          <h2 className="mb-1 text-base font-bold">Phoenix responsibles</h2>
+          <p className="mb-4 text-xs text-mist">
+            Who at Phoenix owns this organization.
+          </p>
+          <div className="flex flex-col gap-3">
+            <ResponsibleSelect
+              label="Account Manager"
+              value={client.accountManagerId ?? ""}
+              onChange={(v) =>
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { accountManagerId: v || undefined },
+                })
+              }
+            />
+            <ResponsibleSelect
+              label="Phoenix PM"
+              value={client.projectManagerId ?? ""}
+              onChange={(v) =>
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { projectManagerId: v || undefined },
+                })
+              }
+            />
+          </div>
+        </section>
+
         {/* Members */}
-        <section className="card self-start p-6">
+        <section className="card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-bold">Members</h2>
             <div className="flex items-center gap-2">
@@ -268,9 +333,9 @@ export default function ClientDetailPage() {
                   onClick={() =>
                     dispatch({ type: "removeMember", clientId: client.id, memberId: m.id })
                   }
-                  className="hidden shrink-0 cursor-pointer rounded-lg p-1 text-mist hover:bg-white/10 hover:text-paper group-hover:block"
+                  className="hidden shrink-0 cursor-pointer rounded-lg p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                 >
-                  <X size={13} />
+                  <Trash2 size={13} />
                 </button>
               </li>
             ))}
@@ -291,6 +356,7 @@ export default function ClientDetailPage() {
             </p>
           </div>
         </section>
+        </div>
       </div>
     </>
   );

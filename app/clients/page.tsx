@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { MapPin, Megaphone, Users, X } from "lucide-react";
+import { ChevronRight, Megaphone, Search, Users, X } from "lucide-react";
 import { PageHeader, StatusChip, ProgressBar, GradientButton, Chip } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
-import { campaignCompletion } from "@/lib/store";
+import { team } from "@/lib/data";
+import { campaignCompletion, campaignStatus, findStaff } from "@/lib/store";
 
 function NewClientForm({ onClose }: { onClose: () => void }) {
   const { dispatch } = useData();
@@ -46,17 +47,80 @@ function NewClientForm({ onClose }: { onClose: () => void }) {
   );
 }
 
+function ResponsibleTag({ id, label }: { id?: string; label: string }) {
+  const person = findStaff(team, id);
+  return (
+    <div className="min-w-0">
+      <p className="text-[9px] font-bold uppercase tracking-wider text-mist/70">{label}</p>
+      {person ? (
+        <p className="mt-0.5 flex items-center gap-1.5">
+          <span className="brand-gradient flex size-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold">
+            {person.initials}
+          </span>
+          <span className="truncate text-xs font-medium">{person.name}</span>
+        </p>
+      ) : (
+        <p className="mt-0.5 text-[11px] italic text-mist/50">Unassigned</p>
+      )}
+    </div>
+  );
+}
+
 function ClientsContent() {
   const { clients, templates } = useData();
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(searchParams.get("new") === "1");
+  const [responsible, setResponsible] = useState("all");
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [query, setQuery] = useState("");
   const today = new Date();
+
+  const rows = clients
+    .map((client) => {
+      const totals = client.campaigns.reduce(
+        (acc, c) => {
+          const x = campaignCompletion(c, templates, today);
+          return { sent: acc.sent + x.sent, total: acc.total + x.total };
+        },
+        { sent: 0, total: 0 }
+      );
+      return {
+        client,
+        totals,
+        pct: totals.total ? Math.round((totals.sent / totals.total) * 100) : 0,
+        hasActiveCampaign: client.campaigns.some(
+          (c) => campaignStatus(c, templates, today) === "active"
+        ),
+      };
+    })
+    .sort((a, b) => a.client.name.localeCompare(b.client.name));
+
+  const filtered = rows.filter((r) => {
+    if (activeOnly && !r.hasActiveCampaign) return false;
+    if (responsible === "unassigned") {
+      if (r.client.accountManagerId || r.client.projectManagerId) return false;
+    } else if (responsible !== "all") {
+      if (
+        r.client.accountManagerId !== responsible &&
+        r.client.projectManagerId !== responsible
+      )
+        return false;
+    }
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      const hay =
+        `${r.client.name} ${r.client.sector} ${r.client.location} ` +
+        r.client.campaigns.map((c) => `${c.name} ${c.code}`).join(" ");
+      if (!hay.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   return (
     <>
       <PageHeader
         title="Clients"
-        subtitle="Every client organization and the campaigns running for them."
+        subtitle="Every client organization, alphabetically, with their Phoenix responsibles."
         action={
           <GradientButton onClick={() => setShowForm(true)}>+ New client</GradientButton>
         }
@@ -64,73 +128,133 @@ function ClientsContent() {
 
       {showForm && <NewClientForm onClose={() => setShowForm(false)} />}
 
-      <div className="grid gap-5 md:grid-cols-2">
-        {clients.map((client) => {
-          const totals = client.campaigns.reduce(
-            (acc, c) => {
-              const x = campaignCompletion(c, templates, today);
-              return { sent: acc.sent + x.sent, total: acc.total + x.total };
-            },
-            { sent: 0, total: 0 }
-          );
-          const pct = totals.total ? Math.round((totals.sent / totals.total) * 100) : 0;
-          return (
-            <Link
-              key={client.id}
-              href={`/clients/${client.id}`}
-              className="card card-hover block p-6"
+      {/* Filters */}
+      <div className="card mb-5 flex flex-wrap items-center justify-between gap-4 p-4">
+        <button
+          onClick={() => setActiveOnly((v) => !v)}
+          className={
+            activeOnly
+              ? "brand-gradient-soft cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-paper"
+              : "cursor-pointer rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+          }
+        >
+          <span className="flex items-center gap-1.5">
+            <Megaphone size={12} /> Active campaigns only
+          </span>
+        </button>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <label className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+              Responsible
+            </span>
+            <select
+              value={responsible}
+              onChange={(e) => setResponsible(e.target.value)}
+              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold">{client.name}</h2>
-                  <p className="mt-1 flex flex-wrap items-center gap-3 text-xs text-mist">
-                    <span className="flex items-center gap-1">
-                      <MapPin size={12} /> {client.location}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users size={12} /> {client.members.length} members
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Megaphone size={12} /> {client.campaigns.length} campaign
-                      {client.campaigns.length === 1 ? "" : "s"}
-                    </span>
+              <option value="all">Anyone</option>
+              {team.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+              <option value="unassigned">Unassigned</option>
+            </select>
+          </label>
+          <div className="relative">
+            <Search
+              size={13}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mist"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search clients…"
+              className="w-52 rounded-lg border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="card overflow-hidden">
+        <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-mist lg:grid">
+          <span>Client</span>
+          <span>Status</span>
+          <span>Campaigns</span>
+          <span>Members</span>
+          <span>Account manager</span>
+          <span>Project manager</span>
+          <span />
+        </div>
+
+        <ul className="divide-y divide-white/5">
+          {filtered.map(({ client, totals, pct }) => (
+            <li key={client.id}>
+              <Link
+                href={`/clients/${client.id}`}
+                className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] lg:gap-4"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{client.name}</p>
+                  <p className="mt-0.5 truncate text-xs text-mist">
+                    {client.sector} · {client.location}
                   </p>
                 </div>
-                <StatusChip status={client.status} />
-              </div>
 
-              {client.campaigns.length > 0 ? (
-                <div className="mt-5">
-                  <div className="flex flex-wrap gap-1.5">
-                    {client.campaigns.map((c) => (
-                      <Chip key={c.id} color="#a3a4f0">
-                        {c.code} · {c.name}
-                      </Chip>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <ProgressBar pct={pct} />
-                    <p className="mt-1.5 text-[11px] text-mist">
-                      {totals.sent} of {totals.total} lessons sent across all campaigns
-                    </p>
-                  </div>
+                <div>
+                  <StatusChip status={client.status} />
                 </div>
-              ) : (
-                <div className="mt-5 rounded-xl border border-dashed border-white/10 p-4 text-center text-xs text-mist">
-                  No campaigns yet — open the client to create one.
-                </div>
-              )}
-            </Link>
-          );
-        })}
 
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex min-h-44 cursor-pointer items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
-        >
-          + Add a client organization
-        </button>
+                <div className="min-w-0">
+                  {client.campaigns.length > 0 ? (
+                    <>
+                      <div className="flex flex-wrap gap-1.5">
+                        {client.campaigns.map((c) => (
+                          <Chip key={c.id} color="#a3a4f0">
+                            {c.code}
+                          </Chip>
+                        ))}
+                      </div>
+                      <div className="mt-1.5 max-w-44">
+                        <ProgressBar pct={pct} />
+                        <p className="mt-1 text-[10px] text-mist">
+                          {totals.sent}/{totals.total} lessons sent
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-[11px] italic text-mist/50">No campaigns</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs text-mist">
+                  <Users size={12} />
+                  <span className="font-bold tabular-nums text-paper">
+                    {client.members.length}
+                  </span>
+                </div>
+
+                <ResponsibleTag id={client.accountManagerId} label="Account mgr" />
+                <ResponsibleTag id={client.projectManagerId} label="Phoenix PM" />
+
+                <ChevronRight size={16} className="hidden text-mist lg:block" />
+              </Link>
+            </li>
+          ))}
+
+          {filtered.length === 0 && (
+            <li className="px-5 py-12 text-center text-sm text-mist">
+              No clients match these filters.
+            </li>
+          )}
+        </ul>
       </div>
+
+      <p className="mt-3 text-xs text-mist">
+        Showing {filtered.length} of {rows.length} clients, sorted alphabetically.
+      </p>
     </>
   );
 }

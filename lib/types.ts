@@ -127,6 +127,16 @@ export interface Campaign {
   campaignManagerId?: string;
   /** manual status; when absent the status is derived from the schedule */
   statusOverride?: CampaignStatus;
+  /** client-side contact for this campaign */
+  contactName?: string;
+  contactEmail?: string;
+  /** campaign runs from/to — shown as milestones in the Calendar */
+  startDate?: string | null;
+  endDate?: string | null;
+  /** the client's space inside Mighty Networks */
+  spaceUrl?: string;
+  /** the plan invitation link members use to join that space */
+  inviteUrl?: string;
   sessions: CampaignSession[];
   series: LoadedSeries[];
 }
@@ -140,6 +150,9 @@ export interface Client {
   location: string;
   sector: string;
   status: ClientStatus;
+  /** Phoenix staff responsible for this organization */
+  accountManagerId?: string;
+  projectManagerId?: string;
   members: Member[];
   campaigns: Campaign[];
 }
