@@ -31,7 +31,7 @@ import type {
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
-const SEED_VERSION = 3;
+const SEED_VERSION = 4;
 
 interface DB {
   seedVersion: number;
@@ -100,6 +100,8 @@ export type Action =
       timezone?: string;
       /** the campaign blueprint this is created from */
       fromTemplateId?: string;
+      accountManagerId?: string;
+      campaignManagerId?: string;
       /** create the standard five sessions, or start empty */
       withStandardSessions: boolean;
       /** load these series templates straight away (auto-bound by kind) */
@@ -110,7 +112,17 @@ export type Action =
       type: "updateCampaign";
       clientId: string;
       campaignId: string;
-      patch: Partial<Pick<Campaign, "name" | "code" | "timezone">>;
+      patch: Partial<
+        Pick<
+          Campaign,
+          | "name"
+          | "code"
+          | "timezone"
+          | "accountManagerId"
+          | "campaignManagerId"
+          | "statusOverride"
+        >
+      >;
     }
   // sessions (variable number per campaign)
   | { type: "addSession"; clientId: string; campaignId: string; name?: string }
@@ -300,6 +312,8 @@ function reducer(db: DB, action: Action): DB {
         name: action.name,
         timezone: action.timezone || "America/New_York",
         templateId: action.fromTemplateId,
+        accountManagerId: action.accountManagerId,
+        campaignManagerId: action.campaignManagerId,
         sessions,
         series,
       };

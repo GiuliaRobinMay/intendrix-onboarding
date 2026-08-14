@@ -100,6 +100,21 @@ export interface LoadedSeries {
   sessionId: string | null;
 }
 
+/** Someone on the Intendrix team. */
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  initials: string;
+}
+
+/**
+ * Where a campaign stands. Derived from the schedule by default:
+ * nothing started yet → upcoming, everything sent → closed, otherwise
+ * active. `statusOverride` lets the team close or reopen one by hand.
+ */
+export type CampaignStatus = "upcoming" | "active" | "closed";
+
 export interface Campaign {
   id: string;
   code: string; // e.g. TLE-E
@@ -107,6 +122,11 @@ export interface Campaign {
   timezone: string;
   /** the campaign blueprint this was created from, if any */
   templateId?: string;
+  /** Intendrix staff responsible for this campaign */
+  accountManagerId?: string;
+  campaignManagerId?: string;
+  /** manual status; when absent the status is derived from the schedule */
+  statusOverride?: CampaignStatus;
   sessions: CampaignSession[];
   series: LoadedSeries[];
 }

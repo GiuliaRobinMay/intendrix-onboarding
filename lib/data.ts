@@ -3,7 +3,12 @@
 // "The New Transformational Leadership Experience for Executives" (7/31/26).
 // Member names (except roles/structure) are SAMPLE DATA.
 
-import type { CampaignTemplate, Client, SeriesTemplate } from "./types";
+import type {
+  CampaignTemplate,
+  Client,
+  SeriesTemplate,
+  StaffMember,
+} from "./types";
 
 const P = "https://intendrix.ai/posts/";
 
@@ -680,6 +685,8 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/New_York",
         templateId: "tle-e",
+        accountManagerId: "brad",
+        campaignManagerId: "amber",
         sessions: [
           { id: "cs-s1", kind: "orientation", name: "Orientation Session", date: "2026-08-05", mode: "virtual" },
           { id: "cs-s2", kind: "workshop", name: "Workshop", date: "2026-09-16", mode: "in-person" },
@@ -698,6 +705,81 @@ export const clients: Client[] = [
     ],
   },
   {
+    id: "riverside",
+    name: "Riverside Health Network",
+    shortName: "Riverside",
+    location: "Oregon, USA",
+    sector: "Regional healthcare",
+    status: "active",
+    members: [
+      { id: "rv-m1", name: "Elena Marsh", title: "CEO", email: "elena.marsh@riverside.example", role: "leader" },
+      { id: "rv-m2", name: "Owen Baptiste", title: "COO", email: "owen.baptiste@riverside.example", role: "participant" },
+      { id: "rv-m3", name: "Nina Patel", title: "CFO", email: "nina.patel@riverside.example", role: "participant" },
+    ],
+    campaigns: [
+      {
+        id: "riverside-tle-e",
+        code: "TLE-E",
+        name: "TLE for Executives",
+        timezone: "America/Los_Angeles",
+        templateId: "tle-e",
+        accountManagerId: "brad",
+        campaignManagerId: "kevin",
+        sessions: [
+          { id: "rv-s1", kind: "orientation", name: "Orientation Session", date: "2025-09-03", mode: "virtual" },
+          { id: "rv-s2", kind: "workshop", name: "Workshop", date: "2025-10-15", mode: "in-person" },
+          { id: "rv-s3", kind: "coaching1", name: "Coaching Session 1 · Management", date: "2025-12-10", mode: "virtual" },
+          { id: "rv-s4", kind: "coaching2", name: "Coaching Session 2 · Coaching", date: "2026-01-21", mode: "in-person" },
+          { id: "rv-s5", kind: "launch", name: "Launch Session", date: "2026-03-04", mode: "virtual" },
+        ],
+        series: [
+          { templateId: "poea", sessionId: "rv-s1" },
+          { templateId: "pwea", sessionId: "rv-s2" },
+          { templateId: "pcs1", sessionId: "rv-s3" },
+          { templateId: "pcs2", sessionId: "rv-s4" },
+          { templateId: "pls", sessionId: "rv-s5" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "summit",
+    name: "Summit School District",
+    shortName: "Summit",
+    location: "Colorado, USA",
+    sector: "Public education",
+    status: "active",
+    members: [
+      { id: "sm-m1", name: "Rosa Delgado", title: "Superintendent", email: "rosa.delgado@summit.example", role: "leader" },
+      { id: "sm-m2", name: "Ken Abrams", title: "Deputy Superintendent", email: "ken.abrams@summit.example", role: "participant" },
+    ],
+    campaigns: [
+      {
+        id: "summit-tle-e",
+        code: "TLE-E",
+        name: "TLE for Executives",
+        timezone: "America/Denver",
+        templateId: "tle-e",
+        accountManagerId: "kevin",
+        campaignManagerId: "amber",
+        sessions: [
+          { id: "sm-s1", kind: "orientation", name: "Orientation Session", date: "2027-01-13", mode: "virtual" },
+          { id: "sm-s2", kind: "workshop", name: "Workshop", date: "2027-02-24", mode: "in-person" },
+          { id: "sm-s3", kind: "coaching1", name: "Coaching Session 1 · Management", date: null, mode: "virtual" },
+          { id: "sm-s4", kind: "coaching2", name: "Coaching Session 2 · Coaching", date: null, mode: "in-person" },
+          { id: "sm-s5", kind: "launch", name: "Launch Session", date: null, mode: "virtual" },
+        ],
+        series: [
+          { templateId: "poea", sessionId: "sm-s1" },
+          { templateId: "pwea", sessionId: "sm-s2" },
+          { templateId: "pcs1", sessionId: "sm-s3" },
+          { templateId: "pcs2", sessionId: "sm-s4" },
+          { templateId: "pls", sessionId: "sm-s5" },
+        ],
+      },
+    ],
+  },
+  {
     id: "demo-org",
     name: "Demo Organization",
     shortName: "Demo",
@@ -709,9 +791,9 @@ export const clients: Client[] = [
   },
 ];
 
-export const team = [
-  { name: "Brad Zimmerman", role: "Phoenix Coach · Owner", initials: "BZ" },
-  { name: "Kevin", role: "Phoenix Coach", initials: "KV" },
-  { name: "Amber", role: "Program Coordinator", initials: "AM" },
-  { name: "Giulia May", role: "Community & Platform", initials: "GM" },
+export const team: StaffMember[] = [
+  { id: "brad", name: "Brad Zimmerman", role: "Phoenix Coach · Owner", initials: "BZ" },
+  { id: "kevin", name: "Kevin", role: "Phoenix Coach", initials: "KV" },
+  { id: "amber", name: "Amber", role: "Program Coordinator", initials: "AM" },
+  { id: "giulia", name: "Giulia May", role: "Community & Platform", initials: "GM" },
 ];

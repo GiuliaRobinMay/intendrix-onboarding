@@ -4,11 +4,20 @@
 
 import type {
   Campaign,
+  CampaignStatus,
   Client,
   LoadedSeries,
   ScheduledStep,
   SeriesTemplate,
+  StaffMember,
 } from "./types";
+
+export function findStaff(
+  staff: StaffMember[],
+  id: string | undefined
+): StaffMember | undefined {
+  return id ? staff.find((s) => s.id === id) : undefined;
+}
 
 // ——— dates ————————————————————————————————————————————————
 
@@ -178,6 +187,40 @@ export function dashboardStats(
     seriesInLibrary: templates.length,
     totalLessons: templates.reduce((n, s) => n + s.steps.length, 0),
   };
+}
+
+/**
+ * Where a campaign stands. An explicit `statusOverride` wins; otherwise it
+ * is derived from the schedule:
+ *   nothing on the calendar or everything still ahead → upcoming
+ *   every scheduled lesson already sent               → closed
+ *   otherwise                                          → active
+ */
+export function campaignStatus(
+  campaign: Campaign,
+  templates: SeriesTemplate[],
+  today: Date = new Date()
+): CampaignStatus {
+  if (campaign.statusOverride) return campaign.statusOverride;
+
+  let sent = 0;
+  let scheduled = 0;
+  for (const loaded of campaign.series) {
+    const series = findTemplate(templates, loaded.templateId);
+    if (!series) continue;
+    for (const item of computeSchedule(campaign, loaded, series, today)) {
+      if (item.status === "sent") sent++;
+      else if (item.status === "scheduled") scheduled++;
+    }
+  }
+
+  const sessionsPast = campaign.sessions.some(
+    (s) => s.date && new Date(`${s.date}T00:00:00`) < today
+  );
+
+  if (sent === 0 && !sessionsPast) return "upcoming";
+  if (scheduled === 0 && sent > 0) return "closed";
+  return "active";
 }
 
 /** Overall campaign completion, measured in sent steps vs total steps. */

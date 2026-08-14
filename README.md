@@ -25,8 +25,11 @@ send time inline · add/remove/reorder lessons in a series · create new series.
 - **Dashboard** — stats, upcoming sends, campaign overview
 - **Clients** — client organizations; detail view lists every campaign for
   that client, plus members (Leader vs Participant series assignment)
-- **Campaigns** — overview of all campaigns across all clients; detail view
-  holds the sessions and the loaded series with their trigger bindings
+- **Campaigns** — a filterable list of every campaign across all clients
+  (client name first, campaign underneath). Filter by status
+  (active / upcoming / closed), by account manager, by campaign manager, or
+  search. The detail view holds the sessions, the loaded series with their
+  trigger bindings, and the campaign's owners
 - **Progress** — full trajectory per campaign: sent / scheduled /
   awaiting-date per lesson
 - **Settings** — three tabs:
@@ -64,7 +67,15 @@ series; from there it can be adapted per client.
   Impactful" lesson link, Amber's pending welcome video).
 
 Member names for CareSouth are **sample data** (roles/structure are real:
-1 CEO leader + 18 participants).
+1 CEO leader + 18 participants). Riverside Health Network and Summit School
+District are entirely fictional sample clients, seeded so the campaign
+statuses (closed / upcoming) and the filters are demonstrable.
+
+### Campaign status
+
+Derived from the schedule — nothing started yet → **upcoming**, every
+scheduled lesson sent → **closed**, otherwise **active** — and overridable
+by hand on the campaign page when the team wants to close or reopen one.
 
 ## Stack
 

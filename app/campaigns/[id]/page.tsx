@@ -18,14 +18,23 @@ import {
 import { PageHeader, Chip, ProgressBar, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { useData } from "@/lib/state";
+import { team } from "@/lib/data";
 import {
   findCampaign,
   findTemplate,
   seriesProgress,
   campaignCompletion,
+  campaignStatus,
   triggerSession,
   fmtDate,
 } from "@/lib/store";
+import type { CampaignStatus } from "@/lib/types";
+
+const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: string }> = {
+  active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
+  upcoming: { bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Upcoming" },
+  closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
+};
 
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,6 +57,7 @@ export default function CampaignDetailPage() {
 
   const { client, campaign } = found;
   const completion = campaignCompletion(campaign, templates, today);
+  const status = campaignStatus(campaign, templates, today);
   const unloaded = templates.filter(
     (t) => !campaign.series.some((s) => s.templateId === t.id)
   );
@@ -79,6 +89,73 @@ export default function CampaignDetailPage() {
 
       <div className="mb-6">
         <ProgressBar pct={completion.pct} />
+      </div>
+
+      {/* Ownership & status */}
+      <div className="card mb-6 flex flex-wrap items-center gap-x-8 gap-y-4 p-5">
+        <label className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+            Status
+          </span>
+          <select
+            value={campaign.statusOverride ?? ""}
+            onChange={(e) =>
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: {
+                  statusOverride: (e.target.value || undefined) as
+                    | CampaignStatus
+                    | undefined,
+                },
+              })
+            }
+            className="cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-bold focus:outline-none"
+            style={{
+              backgroundColor: STATUS_STYLE[status].bg,
+              color: STATUS_STYLE[status].fg,
+              borderColor: "transparent",
+            }}
+          >
+            <option value="">Automatic ({STATUS_STYLE[status].label})</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="active">Active</option>
+            <option value="closed">Closed</option>
+          </select>
+        </label>
+
+        {(
+          [
+            ["Account manager", "accountManagerId"],
+            ["Campaign manager", "campaignManagerId"],
+          ] as const
+        ).map(([label, key]) => (
+          <label key={key} className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+              {label}
+            </span>
+            <select
+              value={campaign[key] ?? ""}
+              onChange={(e) =>
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { [key]: e.target.value || undefined },
+                })
+              }
+              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+            >
+              <option value="">— unassigned —</option>
+              {team.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
       </div>
 
       <div className="flex flex-col gap-6">
