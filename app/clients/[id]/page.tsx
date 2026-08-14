@@ -44,6 +44,7 @@ function ResponsibleSelect({
         {label}
       </span>
       <select
+        title={`Who at Phoenix is the ${label} for this organization`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
@@ -213,7 +214,7 @@ export default function ClientDetailPage() {
                     </div>
                   </Link>
                   <button
-                    title="Delete this campaign"
+                    data-tip="Delete this campaign and its schedule"
                     onClick={() =>
                       dispatch({
                         type: "removeCampaign",
@@ -284,6 +285,7 @@ export default function ClientDetailPage() {
                 {client.members.length}
               </span>
               <button
+                data-tip="Add a member to this client"
                 onClick={() => setAddingMember(true)}
                 className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
@@ -317,7 +319,9 @@ export default function ClientDetailPage() {
                   <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                     {m.name}
                     {m.role === "leader" && (
-                      <Crown size={12} className="shrink-0 text-[#ff7a55]" />
+                      <span data-tip="Receives the Leader series, with the Leaders Guides">
+                        <Crown size={12} className="shrink-0 text-[#ff7a55]" />
+                      </span>
                     )}
                   </p>
                   <p className="truncate text-[11px] text-mist">{m.title}</p>
@@ -330,6 +334,7 @@ export default function ClientDetailPage() {
                       : "Participant"}
                 </span>
                 <button
+                  data-tip="Remove this member"
                   onClick={() =>
                     dispatch({ type: "removeMember", clientId: client.id, memberId: m.id })
                   }

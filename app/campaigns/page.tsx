@@ -23,10 +23,17 @@ const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: stri
   closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
 };
 
+const STATUS_TIP: Record<CampaignStatus, string> = {
+  active: "Lessons are going out for this campaign",
+  upcoming: "Nothing has been sent yet — the campaign lies ahead",
+  closed: "Every scheduled lesson has been sent, or it was closed by hand",
+};
+
 function StatusPill({ status }: { status: CampaignStatus }) {
   const s = STATUS_STYLE[status];
   return (
     <span
+      data-tip={STATUS_TIP[status]}
       className="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
       style={{ backgroundColor: s.bg, color: s.fg }}
     >
@@ -41,7 +48,7 @@ function StaffTag({ id, fallback }: { id?: string; fallback: string }) {
     return <span className="text-[11px] italic text-mist/50">{fallback}</span>;
   }
   return (
-    <span className="flex items-center gap-1.5">
+    <span data-tip={person.role} className="flex w-fit items-center gap-1.5">
       <span className="brand-gradient flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold">
         {person.initials}
       </span>
@@ -234,6 +241,7 @@ export default function CampaignsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search client or campaign…"
+              title="Type to filter by client or campaign name"
               className="w-52 rounded-lg border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
             />
           </div>

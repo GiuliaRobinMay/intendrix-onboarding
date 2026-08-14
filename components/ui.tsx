@@ -23,12 +23,15 @@ export function PageHeader({
 export function GradientButton({
   children,
   onClick,
+  tip,
 }: {
   children: ReactNode;
   onClick?: () => void;
+  tip?: string;
 }) {
   return (
     <button
+      data-tip={tip}
       onClick={onClick}
       className="brand-gradient cursor-pointer rounded-xl px-4 py-2.5 text-sm font-semibold text-paper shadow-lg shadow-flame/20 transition-transform hover:scale-[1.02]"
     >
@@ -40,12 +43,15 @@ export function GradientButton({
 export function GhostButton({
   children,
   onClick,
+  tip,
 }: {
   children: ReactNode;
   onClick?: () => void;
+  tip?: string;
 }) {
   return (
     <button
+      data-tip={tip}
       onClick={onClick}
       className="cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
     >
@@ -109,18 +115,37 @@ export function StatusChip({
 }: {
   status: "sent" | "scheduled" | "unscheduled" | "active" | "onboarding" | "archived";
 }) {
-  const map: Record<string, { bg: string; fg: string; label: string }> = {
-    sent: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Sent" },
-    scheduled: { bg: "rgba(123,124,216,0.18)", fg: "#a3a4f0", label: "Scheduled" },
-    unscheduled: { bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Awaiting date" },
-    active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
-    onboarding: { bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Onboarding" },
-    archived: { bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Archived" },
+  const map: Record<string, { bg: string; fg: string; label: string; tip: string }> = {
+    sent: {
+      bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Sent",
+      tip: "This lesson has already gone out",
+    },
+    scheduled: {
+      bg: "rgba(123,124,216,0.18)", fg: "#a3a4f0", label: "Scheduled",
+      tip: "On the calendar — sends automatically on its date",
+    },
+    unscheduled: {
+      bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Awaiting date",
+      tip: "Waits until its trigger session gets a date",
+    },
+    active: {
+      bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active",
+      tip: "This client has work in progress",
+    },
+    onboarding: {
+      bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Onboarding",
+      tip: "Client is being set up — no campaign running yet",
+    },
+    archived: {
+      bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Archived",
+      tip: "No longer active",
+    },
   };
   const s = map[status];
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+      data-tip={s.tip}
+      className="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
       style={{ backgroundColor: s.bg, color: s.fg }}
     >
       {s.label}

@@ -207,7 +207,7 @@ export default function CampaignTemplateDetailPage() {
                 </div>
               </Link>
               <button
-                title="Delete this series"
+                data-tip="Delete this series and its lessons — it also disappears from client campaigns using it"
                 onClick={() => {
                   if (confirm(`Delete the ${s.code} series and its lessons?`)) {
                     dispatch({ type: "removeSeries", templateId: s.id });

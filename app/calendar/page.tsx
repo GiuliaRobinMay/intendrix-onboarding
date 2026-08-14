@@ -121,12 +121,14 @@ export default function CalendarPage() {
                 Today
               </button>
               <button
+                data-tip="Previous month"
                 onClick={prevMonth}
                 className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 <ChevronLeft size={15} />
               </button>
               <button
+                data-tip="Next month"
                 onClick={nextMonth}
                 className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
@@ -163,7 +165,7 @@ export default function CalendarPage() {
                       <Link
                         key={i}
                         href={`/campaigns/${e.campaignId}`}
-                        title={`${e.clientName} — ${e.label}`}
+                        data-tip={`${e.clientName} — ${e.label} (${e.campaignName})`}
                         className="block truncate rounded px-1.5 py-1 text-[10px] font-semibold leading-tight text-paper transition-transform hover:scale-[1.03]"
                         style={{
                           backgroundColor: `${campaignColor.get(e.campaignId)}${e.kind === "session" ? "cc" : "55"}`,

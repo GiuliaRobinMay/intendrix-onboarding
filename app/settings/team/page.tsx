@@ -10,7 +10,7 @@ export default function TeamSettingsPage() {
       <section className="card p-6 xl:col-span-2">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-bold">Users</h2>
-          <GhostButton>
+          <GhostButton tip="Real invitations arrive with Google sign-in in the Supabase phase">
             <span className="flex items-center gap-2">
               <UserPlus size={14} /> Invite user
             </span>

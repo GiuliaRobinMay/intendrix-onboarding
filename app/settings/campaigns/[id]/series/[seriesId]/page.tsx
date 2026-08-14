@@ -34,11 +34,13 @@ function LessonLinkEditor({
     <div className={`rounded-lg px-2.5 py-1.5 ${lesson.url ? "bg-white/5" : "bg-[#eb320f]/15"}`}>
       <div className="flex items-center gap-1.5">
         {lesson.url ? (
-          <a href={lesson.url} target="_blank" rel="noreferrer" className="shrink-0">
+          <a data-tip="Open the lesson in Intendrix" href={lesson.url} target="_blank" rel="noreferrer" className="shrink-0">
             <ExternalLink size={12} className="text-mist hover:text-paper" />
           </a>
         ) : (
-          <TriangleAlert size={12} className="shrink-0 text-[#ff7a55]" />
+          <span data-tip="This lesson has no link yet — paste the intendrix.ai URL below">
+            <TriangleAlert size={12} className="shrink-0 text-[#ff7a55]" />
+          </span>
         )}
         <EditableText
           value={lesson.label}
@@ -176,6 +178,7 @@ function StepEditor({
           <input
             type="number"
             min={0}
+            title="Days to wait after the previous lesson (for the first lesson: after the trigger session)"
             value={step.offsetDays}
             onChange={(e) =>
               dispatch({
@@ -190,6 +193,7 @@ function StepEditor({
           <span>{index === 0 ? "days after trigger ·" : "days ·"}</span>
           <input
             type="time"
+            title="Local time of day the email goes out"
             value={step.sendTime}
             onChange={(e) =>
               dispatch({
@@ -205,6 +209,7 @@ function StepEditor({
 
         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
           <button
+            data-tip="Move this lesson earlier"
             disabled={index === 0}
             onClick={() => dispatch({ type: "moveStep", templateId: series.id, stepId: step.id, dir: -1 })}
             className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
@@ -212,6 +217,7 @@ function StepEditor({
             <ArrowUp size={14} />
           </button>
           <button
+            data-tip="Move this lesson later"
             disabled={index === count - 1}
             onClick={() => dispatch({ type: "moveStep", templateId: series.id, stepId: step.id, dir: 1 })}
             className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
@@ -219,6 +225,7 @@ function StepEditor({
             <ArrowDown size={14} />
           </button>
           <button
+            data-tip="Delete this lesson from the series"
             onClick={() => dispatch({ type: "removeStep", templateId: series.id, stepId: step.id })}
             className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
           >

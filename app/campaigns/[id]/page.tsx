@@ -50,12 +50,14 @@ function InlineSelect({
   onChange,
   options,
   tone,
+  tip,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
   tone?: { bg: string; fg: string };
+  tip?: string;
 }) {
   return (
     <label className="flex items-center gap-1.5">
@@ -63,6 +65,7 @@ function InlineSelect({
         {label}
       </span>
       <select
+        title={tip}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="cursor-pointer rounded-lg border px-2 py-1 text-xs font-semibold focus:outline-none"
@@ -183,6 +186,7 @@ export default function CampaignDetailPage() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <InlineSelect
             label="Status"
+            tip="Automatic follows the schedule; pick a value to override it by hand"
             value={campaign.statusOverride ?? ""}
             tone={STATUS_STYLE[status]}
             onChange={(v) =>
@@ -202,6 +206,7 @@ export default function CampaignDetailPage() {
           />
           <InlineSelect
             label="Account mgr"
+            tip="Phoenix account manager responsible for this campaign"
             value={campaign.accountManagerId ?? ""}
             onChange={(v) =>
               dispatch({
@@ -215,6 +220,7 @@ export default function CampaignDetailPage() {
           />
           <InlineSelect
             label="Campaign mgr"
+            tip="Phoenix campaign manager who runs the day-to-day"
             value={campaign.campaignManagerId ?? ""}
             onChange={(v) =>
               dispatch({
@@ -270,6 +276,7 @@ export default function CampaignDetailPage() {
               <span>Runs</span>
               <input
                 type="date"
+                title="Campaign start date — shown as a milestone in the Calendar"
                 value={campaign.startDate ?? ""}
                 onChange={(e) =>
                   dispatch({
@@ -284,6 +291,7 @@ export default function CampaignDetailPage() {
               <span>→</span>
               <input
                 type="date"
+                title="Campaign end date — shown as a milestone in the Calendar"
                 value={campaign.endDate ?? ""}
                 onChange={(e) =>
                   dispatch({
@@ -367,6 +375,7 @@ export default function CampaignDetailPage() {
             />
             {campaign.contactEmail && (
               <a
+                data-tip="Write an email to the contact"
                 href={`mailto:${campaign.contactEmail}`}
                 className="shrink-0 text-mist hover:text-paper"
               >
@@ -394,6 +403,7 @@ export default function CampaignDetailPage() {
             />
             {campaign.spaceUrl && (
               <a
+                data-tip="Open the client's space in Mighty Networks"
                 href={campaign.spaceUrl}
                 target="_blank"
                 rel="noreferrer"
@@ -423,7 +433,7 @@ export default function CampaignDetailPage() {
             />
             {campaign.inviteUrl && (
               <button
-                title="Copy invite link"
+                data-tip="Copy the invitation link to send it from your own email"
                 onClick={() => {
                   navigator.clipboard?.writeText(campaign.inviteUrl!);
                   setCopied(true);
@@ -504,11 +514,14 @@ export default function CampaignDetailPage() {
                       Session {i + 1}
                     </p>
                     <div className="flex items-center gap-0.5">
-                      <GripVertical
-                        size={12}
-                        className="text-mist/40 group-hover:text-mist"
-                      />
+                      <span data-tip="Drag the card to another position to reorder">
+                        <GripVertical
+                          size={12}
+                          className="text-mist/40 group-hover:text-mist"
+                        />
+                      </span>
                       <button
+                        data-tip="Delete this session — series bound to it fall back to unbound"
                         onClick={() =>
                           dispatch({
                             type: "removeSession",
@@ -551,6 +564,7 @@ export default function CampaignDetailPage() {
                         },
                       })
                     }
+                    data-tip="Click to switch between virtual and in person"
                     className="mt-1.5 flex w-fit cursor-pointer items-center gap-1 text-[10px] text-mist hover:text-paper"
                   >
                     {session.mode === "virtual" ? (
@@ -567,6 +581,7 @@ export default function CampaignDetailPage() {
                   <div className="mt-auto pt-2">
                     <input
                       type="date"
+                      title="The session's date — entering it schedules every series bound to this session"
                       value={session.date ?? ""}
                       onChange={(e) =>
                         dispatch({
@@ -718,10 +733,12 @@ export default function CampaignDetailPage() {
                     onClick={() => toggleExpanded(loaded.templateId)}
                     className="flex cursor-pointer items-center gap-4 p-4"
                   >
-                    <GripVertical
-                      size={14}
-                      className="shrink-0 text-mist/40 group-hover:text-mist"
-                    />
+                    <span data-tip="Drag to change the series order">
+                      <GripVertical
+                        size={14}
+                        className="shrink-0 text-mist/40 group-hover:text-mist"
+                      />
+                    </span>
                     <div
                       className="flex size-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-paper"
                       style={{ backgroundColor: series.color }}
@@ -737,6 +754,7 @@ export default function CampaignDetailPage() {
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-mist">
                         <span>Triggered by</span>
                         <select
+                          title="The session whose date triggers this series — rebind to mix the order"
                           value={loaded.sessionId ?? ""}
                           onClick={(e) => e.stopPropagation()}
                           onChange={(e) =>
@@ -783,7 +801,7 @@ export default function CampaignDetailPage() {
                     </div>
 
                     <button
-                      title="Remove this series from the campaign"
+                      data-tip="Remove this series from the campaign (the blueprint stays in Settings)"
                       onClick={(e) => {
                         e.stopPropagation();
                         dispatch({
@@ -798,12 +816,14 @@ export default function CampaignDetailPage() {
                       <Trash2 size={13} />
                     </button>
 
-                    <ChevronDown
-                      size={16}
-                      className={`shrink-0 text-mist transition-transform ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
+                    <span data-tip={isExpanded ? "Hide the lessons" : "Show the lessons in this series"}>
+                      <ChevronDown
+                        size={16}
+                        className={`shrink-0 text-mist transition-transform ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    </span>
                   </div>
 
                   {/* expanded: the lessons in this series */}

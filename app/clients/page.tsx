@@ -53,7 +53,7 @@ function ResponsibleTag({ id, label }: { id?: string; label: string }) {
     <div className="min-w-0">
       <p className="text-[9px] font-bold uppercase tracking-wider text-mist/70">{label}</p>
       {person ? (
-        <p className="mt-0.5 flex items-center gap-1.5">
+        <p data-tip={person.role} className="mt-0.5 flex w-fit items-center gap-1.5">
           <span className="brand-gradient flex size-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold">
             {person.initials}
           </span>
@@ -131,6 +131,7 @@ function ClientsContent() {
       {/* Filters */}
       <div className="card mb-5 flex flex-wrap items-center justify-between gap-4 p-4">
         <button
+          data-tip="Show only clients that currently have an active campaign"
           onClick={() => setActiveOnly((v) => !v)}
           className={
             activeOnly
@@ -171,6 +172,7 @@ function ClientsContent() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search clients…"
+              title="Search by name, sector, location or campaign"
               className="w-52 rounded-lg border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
             />
           </div>
