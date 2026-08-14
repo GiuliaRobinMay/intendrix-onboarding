@@ -115,7 +115,15 @@ export interface StaffMember {
  * nothing started yet → upcoming, everything sent → closed, otherwise
  * active. `statusOverride` lets the team close or reopen one by hand.
  */
-export type CampaignStatus = "upcoming" | "active" | "closed";
+export type CampaignStatus = "upcoming" | "active" | "paused" | "closed";
+
+/** The client-side contact leading a campaign — their transformational
+ *  champion. A campaign can have more than one. */
+export interface Champion {
+  id: string;
+  name: string;
+  email: string;
+}
 
 export interface Campaign {
   id: string;
@@ -124,21 +132,20 @@ export interface Campaign {
   timezone: string;
   /** the campaign blueprint this was created from, if any */
   templateId?: string;
-  /** Intendrix staff responsible for this campaign */
-  accountManagerId?: string;
-  campaignManagerId?: string;
-  /** manual status; when absent the status is derived from the schedule */
+  /** Phoenix team overrides for this campaign; when absent, the client's
+   *  own Phoenix Leader / Coach / Project Manager apply. The Coach is the
+   *  one the emails are sent from. */
+  phoenixLeaderId?: string;
+  phoenixCoachId?: string;
+  projectManagerId?: string;
+  /** manual status; when absent the status is derived from the schedule.
+   *  "paused" holds all sends until the campaign is reopened. */
   statusOverride?: CampaignStatus;
-  /** client-side contact for this campaign */
-  contactName?: string;
-  contactEmail?: string;
+  /** the client transformational champion(s) for this campaign */
+  champions: Champion[];
   /** campaign runs from/to — shown as milestones in the Calendar */
   startDate?: string | null;
   endDate?: string | null;
-  /** the client's space inside Mighty Networks */
-  spaceUrl?: string;
-  /** the plan invitation link members use to join that space */
-  inviteUrl?: string;
   sessions: CampaignSession[];
   series: LoadedSeries[];
 }
@@ -152,9 +159,15 @@ export interface Client {
   location: string;
   sector: string;
   status: ClientStatus;
-  /** Phoenix staff responsible for this organization */
-  accountManagerId?: string;
+  /** Phoenix staff responsible for this organization. Campaigns can
+   *  override each of these. The Coach is the one emails are sent from. */
+  phoenixLeaderId?: string;
+  phoenixCoachId?: string;
   projectManagerId?: string;
+  /** the client's space inside Mighty Networks */
+  spaceUrl?: string;
+  /** the plan invitation link members use to join that space */
+  inviteUrl?: string;
   members: Member[];
   campaigns: Campaign[];
 }

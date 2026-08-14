@@ -98,10 +98,12 @@ function ClientsContent() {
   const filtered = rows.filter((r) => {
     if (activeOnly && !r.hasActiveCampaign) return false;
     if (responsible === "unassigned") {
-      if (r.client.accountManagerId || r.client.projectManagerId) return false;
+      if (r.client.phoenixLeaderId || r.client.phoenixCoachId || r.client.projectManagerId)
+        return false;
     } else if (responsible !== "all") {
       if (
-        r.client.accountManagerId !== responsible &&
+        r.client.phoenixLeaderId !== responsible &&
+        r.client.phoenixCoachId !== responsible &&
         r.client.projectManagerId !== responsible
       )
         return false;
@@ -186,8 +188,8 @@ function ClientsContent() {
           <span>Status</span>
           <span>Campaigns</span>
           <span>Members</span>
-          <span>Account manager</span>
-          <span>Project manager</span>
+          <span>Phoenix leader</span>
+          <span>Phoenix coach</span>
           <span />
         </div>
 
@@ -238,8 +240,8 @@ function ClientsContent() {
                   </span>
                 </div>
 
-                <ResponsibleTag id={client.accountManagerId} label="Account mgr" />
-                <ResponsibleTag id={client.projectManagerId} label="Phoenix PM" />
+                <ResponsibleTag id={client.phoenixLeaderId} label="Leader" />
+                <ResponsibleTag id={client.phoenixCoachId} label="Coach" />
 
                 <ChevronRight size={16} className="hidden text-mist lg:block" />
               </Link>

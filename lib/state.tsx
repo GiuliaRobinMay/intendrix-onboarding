@@ -21,6 +21,7 @@ import type {
   Campaign,
   CampaignSession,
   CampaignTemplate,
+  Champion,
   Client,
   MemberRole,
   SeriesStep,
@@ -31,7 +32,7 @@ import type {
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
-const SEED_VERSION = 5;
+const SEED_VERSION = 6;
 
 interface DB {
   seedVersion: number;
@@ -88,7 +89,15 @@ export type Action =
       patch: Partial<
         Pick<
           Client,
-          "name" | "location" | "sector" | "status" | "accountManagerId" | "projectManagerId"
+          | "name"
+          | "location"
+          | "sector"
+          | "status"
+          | "phoenixLeaderId"
+          | "phoenixCoachId"
+          | "projectManagerId"
+          | "spaceUrl"
+          | "inviteUrl"
         >
       >;
     }
@@ -110,8 +119,6 @@ export type Action =
       timezone?: string;
       /** the campaign blueprint this is created from */
       fromTemplateId?: string;
-      accountManagerId?: string;
-      campaignManagerId?: string;
       /** create the standard five sessions, or start empty */
       withStandardSessions: boolean;
       /** load these series templates straight away (auto-bound by kind) */
@@ -128,13 +135,10 @@ export type Action =
           | "name"
           | "code"
           | "timezone"
-          | "accountManagerId"
-          | "campaignManagerId"
+          | "phoenixLeaderId"
+          | "phoenixCoachId"
+          | "projectManagerId"
           | "statusOverride"
-          | "contactName"
-          | "contactEmail"
-          | "spaceUrl"
-          | "inviteUrl"
           | "startDate"
           | "endDate"
         >
@@ -221,8 +225,25 @@ export type Action =
       focus: string;
       trigger: SessionKey;
     }
+  // client transformational champions (per campaign)
+  | {
+      type: "addChampion";
+      clientId: string;
+      campaignId: string;
+      name: string;
+      email: string;
+    }
+  | {
+      type: "updateChampion";
+      clientId: string;
+      campaignId: string;
+      championId: string;
+      patch: Partial<Pick<Champion, "name" | "email">>;
+    }
+  | { type: "removeChampion"; clientId: string; campaignId: string; championId: string }
   // campaign blueprints
   | { type: "addCampaignTemplate"; name: string; code: string; description: string }
+  | { type: "duplicateCampaignTemplate"; templateId: string }
   | { type: "removeCampaignTemplate"; templateId: string }
   | {
       type: "updateCampaignTemplate";
@@ -347,8 +368,7 @@ function reducer(db: DB, action: Action): DB {
         name: action.name,
         timezone: action.timezone || "America/New_York",
         templateId: action.fromTemplateId,
-        accountManagerId: action.accountManagerId,
-        campaignManagerId: action.campaignManagerId,
+        champions: [],
         sessions,
         series,
       };
@@ -427,6 +447,31 @@ function reducer(db: DB, action: Action): DB {
         sessions.splice(to, 0, moved);
         return { ...c, sessions };
       });
+
+    // ——— client transformational champions —————————————————
+
+    case "addChampion":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        champions: [
+          ...c.champions,
+          { id: uid("champion"), name: action.name, email: action.email },
+        ],
+      }));
+
+    case "updateChampion":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        champions: c.champions.map((x) =>
+          x.id === action.championId ? { ...x, ...action.patch } : x
+        ),
+      }));
+
+    case "removeChampion":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        champions: c.champions.filter((x) => x.id !== action.championId),
+      }));
 
     // ——— series inside a campaign ——————————————————————————
 
@@ -577,6 +622,36 @@ function reducer(db: DB, action: Action): DB {
         description: action.description,
       };
       return { ...db, campaignTemplates: [...db.campaignTemplates, template] };
+    }
+
+    case "duplicateCampaignTemplate": {
+      const source = db.campaignTemplates.find((t) => t.id === action.templateId);
+      if (!source) return db;
+      const copy: CampaignTemplate = {
+        id: uid("ctpl"),
+        code: `${source.code}-2`,
+        name: `${source.name} (copy)`,
+        description: source.description,
+      };
+      // deep-copy the source's series and their lessons with fresh ids
+      const seriesCopies = db.templates
+        .filter((t) => t.campaignTemplateId === source.id)
+        .map((t) => ({
+          ...t,
+          id: uid("series"),
+          campaignTemplateId: copy.id,
+          steps: t.steps.map((step) => ({
+            ...step,
+            id: uid("step"),
+            participant: { ...step.participant },
+            leader: { ...step.leader },
+          })),
+        }));
+      return {
+        ...db,
+        campaignTemplates: [...db.campaignTemplates, copy],
+        templates: [...db.templates, ...seriesCopies],
+      };
     }
 
     case "removeCampaignTemplate":

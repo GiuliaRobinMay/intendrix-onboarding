@@ -10,7 +10,7 @@ export default function TeamSettingsPage() {
       <section className="card p-6 xl:col-span-2">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-bold">Users</h2>
-          <GhostButton tip="Real invitations arrive with Google sign-in in the Supabase phase">
+          <GhostButton tip="Real invitations arrive with sign-in in the Supabase phase">
             <span className="flex items-center gap-2">
               <UserPlus size={14} /> Invite user
             </span>
@@ -41,12 +41,13 @@ export default function TeamSettingsPage() {
           <ShieldCheck size={17} className="text-mist" /> Sign-in
         </h2>
         <p className="text-sm leading-relaxed text-mist">
-          The team signs in with Google. That arrives with the Supabase phase,
-          together with roles — who can edit campaign blueprints versus who can
-          only run campaigns for their clients.
+          The team signs in with email and password (Brad&rsquo;s choice,
+          2026-08-14). That arrives with the Supabase phase, together with
+          roles — who can edit campaign blueprints versus who can only run
+          campaigns for their clients.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Chip color="#ff7a55">Google sign-in · phase 2</Chip>
+          <Chip color="#ff7a55">Email + password sign-in · phase 2</Chip>
           <Chip>Roles to define</Chip>
         </div>
       </section>

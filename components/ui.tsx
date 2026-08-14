@@ -113,7 +113,7 @@ export function Chip({
 export function StatusChip({
   status,
 }: {
-  status: "sent" | "scheduled" | "unscheduled" | "active" | "onboarding" | "archived";
+  status: "sent" | "scheduled" | "unscheduled" | "paused" | "active" | "onboarding" | "archived";
 }) {
   const map: Record<string, { bg: string; fg: string; label: string; tip: string }> = {
     sent: {
@@ -127,6 +127,10 @@ export function StatusChip({
     unscheduled: {
       bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Awaiting date",
       tip: "Waits until its trigger session gets a date",
+    },
+    paused: {
+      bg: "rgba(250,204,21,0.15)", fg: "#facc15", label: "Paused",
+      tip: "The campaign is paused — this send is on hold until it reopens",
     },
     active: {
       bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active",

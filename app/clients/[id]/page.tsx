@@ -6,7 +6,9 @@ import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
+  Copy,
   Crown,
+  ExternalLink,
   CircleCheck,
   CircleDashed,
   Layers,
@@ -21,7 +23,7 @@ import {
   GradientButton,
   GhostButton,
 } from "@/components/ui";
-import { Field } from "@/components/editable";
+import { EditableText, Field } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
 import { team } from "@/lib/data";
@@ -252,18 +254,29 @@ export default function ClientDetailPage() {
           </p>
           <div className="flex flex-col gap-3">
             <ResponsibleSelect
-              label="Account Manager"
-              value={client.accountManagerId ?? ""}
+              label="Phoenix Leader"
+              value={client.phoenixLeaderId ?? ""}
               onChange={(v) =>
                 dispatch({
                   type: "updateClient",
                   clientId: client.id,
-                  patch: { accountManagerId: v || undefined },
+                  patch: { phoenixLeaderId: v || undefined },
                 })
               }
             />
             <ResponsibleSelect
-              label="Phoenix PM"
+              label="Phoenix Coach"
+              value={client.phoenixCoachId ?? ""}
+              onChange={(v) =>
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { phoenixCoachId: v || undefined },
+                })
+              }
+            />
+            <ResponsibleSelect
+              label="Project Manager"
               value={client.projectManagerId ?? ""}
               onChange={(v) =>
                 dispatch({
@@ -273,6 +286,74 @@ export default function ClientDetailPage() {
                 })
               }
             />
+          </div>
+          <p className="mt-3 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-mist">
+            The Coach is the one emails are sent from. Campaigns can override
+            each role on their own page.
+          </p>
+        </section>
+
+        {/* Mighty Networks */}
+        <section className="card p-6">
+          <h2 className="mb-1 text-base font-bold">Mighty Networks</h2>
+          <p className="mb-4 text-xs text-mist">
+            This client&rsquo;s space and the invitation link members use to join.
+          </p>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+                Space
+              </span>
+              <EditableText
+                value={client.spaceUrl ?? ""}
+                placeholder="Paste the space URL…"
+                onCommit={(v) =>
+                  dispatch({
+                    type: "updateClient",
+                    clientId: client.id,
+                    patch: { spaceUrl: v },
+                  })
+                }
+                className="text-xs text-mist"
+              />
+              {client.spaceUrl && (
+                <a
+                  data-tip="Open the client's space in Mighty Networks"
+                  href={client.spaceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 text-mist hover:text-paper"
+                >
+                  <ExternalLink size={13} />
+                </a>
+              )}
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+                Invite
+              </span>
+              <EditableText
+                value={client.inviteUrl ?? ""}
+                placeholder="Paste the plan invitation link…"
+                onCommit={(v) =>
+                  dispatch({
+                    type: "updateClient",
+                    clientId: client.id,
+                    patch: { inviteUrl: v },
+                  })
+                }
+                className="text-xs text-mist"
+              />
+              {client.inviteUrl && (
+                <button
+                  data-tip="Copy the invitation link to send it by email"
+                  onClick={() => navigator.clipboard?.writeText(client.inviteUrl!)}
+                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                >
+                  <Copy size={11} /> Copy
+                </button>
+              )}
+            </div>
           </div>
         </section>
 

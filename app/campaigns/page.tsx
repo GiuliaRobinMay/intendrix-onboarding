@@ -10,6 +10,7 @@ import { team } from "@/lib/data";
 import {
   campaignCompletion,
   campaignStatus,
+  effectiveRole,
   findStaff,
   findTemplate,
   seriesProgress,
@@ -20,12 +21,14 @@ import type { CampaignStatus } from "@/lib/types";
 const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: string }> = {
   active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
   upcoming: { bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Upcoming" },
+  paused: { bg: "rgba(250,204,21,0.15)", fg: "#facc15", label: "Paused" },
   closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
 };
 
 const STATUS_TIP: Record<CampaignStatus, string> = {
   active: "Lessons are going out for this campaign",
   upcoming: "Nothing has been sent yet — the campaign lies ahead",
+  paused: "On hold — no sends go out until the campaign is reopened",
   closed: "Every scheduled lesson has been sent, or it was closed by hand",
 };
 
@@ -92,8 +95,8 @@ export default function CampaignsPage() {
   const { clients, templates } = useData();
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [status, setStatus] = useState<"all" | CampaignStatus>("all");
-  const [accountManager, setAccountManager] = useState("all");
-  const [campaignManager, setCampaignManager] = useState("all");
+  const [leaderFilter, setLeaderFilter] = useState("all");
+  const [coachFilter, setCoachFilter] = useState("all");
   const [clientFilter, setClientFilter] = useState("all");
   const [query, setQuery] = useState("");
   const today = new Date();
@@ -116,15 +119,22 @@ export default function CampaignsPage() {
     all: rows.length,
     active: rows.filter((r) => r.status === "active").length,
     upcoming: rows.filter((r) => r.status === "upcoming").length,
+    paused: rows.filter((r) => r.status === "paused").length,
     closed: rows.filter((r) => r.status === "closed").length,
   };
 
   const filtered = rows.filter((r) => {
     if (clientFilter !== "all" && r.client.id !== clientFilter) return false;
     if (status !== "all" && r.status !== status) return false;
-    if (accountManager !== "all" && r.campaign.accountManagerId !== accountManager)
+    if (
+      leaderFilter !== "all" &&
+      effectiveRole(r.client, r.campaign, "phoenixLeaderId", team)?.id !== leaderFilter
+    )
       return false;
-    if (campaignManager !== "all" && r.campaign.campaignManagerId !== campaignManager)
+    if (
+      coachFilter !== "all" &&
+      effectiveRole(r.client, r.campaign, "phoenixCoachId", team)?.id !== coachFilter
+    )
       return false;
     if (query.trim()) {
       const q = query.toLowerCase();
@@ -150,6 +160,7 @@ export default function CampaignsPage() {
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
     { key: "upcoming", label: "Upcoming" },
+    { key: "paused", label: "Paused" },
     { key: "closed", label: "Closed" },
   ];
 
@@ -221,15 +232,15 @@ export default function CampaignsPage() {
             options={clientOptions}
           />
           <FilterSelect
-            label="Account mgr"
-            value={accountManager}
-            onChange={setAccountManager}
+            label="Leader"
+            value={leaderFilter}
+            onChange={setLeaderFilter}
             options={staffOptions}
           />
           <FilterSelect
-            label="Campaign mgr"
-            value={campaignManager}
-            onChange={setCampaignManager}
+            label="Coach"
+            value={coachFilter}
+            onChange={setCoachFilter}
             options={staffOptions}
           />
           <div className="relative">
@@ -255,8 +266,8 @@ export default function CampaignsPage() {
           <span>Client / campaign</span>
           <span>Status</span>
           <span>Progress</span>
-          <span>Account manager</span>
-          <span>Campaign manager</span>
+          <span>Phoenix leader</span>
+          <span>Phoenix coach</span>
           <span />
         </div>
 
@@ -306,10 +317,16 @@ export default function CampaignsPage() {
                   </div>
 
                   <div className="min-w-0">
-                    <StaffTag id={campaign.accountManagerId} fallback="Unassigned" />
+                    <StaffTag
+                      id={effectiveRole(client, campaign, "phoenixLeaderId", team)?.id}
+                      fallback="Unassigned"
+                    />
                   </div>
                   <div className="min-w-0">
-                    <StaffTag id={campaign.campaignManagerId} fallback="Unassigned" />
+                    <StaffTag
+                      id={effectiveRole(client, campaign, "phoenixCoachId", team)?.id}
+                      fallback="Unassigned"
+                    />
                   </div>
 
                   <ChevronRight size={16} className="hidden text-mist lg:block" />

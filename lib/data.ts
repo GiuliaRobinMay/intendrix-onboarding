@@ -133,7 +133,24 @@ export const campaignTemplates: CampaignTemplate[] = [
     description:
       "The Transformational Leadership Experience for an executive team: five sessions over 26 weeks, each followed by its own series of Intendrix lessons.",
   },
+  {
+    id: "tle-l",
+    code: "TLE-L",
+    name: "TLE for Leaders",
+    description:
+      "The Transformational Leadership Experience for leaders — duplicated from TLE for Executives; one extra series is expected to be inserted.",
+  },
+  {
+    id: "tle-ic",
+    code: "TLE-IC",
+    name: "TLE for Individual Contributors",
+    description:
+      "The Transformational Leadership Experience for individual contributors — two series; content and timing to be loaded from Brad's document.",
+  },
 ];
+
+/** TLE-L starts as an exact duplicate of the TLE-E series (Brad, 2026-08-14);
+ *  built below by cloning with distinct ids. */
 
 export const seriesTemplates: SeriesTemplate[] = [
   {
@@ -639,6 +656,22 @@ export const seriesTemplates: SeriesTemplate[] = [
   },
 ];
 
+// duplicate every TLE-E series into the TLE-L blueprint with fresh ids
+const tleLSeries: SeriesTemplate[] = seriesTemplates
+  .filter((t) => t.campaignTemplateId === "tle-e")
+  .map((t) => ({
+    ...t,
+    id: `l-${t.id}`,
+    campaignTemplateId: "tle-l",
+    steps: t.steps.map((step) => ({
+      ...step,
+      id: `l-${step.id}`,
+      participant: { ...step.participant },
+      leader: { ...step.leader },
+    })),
+  }));
+seriesTemplates.push(...tleLSeries);
+
 // ——— Clients ———————————————————————————————————————————————
 
 const careSouthMembers = [
@@ -677,8 +710,11 @@ export const clients: Client[] = [
     location: "South Carolina, USA",
     sector: "Community healthcare",
     status: "active",
-    accountManagerId: "brad",
+    phoenixLeaderId: "brad",
+    phoenixCoachId: "amber",
     projectManagerId: "amber",
+    spaceUrl: "",
+    inviteUrl: "",
     members: careSouthMembers,
     campaigns: [
       {
@@ -687,12 +723,11 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/New_York",
         templateId: "tle-e",
-        accountManagerId: "brad",
-        campaignManagerId: "amber",
         startDate: "2026-08-05",
         endDate: "2027-02-03",
-        contactName: "Ann Lewis",
-        contactEmail: "ann.lewis@caresouth.example",
+        champions: [
+          { id: "cs-champ-1", name: "Ann Lewis", email: "ann.lewis@caresouth.example" },
+        ],
         sessions: [
           { id: "cs-s1", kind: "orientation", name: "Orientation Session", date: "2026-08-05", mode: "virtual" },
           { id: "cs-s2", kind: "workshop", name: "Workshop", date: "2026-09-16", mode: "in-person" },
@@ -717,8 +752,8 @@ export const clients: Client[] = [
     location: "Michigan, USA",
     sector: "Senior living services",
     status: "active",
-    accountManagerId: "brad",
-    projectManagerId: "amber",
+    phoenixLeaderId: "brad",
+    phoenixCoachId: "amber",
     members: [],
     campaigns: [
       {
@@ -727,6 +762,7 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/New_York",
         templateId: "tle-e",
+        champions: [],
         sessions: [
           { id: "br-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "br-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },
@@ -751,8 +787,8 @@ export const clients: Client[] = [
     location: "USA",
     sector: "—",
     status: "active",
-    accountManagerId: "kevin",
-    projectManagerId: "amber",
+    phoenixLeaderId: "kevin",
+    phoenixCoachId: "amber",
     members: [],
     campaigns: [
       {
@@ -761,6 +797,7 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/New_York",
         templateId: "tle-e",
+        champions: [],
         sessions: [
           { id: "me-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "me-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },
@@ -785,8 +822,8 @@ export const clients: Client[] = [
     location: "California, USA",
     sector: "Education",
     status: "active",
-    accountManagerId: "brad",
-    projectManagerId: "giulia",
+    phoenixLeaderId: "brad",
+    phoenixCoachId: "giulia",
     members: [],
     campaigns: [
       {
@@ -795,6 +832,7 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/Los_Angeles",
         templateId: "tle-e",
+        champions: [],
         sessions: [
           { id: "tl-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "tl-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },
@@ -819,8 +857,8 @@ export const clients: Client[] = [
     location: "Minnesota, USA",
     sector: "Community health",
     status: "active",
-    accountManagerId: "kevin",
-    projectManagerId: "giulia",
+    phoenixLeaderId: "kevin",
+    phoenixCoachId: "giulia",
     members: [],
     campaigns: [
       {
@@ -829,6 +867,7 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/Chicago",
         templateId: "tle-e",
+        champions: [],
         sessions: [
           { id: "zv-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "zv-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },

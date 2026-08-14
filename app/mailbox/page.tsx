@@ -16,6 +16,8 @@ import { PageHeader, Chip, StatusChip } from "@/components/ui";
 import { useData } from "@/lib/state";
 import { team } from "@/lib/data";
 import {
+  campaignStatus,
+  effectiveRole,
   mailboxItems,
   addDays,
   fmtDate,
@@ -131,8 +133,8 @@ export default function MailboxPage() {
     if (campaignFilter !== "all" && i.campaign.id !== campaignFilter) return false;
     if (
       responsible !== "all" &&
-      i.campaign.accountManagerId !== responsible &&
-      i.campaign.campaignManagerId !== responsible &&
+      effectiveRole(i.client, i.campaign, "phoenixLeaderId", team)?.id !== responsible &&
+      effectiveRole(i.client, i.campaign, "phoenixCoachId", team)?.id !== responsible &&
       i.sender?.id !== responsible
     )
       return false;
@@ -194,7 +196,7 @@ export default function MailboxPage() {
     <>
       <PageHeader
         title="Mailbox"
-        subtitle="Every communication that goes out to members — what's leaving today, this week, and what still needs a date. Sending is done by the email engine later; this is the team's outbox view."
+        subtitle="Every communication that goes out to members — sent by the system from the Phoenix Coach's address. What's leaving today, this week, and what still needs a date."
       />
 
       {/* Filters */}
@@ -419,7 +421,14 @@ export default function MailboxPage() {
                         )}
 
                         <span className="shrink-0">
-                          <StatusChip status={item.status} />
+                          <StatusChip
+                            status={
+                              item.status !== "sent" &&
+                              campaignStatus(item.campaign, templates, today) === "paused"
+                                ? "paused"
+                                : item.status
+                            }
+                          />
                         </span>
 
                         <ChevronDown

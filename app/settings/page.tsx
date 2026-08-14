@@ -16,7 +16,7 @@ const palette = [
 const integrations = [
   {
     name: "Supabase",
-    desc: "Database, auth (Google sign-in) and storage.",
+    desc: "Database, auth (email + password) and storage.",
     status: "Planned · phase 2",
   },
   {
@@ -117,7 +117,7 @@ export default function AppSettingsPage() {
         <p className="text-sm leading-relaxed text-mist">
           In this prototype phase, your edits (clients, campaigns, dates, emails,
           series) are saved in this browser only. The Supabase phase moves
-          everything to a shared database with Google sign-in for the team.
+          everything to a shared database with email + password sign-in for the team.
         </p>
         <div className="mt-4">
           <GhostButton

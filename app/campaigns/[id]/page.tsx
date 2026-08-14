@@ -7,16 +7,12 @@ import {
   ArrowLeft,
   CalendarDays,
   ChevronDown,
-  Copy,
-  ExternalLink,
   GripVertical,
   Layers,
-  Link2,
   Mail,
   MapPin,
   Plus,
   Trash2,
-  User,
   Video,
 } from "lucide-react";
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
@@ -26,6 +22,7 @@ import { team } from "@/lib/data";
 import {
   computeSchedule,
   findCampaign,
+  findStaff,
   findTemplate,
   seriesProgress,
   campaignCompletion,
@@ -40,8 +37,19 @@ import type { CampaignStatus } from "@/lib/types";
 const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: string }> = {
   active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
   upcoming: { bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Upcoming" },
+  paused: { bg: "rgba(250,204,21,0.15)", fg: "#facc15", label: "Paused" },
   closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
 };
+
+const TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "Europe/Brussels",
+];
 
 /** Small inline select that reads as text until you use it. */
 function InlineSelect({
@@ -98,7 +106,6 @@ export default function CampaignDetailPage() {
   const [seriesDragId, setSeriesDragId] = useState<string | null>(null);
   const [seriesOverIndex, setSeriesOverIndex] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [copied, setCopied] = useState(false);
   const today = new Date();
 
   const found = findCampaign(clients, id);
@@ -179,7 +186,7 @@ export default function CampaignDetailPage() {
             <Link href={`/clients/${client.id}`} className="hover:text-paper hover:underline">
               {client.name}
             </Link>{" "}
-            · {client.members.length} members · {campaign.timezone}
+            · {client.members.length} members
           </p>
         </div>
 
@@ -201,36 +208,23 @@ export default function CampaignDetailPage() {
               { value: "", label: `Automatic (${STATUS_STYLE[status].label})` },
               { value: "upcoming", label: "Upcoming" },
               { value: "active", label: "Active" },
+              { value: "paused", label: "Paused" },
               { value: "closed", label: "Closed" },
             ]}
           />
           <InlineSelect
-            label="Account mgr"
-            tip="Phoenix account manager responsible for this campaign"
-            value={campaign.accountManagerId ?? ""}
+            label="Timezone"
+            tip="The client's timezone — send times apply in this zone"
+            value={campaign.timezone}
             onChange={(v) =>
               dispatch({
                 type: "updateCampaign",
                 clientId: client.id,
                 campaignId: campaign.id,
-                patch: { accountManagerId: v || undefined },
+                patch: { timezone: v || "America/New_York" },
               })
             }
-            options={staffOptions}
-          />
-          <InlineSelect
-            label="Campaign mgr"
-            tip="Phoenix campaign manager who runs the day-to-day"
-            value={campaign.campaignManagerId ?? ""}
-            onChange={(v) =>
-              dispatch({
-                type: "updateCampaign",
-                clientId: client.id,
-                campaignId: campaign.id,
-                patch: { campaignManagerId: v || undefined },
-              })
-            }
-            options={staffOptions}
+            options={TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
           />
         </div>
       </div>
@@ -326,127 +320,157 @@ export default function CampaignDetailPage() {
         </div>
       </section>
 
-      {/* Client connection */}
-      <section className="card mb-6 p-6">
-        <h2 className="mb-1 flex items-center gap-2 text-base font-bold">
-          <Link2 size={17} className="text-mist" /> Client connection
-        </h2>
-        <p className="mb-4 text-xs text-mist">
-          The contact for this campaign and the links to their Mighty Networks
-          space — everything you need while working with them.
-        </p>
-        <div className="grid gap-x-8 gap-y-3 md:grid-cols-2">
-          <div className="flex items-center gap-2.5">
-            <User size={14} className="shrink-0 text-mist" />
-            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
-              Contact
-            </span>
-            <EditableText
-              value={campaign.contactName ?? ""}
-              placeholder="Contact name…"
-              onCommit={(v) =>
-                dispatch({
-                  type: "updateCampaign",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  patch: { contactName: v },
-                })
-              }
-              className="text-sm font-semibold"
-            />
+      {/* Phoenix team & champions */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <section className="card p-6">
+          <h2 className="mb-1 text-base font-bold">Phoenix team for this campaign</h2>
+          <p className="mb-4 text-xs text-mist">
+            By default the client&rsquo;s own Phoenix team applies — override any
+            role for this campaign. The Coach is the one the emails are sent from.
+          </p>
+          <div className="flex flex-col gap-3">
+            {(
+              [
+                ["Phoenix Leader", "phoenixLeaderId"],
+                ["Phoenix Coach", "phoenixCoachId"],
+                ["Project Manager", "projectManagerId"],
+              ] as const
+            ).map(([label, key]) => {
+              const clientDefault = findStaff(team, client[key]);
+              return (
+                <div key={key} className="flex items-center justify-between gap-3">
+                  <span className="brand-gradient rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
+                    {label}
+                  </span>
+                  <select
+                    title={`${label} for this campaign — leave on the client default or override`}
+                    value={campaign[key] ?? ""}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "updateCampaign",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        patch: { [key]: e.target.value || undefined },
+                      })
+                    }
+                    className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                  >
+                    <option value="">
+                      {clientDefault
+                        ? `Client default (${clientDefault.name})`
+                        : "Client default (unassigned)"}
+                    </option>
+                    {team.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2.5">
-            <Mail size={14} className="shrink-0 text-mist" />
-            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
-              Email
-            </span>
-            <EditableText
-              value={campaign.contactEmail ?? ""}
-              placeholder="contact@client.org"
-              onCommit={(v) =>
+        </section>
+
+        <section className="card p-6">
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="text-base font-bold">Client Transformational Champion</h2>
+            <button
+              data-tip="Add another champion for this campaign"
+              onClick={() =>
                 dispatch({
-                  type: "updateCampaign",
+                  type: "addChampion",
                   clientId: client.id,
                   campaignId: campaign.id,
-                  patch: { contactEmail: v },
+                  name: "New champion",
+                  email: "",
                 })
               }
-              className="text-sm"
-            />
-            {campaign.contactEmail && (
-              <a
-                data-tip="Write an email to the contact"
-                href={`mailto:${campaign.contactEmail}`}
-                className="shrink-0 text-mist hover:text-paper"
+              className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <p className="mb-4 text-xs text-mist">
+            The client-side leader(s) of this campaign — campaign-specific, and
+            there can be more than one.
+          </p>
+          <div className="flex flex-col gap-2">
+            {campaign.champions.map((champ) => (
+              <div
+                key={champ.id}
+                className="group flex items-center gap-3 rounded-xl border border-white/8 px-3 py-2"
               >
-                <ExternalLink size={13} />
-              </a>
+                <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                  {champ.name
+                    .split(" ")
+                    .map((w) => w[0])
+                    .slice(0, 2)
+                    .join("") || "?"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <EditableText
+                    value={champ.name}
+                    placeholder="Champion name…"
+                    onCommit={(v) =>
+                      dispatch({
+                        type: "updateChampion",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        championId: champ.id,
+                        patch: { name: v },
+                      })
+                    }
+                    className="text-sm font-semibold"
+                  />
+                  <EditableText
+                    value={champ.email}
+                    placeholder="email@client.org"
+                    onCommit={(v) =>
+                      dispatch({
+                        type: "updateChampion",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        championId: champ.id,
+                        patch: { email: v },
+                      })
+                    }
+                    className="text-xs text-mist"
+                  />
+                </div>
+                {champ.email && (
+                  <a
+                    data-tip="Write an email to this champion"
+                    href={`mailto:${champ.email}`}
+                    className="shrink-0 text-mist hover:text-paper"
+                  >
+                    <Mail size={13} />
+                  </a>
+                )}
+                <button
+                  data-tip="Remove this champion"
+                  onClick={() =>
+                    dispatch({
+                      type: "removeChampion",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                      championId: champ.id,
+                    })
+                  }
+                  className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))}
+            {campaign.champions.length === 0 && (
+              <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+                No champion yet — add the client leader for this campaign.
+              </p>
             )}
           </div>
-          <div className="flex items-center gap-2.5">
-            <ExternalLink size={14} className="shrink-0 text-mist" />
-            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
-              Mighty space
-            </span>
-            <EditableText
-              value={campaign.spaceUrl ?? ""}
-              placeholder="Paste the space URL…"
-              onCommit={(v) =>
-                dispatch({
-                  type: "updateCampaign",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  patch: { spaceUrl: v },
-                })
-              }
-              className="text-sm text-mist"
-            />
-            {campaign.spaceUrl && (
-              <a
-                data-tip="Open the client's space in Mighty Networks"
-                href={campaign.spaceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="shrink-0 text-mist hover:text-paper"
-              >
-                <ExternalLink size={13} />
-              </a>
-            )}
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Link2 size={14} className="shrink-0 text-mist" />
-            <span className="w-24 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
-              Invite link
-            </span>
-            <EditableText
-              value={campaign.inviteUrl ?? ""}
-              placeholder="Paste the plan invitation link…"
-              onCommit={(v) =>
-                dispatch({
-                  type: "updateCampaign",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  patch: { inviteUrl: v },
-                })
-              }
-              className="text-sm text-mist"
-            />
-            {campaign.inviteUrl && (
-              <button
-                data-tip="Copy the invitation link to send it from your own email"
-                onClick={() => {
-                  navigator.clipboard?.writeText(campaign.inviteUrl!);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1500);
-                }}
-                className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold text-mist transition-colors hover:border-white/25 hover:text-paper"
-              >
-                <Copy size={11} /> {copied ? "Copied!" : "Copy"}
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <div className="flex flex-col gap-6">
         {/* Sessions — square, draggable cards */}

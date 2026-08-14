@@ -24,14 +24,14 @@ send time inline · add/remove/reorder lessons in a series · create new series.
 
 - **Dashboard** — stats, upcoming sends, campaign overview
 - **Clients** — an alphabetical list of every client organization with
-  status, campaigns, members and the Phoenix responsibles (Account Manager
-  and Phoenix PM). Filter by responsible, search, or show only clients with
-  active campaigns. The detail view lists the client's campaigns, the
-  responsible assignments, and members (Leader vs Participant series
-  assignment)
+  status, campaigns, members and the Phoenix team (Phoenix Leader, Phoenix
+  Coach — the email sender — and Project Manager). Filter by responsible,
+  search, or show only clients with active campaigns. The detail view holds
+  the client's campaigns, the Phoenix team, the Mighty Networks space and
+  invitation links, and members
 - **Campaigns** — a filterable list of every campaign across all clients
   (client name first, campaign underneath). Filter by status
-  (active / upcoming / closed), by account manager, by campaign manager, or
+  (active / upcoming / paused / closed), by client, leader, coach, or
   search. The detail view holds the sessions, the loaded series with their
   trigger bindings, and the campaign's owners
 - **Calendar** — a month agenda of every client meeting (sessions) and
@@ -49,7 +49,7 @@ send time inline · add/remove/reorder lessons in a series · create new series.
   - *Campaigns* — the campaign blueprint library. The list shows every
     blueprint; open one to manage its series; open a series to edit its
     lessons, emails and cadence
-  - *Team* — users and (later) Google sign-in with roles
+  - *Team* — users and (later) email + password sign-in with roles
 
 ### Domain model
 
@@ -93,7 +93,7 @@ by hand on the campaign page when the team wants to close or reopen one.
 ## Stack
 
 Next.js 15 (App Router) · React 19 · Tailwind CSS 4 · TypeScript ·
-lucide-react. Planned: Supabase (Postgres, Google auth), Vercel hosting,
+lucide-react. Planned: Supabase (Postgres, email+password auth), Vercel hosting,
 transactional email provider (to decide).
 
 ## Develop

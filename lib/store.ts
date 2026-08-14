@@ -72,6 +72,18 @@ export function findCampaign(
   return undefined;
 }
 
+export type PhoenixRole = "phoenixLeaderId" | "phoenixCoachId" | "projectManagerId";
+
+/** Campaign-level override wins; otherwise the client's own assignment. */
+export function effectiveRole(
+  client: Client,
+  campaign: Campaign,
+  role: PhoenixRole,
+  staff: StaffMember[]
+): StaffMember | undefined {
+  return findStaff(staff, campaign[role] ?? client[role]);
+}
+
 export function triggerSession(campaign: Campaign, loaded: LoadedSeries) {
   return loaded.sessionId
     ? campaign.sessions.find((s) => s.id === loaded.sessionId)
@@ -242,12 +254,11 @@ export function senderFor(
   campaign: Campaign,
   staff: StaffMember[]
 ): StaffMember | undefined {
-  return findStaff(
-    staff,
-    campaign.campaignManagerId ??
-      campaign.accountManagerId ??
-      client.projectManagerId ??
-      client.accountManagerId
+  // the Coach is the one the emails go out from
+  return (
+    effectiveRole(client, campaign, "phoenixCoachId", staff) ??
+    effectiveRole(client, campaign, "phoenixLeaderId", staff) ??
+    effectiveRole(client, campaign, "projectManagerId", staff)
   );
 }
 

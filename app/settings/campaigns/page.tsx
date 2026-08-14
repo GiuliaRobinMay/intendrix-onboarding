@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BookOpen, Layers, Users, X } from "lucide-react";
+import { BookOpen, CopyPlus, Layers, Users, X } from "lucide-react";
 import { Chip, GradientButton, GhostButton } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
@@ -62,7 +62,7 @@ function NewCampaignTemplateForm({ onClose }: { onClose: () => void }) {
 }
 
 export default function CampaignTemplatesPage() {
-  const { campaignTemplates, templates, clients } = useData();
+  const { campaignTemplates, templates, clients, dispatch } = useData();
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -87,11 +87,15 @@ export default function CampaignTemplatesPage() {
             0
           );
           return (
-            <Link
-              key={ct.id}
-              href={`/settings/campaigns/${ct.id}`}
-              className="card card-hover block p-6"
-            >
+            <div key={ct.id} className="card card-hover group relative">
+              <button
+                data-tip="Duplicate this campaign with all its series and lessons"
+                onClick={() => dispatch({ type: "duplicateCampaignTemplate", templateId: ct.id })}
+                className="absolute right-3 top-3 z-10 hidden cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper group-hover:block"
+              >
+                <CopyPlus size={14} />
+              </button>
+              <Link href={`/settings/campaigns/${ct.id}`} className="block p-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="brand-gradient flex size-12 items-center justify-center rounded-xl text-sm font-bold text-paper">
                   {ct.code}
@@ -122,7 +126,8 @@ export default function CampaignTemplatesPage() {
                   </Chip>
                 ))}
               </div>
-            </Link>
+              </Link>
+            </div>
           );
         })}
 

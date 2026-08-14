@@ -66,7 +66,7 @@ export function Sidebar() {
           </div>
         </div>
         <p className="mt-3 px-1 text-[11px] leading-relaxed text-mist/60">
-          Google sign-in arrives with the Supabase phase.
+          Email + password sign-in arrives with the Supabase phase.
         </p>
       </div>
     </aside>

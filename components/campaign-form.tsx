@@ -5,38 +5,7 @@ import { X } from "lucide-react";
 import { GradientButton, GhostButton, Chip } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
-import { team } from "@/lib/data";
 import { seriesOfCampaignTemplate } from "@/lib/store";
-
-function StaffSelect({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
-      >
-        <option value="">— unassigned —</option>
-        {team.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 /** Create a campaign for a client, from a campaign blueprint.
  *  A client can have as many campaigns as they need. */
@@ -52,8 +21,6 @@ export function NewCampaignForm({
   const [name, setName] = useState(campaignTemplates[0]?.name ?? "");
   const [code, setCode] = useState(campaignTemplates[0]?.code ?? "");
   const [withStandardSessions, setWithStandard] = useState(true);
-  const [accountManagerId, setAccountManagerId] = useState("");
-  const [campaignManagerId, setCampaignManagerId] = useState("");
   const [picked, setPicked] = useState<string[]>(
     campaignTemplates[0]
       ? seriesOfCampaignTemplate(templates, campaignTemplates[0].id).map((s) => s.id)
@@ -131,18 +98,10 @@ export function NewCampaignForm({
         <Field label="Code" value={code} onChange={setCode} placeholder="e.g. TLE-E" />
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <StaffSelect
-          label="Account manager"
-          value={accountManagerId}
-          onChange={setAccountManagerId}
-        />
-        <StaffSelect
-          label="Campaign manager"
-          value={campaignManagerId}
-          onChange={setCampaignManagerId}
-        />
-      </div>
+      <p className="mt-3 text-[11px] text-mist">
+        The Phoenix team (Leader, Coach, Project Manager) is inherited from the
+        client — override it afterwards on the campaign page if needed.
+      </p>
 
       <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-sm">
         <input
@@ -209,8 +168,6 @@ export function NewCampaignForm({
               name: name.trim(),
               code: code.trim() || "TLE",
               fromTemplateId: templateId || undefined,
-              accountManagerId: accountManagerId || undefined,
-              campaignManagerId: campaignManagerId || undefined,
               withStandardSessions,
               templateIds: picked,
             });
