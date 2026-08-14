@@ -141,6 +141,14 @@ export type Action =
       sessionId: string;
       dir: -1 | 1;
     }
+  /** drag-and-drop reorder: drop a session at an absolute position */
+  | {
+      type: "moveSessionTo";
+      clientId: string;
+      campaignId: string;
+      sessionId: string;
+      toIndex: number;
+    }
   // series loaded into a campaign
   | {
       type: "loadSeries";
@@ -380,6 +388,18 @@ function reducer(db: DB, action: Action): DB {
           action.dir
         ),
       }));
+
+    case "moveSessionTo":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        const from = c.sessions.findIndex((s) => s.id === action.sessionId);
+        if (from < 0) return c;
+        const to = Math.max(0, Math.min(action.toIndex, c.sessions.length - 1));
+        if (from === to) return c;
+        const sessions = [...c.sessions];
+        const [moved] = sessions.splice(from, 1);
+        sessions.splice(to, 0, moved);
+        return { ...c, sessions };
+      });
 
     // ——— series inside a campaign ——————————————————————————
 

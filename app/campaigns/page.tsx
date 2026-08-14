@@ -87,6 +87,7 @@ export default function CampaignsPage() {
   const [status, setStatus] = useState<"all" | CampaignStatus>("all");
   const [accountManager, setAccountManager] = useState("all");
   const [campaignManager, setCampaignManager] = useState("all");
+  const [clientFilter, setClientFilter] = useState("all");
   const [query, setQuery] = useState("");
   const today = new Date();
 
@@ -112,6 +113,7 @@ export default function CampaignsPage() {
   };
 
   const filtered = rows.filter((r) => {
+    if (clientFilter !== "all" && r.client.id !== clientFilter) return false;
     if (status !== "all" && r.status !== status) return false;
     if (accountManager !== "all" && r.campaign.accountManagerId !== accountManager)
       return false;
@@ -128,6 +130,13 @@ export default function CampaignsPage() {
   const staffOptions = [
     { value: "all", label: "Anyone" },
     ...team.map((t) => ({ value: t.id, label: t.name })),
+  ];
+
+  const clientOptions = [
+    { value: "all", label: "All clients" },
+    ...clients
+      .filter((c) => c.campaigns.length > 0)
+      .map((c) => ({ value: c.id, label: c.name })),
   ];
 
   const tabs: Array<{ key: "all" | CampaignStatus; label: string }> = [
@@ -198,6 +207,12 @@ export default function CampaignsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
+          <FilterSelect
+            label="Client"
+            value={clientFilter}
+            onChange={setClientFilter}
+            options={clientOptions}
+          />
           <FilterSelect
             label="Account mgr"
             value={accountManager}

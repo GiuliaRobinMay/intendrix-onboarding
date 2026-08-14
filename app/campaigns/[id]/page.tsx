@@ -8,6 +8,7 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarDays,
+  GripVertical,
   Layers,
   MapPin,
   Plus,
@@ -15,11 +16,12 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { PageHeader, Chip, ProgressBar, GhostButton } from "@/components/ui";
+import { Chip, ProgressBar, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { useData } from "@/lib/state";
 import { team } from "@/lib/data";
 import {
+  computeSchedule,
   findCampaign,
   findTemplate,
   seriesProgress,
@@ -36,10 +38,55 @@ const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: stri
   closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
 };
 
+/** Small inline select that reads as text until you use it. */
+function InlineSelect({
+  label,
+  value,
+  onChange,
+  options,
+  tone,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: Array<{ value: string; label: string }>;
+  tone?: { bg: string; fg: string };
+}) {
+  return (
+    <label className="flex items-center gap-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="cursor-pointer rounded-lg border px-2 py-1 text-xs font-semibold focus:outline-none"
+        style={
+          tone
+            ? { backgroundColor: tone.bg, color: tone.fg, borderColor: "transparent" }
+            : {
+                backgroundColor: "rgba(20,20,60,0.6)",
+                color: "#eeeeef",
+                borderColor: "rgba(255,255,255,0.10)",
+              }
+        }
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { clients, templates, dispatch } = useData();
   const [pickingModule, setPickingModule] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
   const today = new Date();
 
   const found = findCampaign(clients, id);
@@ -62,6 +109,31 @@ export default function CampaignDetailPage() {
     (t) => !campaign.series.some((s) => s.templateId === t.id)
   );
 
+  // send counts across the whole campaign
+  let sent = 0;
+  let scheduled = 0;
+  let waiting = 0;
+  for (const loaded of campaign.series) {
+    const series = findTemplate(templates, loaded.templateId);
+    if (!series) continue;
+    for (const item of computeSchedule(campaign, loaded, series, today)) {
+      if (item.status === "sent") sent++;
+      else if (item.status === "scheduled") scheduled++;
+      else waiting++;
+    }
+  }
+  const datedSessions = campaign.sessions.filter((s) => s.date).length;
+
+  const staffOptions = [
+    { value: "", label: "— unassigned —" },
+    ...team.map((t) => ({ value: t.id, label: t.name })),
+  ];
+
+  const endDrag = () => {
+    setDragId(null);
+    setOverIndex(null);
+  };
+
   return (
     <>
       <Link
@@ -71,95 +143,131 @@ export default function CampaignDetailPage() {
         <ArrowLeft size={13} /> All campaigns
       </Link>
 
-      <PageHeader
-        title={campaign.name}
-        subtitle={`${client.name} · ${completion.sent} of ${completion.total} lessons sent`}
-        action={
-          <div className="flex items-center gap-3">
+      {/* Header: title, client, owners */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
             <Chip color="#a3a4f0">{campaign.code}</Chip>
-            <Link
-              href={`/clients/${client.id}`}
-              className="text-xs font-semibold text-mist transition-colors hover:text-paper"
-            >
-              Client page →
-            </Link>
           </div>
-        }
-      />
+          <p className="mt-1 text-sm text-mist">
+            <Link href={`/clients/${client.id}`} className="hover:text-paper hover:underline">
+              {client.name}
+            </Link>{" "}
+            · {client.members.length} members · {campaign.timezone}
+          </p>
+        </div>
 
-      <div className="mb-6">
-        <ProgressBar pct={completion.pct} />
-      </div>
-
-      {/* Ownership & status */}
-      <div className="card mb-6 flex flex-wrap items-center gap-x-8 gap-y-4 p-5">
-        <label className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
-            Status
-          </span>
-          <select
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <InlineSelect
+            label="Status"
             value={campaign.statusOverride ?? ""}
-            onChange={(e) =>
+            tone={STATUS_STYLE[status]}
+            onChange={(v) =>
               dispatch({
                 type: "updateCampaign",
                 clientId: client.id,
                 campaignId: campaign.id,
-                patch: {
-                  statusOverride: (e.target.value || undefined) as
-                    | CampaignStatus
-                    | undefined,
-                },
+                patch: { statusOverride: (v || undefined) as CampaignStatus | undefined },
               })
             }
-            className="cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-bold focus:outline-none"
-            style={{
-              backgroundColor: STATUS_STYLE[status].bg,
-              color: STATUS_STYLE[status].fg,
-              borderColor: "transparent",
-            }}
-          >
-            <option value="">Automatic ({STATUS_STYLE[status].label})</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="active">Active</option>
-            <option value="closed">Closed</option>
-          </select>
-        </label>
-
-        {(
-          [
-            ["Account manager", "accountManagerId"],
-            ["Campaign manager", "campaignManagerId"],
-          ] as const
-        ).map(([label, key]) => (
-          <label key={key} className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
-              {label}
-            </span>
-            <select
-              value={campaign[key] ?? ""}
-              onChange={(e) =>
-                dispatch({
-                  type: "updateCampaign",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  patch: { [key]: e.target.value || undefined },
-                })
-              }
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
-            >
-              <option value="">— unassigned —</option>
-              {team.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+            options={[
+              { value: "", label: `Automatic (${STATUS_STYLE[status].label})` },
+              { value: "upcoming", label: "Upcoming" },
+              { value: "active", label: "Active" },
+              { value: "closed", label: "Closed" },
+            ]}
+          />
+          <InlineSelect
+            label="Account mgr"
+            value={campaign.accountManagerId ?? ""}
+            onChange={(v) =>
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: { accountManagerId: v || undefined },
+              })
+            }
+            options={staffOptions}
+          />
+          <InlineSelect
+            label="Campaign mgr"
+            value={campaign.campaignManagerId ?? ""}
+            onChange={(v) =>
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: { campaignManagerId: v || undefined },
+              })
+            }
+            options={staffOptions}
+          />
+        </div>
       </div>
 
+      {/* Progress overview */}
+      <section className="card mb-6 p-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-mist">
+              Campaign progress
+            </p>
+            <p className="mt-1 text-3xl font-bold tabular-nums">
+              {completion.pct}%
+              <span className="ml-2 text-sm font-medium text-mist">
+                {completion.sent} of {completion.total} lessons sent
+              </span>
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-[#4ade80]" />
+              <span className="font-bold tabular-nums">{sent}</span>
+              <span className="text-mist">sent</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-[#a3a4f0]" />
+              <span className="font-bold tabular-nums">{scheduled}</span>
+              <span className="text-mist">scheduled</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-white/20" />
+              <span className="font-bold tabular-nums">{waiting}</span>
+              <span className="text-mist">awaiting a date</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-mist">
+              <CalendarDays size={13} />
+              <span className="font-bold tabular-nums text-paper">
+                {datedSessions}/{campaign.sessions.length}
+              </span>
+              sessions dated
+            </span>
+          </div>
+        </div>
+
+        {/* segmented bar: sent | scheduled | waiting */}
+        <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-white/8">
+          {sent > 0 && (
+            <div
+              className="h-full bg-[#4ade80]"
+              style={{ width: `${(sent / Math.max(1, sent + scheduled + waiting)) * 100}%` }}
+            />
+          )}
+          {scheduled > 0 && (
+            <div
+              className="h-full bg-[#a3a4f0]"
+              style={{
+                width: `${(scheduled / Math.max(1, sent + scheduled + waiting)) * 100}%`,
+              }}
+            />
+          )}
+        </div>
+      </section>
+
       <div className="flex flex-col gap-6">
-        {/* Sessions — variable number */}
+        {/* Sessions — square, draggable cards */}
         <section className="card p-6">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
@@ -168,129 +276,123 @@ export default function CampaignDetailPage() {
                 ({campaign.sessions.length})
               </span>
             </h2>
-            <GhostButton
-              onClick={() =>
-                dispatch({
-                  type: "addSession",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                })
-              }
-            >
-              + Add session
-            </GhostButton>
           </div>
           <p className="mb-5 text-xs text-mist">
-            The live and online meetings in this campaign — add as many as you
-            need, or none at all. A session&rsquo;s date triggers the series bound
-            to it. Timezone: {campaign.timezone}.
+            The live and online meetings in this campaign. Drag a card to reorder —
+            the numbering follows. A session&rsquo;s date triggers the series bound to it.
           </p>
 
-          {campaign.sessions.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 p-8 text-center text-sm text-mist">
-              No sessions in this campaign yet — add one to start scheduling, or
-              leave it empty for a campaign that runs on lessons alone.
-            </div>
-          ) : (
-            <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {campaign.sessions.map((session, i) => {
-                const date = session.date ? new Date(`${session.date}T00:00:00`) : null;
-                const past = date !== null && date < today;
-                const boundCount = campaign.series.filter(
-                  (s) => s.sessionId === session.id
-                ).length;
-                return (
-                  <li key={session.id} className="card group p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-mist">
-                        Session {i + 1}
-                      </p>
-                      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button
-                          disabled={i === 0}
-                          onClick={() =>
-                            dispatch({
-                              type: "moveSession",
-                              clientId: client.id,
-                              campaignId: campaign.id,
-                              sessionId: session.id,
-                              dir: -1,
-                            })
-                          }
-                          className="cursor-pointer rounded p-1 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
-                        >
-                          <ArrowUp size={12} />
-                        </button>
-                        <button
-                          disabled={i === campaign.sessions.length - 1}
-                          onClick={() =>
-                            dispatch({
-                              type: "moveSession",
-                              clientId: client.id,
-                              campaignId: campaign.id,
-                              sessionId: session.id,
-                              dir: 1,
-                            })
-                          }
-                          className="cursor-pointer rounded p-1 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
-                        >
-                          <ArrowDown size={12} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            dispatch({
-                              type: "removeSession",
-                              clientId: client.id,
-                              campaignId: campaign.id,
-                              sessionId: session.id,
-                            })
-                          }
-                          className="cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
+          <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {campaign.sessions.map((session, i) => {
+              const date = session.date ? new Date(`${session.date}T00:00:00`) : null;
+              const past = date !== null && date < today;
+              const boundCount = campaign.series.filter(
+                (s) => s.sessionId === session.id
+              ).length;
+              const dragging = dragId === session.id;
+              const isOver = overIndex === i && dragId !== null && !dragging;
+
+              return (
+                <li
+                  key={session.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDragId(session.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", session.id);
+                  }}
+                  onDragEnd={endDrag}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    if (overIndex !== i) setOverIndex(i);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const moved = e.dataTransfer.getData("text/plain") || dragId;
+                    if (moved) {
+                      dispatch({
+                        type: "moveSessionTo",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        sessionId: moved,
+                        toIndex: i,
+                      });
+                    }
+                    endDrag();
+                  }}
+                  className={`card group relative flex min-h-52 cursor-grab flex-col p-3.5 transition-all active:cursor-grabbing ${
+                    dragging
+                      ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20"
+                      : ""
+                  } ${isOver ? "ring-2 ring-[#ff7a55]" : ""}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-mist">
+                      Session {i + 1}
+                    </p>
+                    <div className="flex items-center gap-0.5">
+                      <GripVertical
+                        size={12}
+                        className="text-mist/40 group-hover:text-mist"
+                      />
+                      <button
+                        onClick={() =>
+                          dispatch({
+                            type: "removeSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                          })
+                        }
+                        className="hidden cursor-pointer rounded p-0.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
+                  </div>
 
-                    <EditableText
-                      value={session.name}
-                      onCommit={(v) =>
-                        dispatch({
-                          type: "updateSession",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          sessionId: session.id,
-                          patch: { name: v },
-                        })
-                      }
-                      className="mt-1 text-sm font-semibold"
-                    />
+                  <EditableText
+                    multiline
+                    value={session.name}
+                    onCommit={(v) =>
+                      dispatch({
+                        type: "updateSession",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        sessionId: session.id,
+                        patch: { name: v },
+                      })
+                    }
+                    className="mt-1 text-xs font-semibold leading-snug"
+                  />
 
-                    <button
-                      onClick={() =>
-                        dispatch({
-                          type: "updateSession",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          sessionId: session.id,
-                          patch: {
-                            mode: session.mode === "virtual" ? "in-person" : "virtual",
-                          },
-                        })
-                      }
-                      className="mt-2 flex cursor-pointer items-center gap-1 text-[10px] text-mist hover:text-paper"
-                    >
-                      {session.mode === "virtual" ? (
-                        <>
-                          <Video size={11} /> virtual
-                        </>
-                      ) : (
-                        <>
-                          <MapPin size={11} /> in person
-                        </>
-                      )}
-                    </button>
+                  <button
+                    onClick={() =>
+                      dispatch({
+                        type: "updateSession",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        sessionId: session.id,
+                        patch: {
+                          mode: session.mode === "virtual" ? "in-person" : "virtual",
+                        },
+                      })
+                    }
+                    className="mt-1.5 flex w-fit cursor-pointer items-center gap-1 text-[10px] text-mist hover:text-paper"
+                  >
+                    {session.mode === "virtual" ? (
+                      <>
+                        <Video size={10} /> virtual
+                      </>
+                    ) : (
+                      <>
+                        <MapPin size={10} /> in person
+                      </>
+                    )}
+                  </button>
 
+                  <div className="mt-auto pt-2">
                     <input
                       type="date"
                       value={session.date ?? ""}
@@ -303,7 +405,7 @@ export default function CampaignDetailPage() {
                           patch: { date: e.target.value || null },
                         })
                       }
-                      className={`mt-3 w-full cursor-pointer rounded-lg border px-2 py-1.5 text-center text-xs font-bold tabular-nums focus:outline-none ${
+                      className={`w-full cursor-pointer rounded-lg border px-1 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
                         date
                           ? past
                             ? "border-transparent bg-white/8 text-paper"
@@ -311,17 +413,31 @@ export default function CampaignDetailPage() {
                           : "border-dashed border-white/15 text-mist/70"
                       }`}
                     />
-
-                    <p className="mt-2 text-[10px] text-mist/70">
-                      {boundCount === 0
-                        ? "No series triggered by this session"
-                        : `Triggers ${boundCount} series`}
+                    <p className="mt-1.5 truncate text-[10px] text-mist/70">
+                      {boundCount === 0 ? "no series" : `triggers ${boundCount} series`}
                     </p>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+                  </div>
+                </li>
+              );
+            })}
+
+            {/* ghost card — add a session */}
+            <li>
+              <button
+                onClick={() =>
+                  dispatch({
+                    type: "addSession",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                  })
+                }
+                className="flex min-h-52 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[1.25rem] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
+              >
+                <Plus size={18} />
+                <span className="text-xs font-semibold">New session</span>
+              </button>
+            </li>
+          </ol>
         </section>
 
         {/* Loaded series */}
@@ -385,9 +501,7 @@ export default function CampaignDetailPage() {
                         className="text-sm font-bold hover:underline"
                       >
                         {series.name}
-                        <span className="ml-2 font-medium text-mist">
-                          · {series.focus}
-                        </span>
+                        <span className="ml-2 font-medium text-mist">· {series.focus}</span>
                       </Link>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-mist">
                         <span>Triggered by</span>
@@ -417,7 +531,7 @@ export default function CampaignDetailPage() {
                               ? `· next send ${fmtDate(p.next.date!)}`
                               : "· all sent"
                             : session
-                              ? "· session has no date yet"
+                              ? `· ${session.name} has no date yet`
                               : "· bind to a session to schedule"}
                         </span>
                       </div>
