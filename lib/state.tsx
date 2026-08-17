@@ -21,7 +21,8 @@ import type {
   Campaign,
   CampaignSession,
   CampaignTemplate,
-  Champion,
+  ClientAssignmentRole,
+  PhoenixAssignmentRole,
   Client,
   MemberRole,
   SeriesStep,
@@ -32,7 +33,7 @@ import type {
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
-const SEED_VERSION = 6;
+const SEED_VERSION = 7;
 
 interface DB {
   seedVersion: number;
@@ -135,9 +136,6 @@ export type Action =
           | "name"
           | "code"
           | "timezone"
-          | "phoenixLeaderId"
-          | "phoenixCoachId"
-          | "projectManagerId"
           | "statusOverride"
           | "startDate"
           | "endDate"
@@ -225,22 +223,47 @@ export type Action =
       focus: string;
       trigger: SessionKey;
     }
-  // client transformational champions (per campaign)
+  // campaign assignments — same system on both sides
   | {
-      type: "addChampion";
+      type: "addPhoenixAssignment";
       clientId: string;
       campaignId: string;
-      name: string;
-      email: string;
+      staffId: string;
+      role: PhoenixAssignmentRole;
     }
   | {
-      type: "updateChampion";
+      type: "updatePhoenixAssignment";
       clientId: string;
       campaignId: string;
-      championId: string;
-      patch: Partial<Pick<Champion, "name" | "email">>;
+      assignmentId: string;
+      patch: Partial<{ staffId: string; role: PhoenixAssignmentRole }>;
     }
-  | { type: "removeChampion"; clientId: string; campaignId: string; championId: string }
+  | {
+      type: "removePhoenixAssignment";
+      clientId: string;
+      campaignId: string;
+      assignmentId: string;
+    }
+  | {
+      type: "addClientAssignment";
+      clientId: string;
+      campaignId: string;
+      memberId: string;
+      role: ClientAssignmentRole;
+    }
+  | {
+      type: "updateClientAssignment";
+      clientId: string;
+      campaignId: string;
+      assignmentId: string;
+      patch: Partial<{ memberId: string; role: ClientAssignmentRole }>;
+    }
+  | {
+      type: "removeClientAssignment";
+      clientId: string;
+      campaignId: string;
+      assignmentId: string;
+    }
   // campaign blueprints
   | { type: "addCampaignTemplate"; name: string; code: string; description: string }
   | { type: "duplicateCampaignTemplate"; templateId: string }
@@ -368,7 +391,8 @@ function reducer(db: DB, action: Action): DB {
         name: action.name,
         timezone: action.timezone || "America/New_York",
         templateId: action.fromTemplateId,
-        champions: [],
+        phoenixTeam: [],
+        clientTeam: [],
         sessions,
         series,
       };
@@ -448,29 +472,52 @@ function reducer(db: DB, action: Action): DB {
         return { ...c, sessions };
       });
 
-    // ——— client transformational champions —————————————————
+    // ——— campaign assignments ——————————————————————————————
 
-    case "addChampion":
+    case "addPhoenixAssignment":
       return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
         ...c,
-        champions: [
-          ...c.champions,
-          { id: uid("champion"), name: action.name, email: action.email },
+        phoenixTeam: [
+          ...c.phoenixTeam,
+          { id: uid("pa"), staffId: action.staffId, role: action.role },
         ],
       }));
 
-    case "updateChampion":
+    case "updatePhoenixAssignment":
       return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
         ...c,
-        champions: c.champions.map((x) =>
-          x.id === action.championId ? { ...x, ...action.patch } : x
+        phoenixTeam: c.phoenixTeam.map((x) =>
+          x.id === action.assignmentId ? { ...x, ...action.patch } : x
         ),
       }));
 
-    case "removeChampion":
+    case "removePhoenixAssignment":
       return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
         ...c,
-        champions: c.champions.filter((x) => x.id !== action.championId),
+        phoenixTeam: c.phoenixTeam.filter((x) => x.id !== action.assignmentId),
+      }));
+
+    case "addClientAssignment":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        clientTeam: [
+          ...c.clientTeam,
+          { id: uid("ca"), memberId: action.memberId, role: action.role },
+        ],
+      }));
+
+    case "updateClientAssignment":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        clientTeam: c.clientTeam.map((x) =>
+          x.id === action.assignmentId ? { ...x, ...action.patch } : x
+        ),
+      }));
+
+    case "removeClientAssignment":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        clientTeam: c.clientTeam.filter((x) => x.id !== action.assignmentId),
       }));
 
     // ——— series inside a campaign ——————————————————————————

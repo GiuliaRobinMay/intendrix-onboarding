@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BookOpen, CopyPlus, Layers, Users, X } from "lucide-react";
+import { BookOpen, ChevronRight, CopyPlus, Layers, Trash2, Users, X } from "lucide-react";
 import { Chip, GradientButton, GhostButton } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
@@ -78,70 +78,115 @@ export default function CampaignTemplatesPage() {
 
       {showForm && <NewCampaignTemplateForm onClose={() => setShowForm(false)} />}
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {campaignTemplates.map((ct) => {
-          const series = seriesOfCampaignTemplate(templates, ct.id);
-          const lessons = series.reduce((n, s) => n + s.steps.length, 0);
-          const inUse = clients.reduce(
-            (n, c) => n + c.campaigns.filter((x) => x.templateId === ct.id).length,
-            0
-          );
-          return (
-            <div key={ct.id} className="card card-hover group relative">
-              <button
-                data-tip="Duplicate this campaign with all its series and lessons"
-                onClick={() => dispatch({ type: "duplicateCampaignTemplate", templateId: ct.id })}
-                className="absolute right-3 top-3 z-10 hidden cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper group-hover:block"
-              >
-                <CopyPlus size={14} />
-              </button>
-              <Link href={`/settings/campaigns/${ct.id}`} className="block p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div className="brand-gradient flex size-12 items-center justify-center rounded-xl text-sm font-bold text-paper">
-                  {ct.code}
-                </div>
-                <Chip color="#a3a4f0">
-                  {series.length} series
-                </Chip>
-              </div>
-              <h2 className="mt-4 text-base font-bold">{ct.name}</h2>
-              <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-mist">
-                {ct.description}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-white/5 pt-4 text-xs text-mist">
-                <span className="flex items-center gap-1.5">
-                  <Layers size={12} /> {series.length} series
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <BookOpen size={12} /> {lessons} lessons
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Users size={12} /> {inUse} client campaign{inUse === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {series.map((s) => (
-                  <Chip key={s.id} color={s.color}>
-                    {s.code}
-                  </Chip>
-                ))}
-              </div>
-              </Link>
-            </div>
-          );
-        })}
+      {/* List */}
+      <div className="card overflow-hidden">
+        <div className="hidden grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-mist lg:grid">
+          <span>Campaign</span>
+          <span>Series</span>
+          <span>Lessons</span>
+          <span>Used by</span>
+          <span />
+          <span />
+          <span />
+        </div>
 
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex min-h-56 cursor-pointer flex-col items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-white/10 p-6 text-center transition-colors hover:border-white/25"
-        >
-          <p className="text-sm font-semibold text-mist/70">+ New campaign blueprint</p>
-          <p className="max-w-56 text-xs text-mist/50">
-            A campaign can hold one or more series — TLE-E, TLE for Supervisors &
-            Managers, anything you design next.
-          </p>
-        </button>
+        <ul className="divide-y divide-white/5">
+          {campaignTemplates.map((ct) => {
+            const series = seriesOfCampaignTemplate(templates, ct.id);
+            const lessons = series.reduce((n, s) => n + s.steps.length, 0);
+            const inUse = clients.reduce(
+              (n, c) => n + c.campaigns.filter((x) => x.templateId === ct.id).length,
+              0
+            );
+            return (
+              <li key={ct.id} className="group relative">
+                <Link
+                  href={`/settings/campaigns/${ct.id}`}
+                  className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] lg:gap-4"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="brand-gradient flex h-9 w-16 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-paper">
+                      {ct.code}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-bold">{ct.name}</span>
+                      <span className="block truncate text-xs text-mist">
+                        {ct.description}
+                      </span>
+                    </span>
+                  </div>
+
+                  <span className="flex flex-wrap gap-1">
+                    {series.map((s) => (
+                      <Chip key={s.id} color={s.color}>
+                        {s.code}
+                      </Chip>
+                    ))}
+                    {series.length === 0 && (
+                      <span className="text-[11px] italic text-mist/50">
+                        No series yet
+                      </span>
+                    )}
+                  </span>
+
+                  <span className="flex items-center gap-1.5 text-xs text-mist">
+                    <BookOpen size={12} />
+                    <span className="font-bold tabular-nums text-paper">{lessons}</span>
+                  </span>
+
+                  <span className="flex items-center gap-1.5 text-xs text-mist">
+                    <Users size={12} />
+                    <span className="font-bold tabular-nums text-paper">{inUse}</span>
+                  </span>
+
+                  <span className="flex items-center gap-1.5 text-xs text-mist">
+                    <Layers size={12} />
+                    <span className="font-bold tabular-nums text-paper">
+                      {series.length}
+                    </span>
+                    series
+                  </span>
+
+                  <span />
+                  <ChevronRight size={16} className="hidden text-mist lg:block" />
+                </Link>
+
+                <div className="absolute right-12 top-1/2 hidden -translate-y-1/2 items-center gap-1 group-hover:flex">
+                  <button
+                    data-tip="Duplicate this campaign with all its series and lessons"
+                    onClick={() =>
+                      dispatch({ type: "duplicateCampaignTemplate", templateId: ct.id })
+                    }
+                    className="cursor-pointer rounded-lg border border-white/10 bg-navy/80 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                  >
+                    <CopyPlus size={13} />
+                  </button>
+                  <button
+                    data-tip="Delete this campaign blueprint and its series"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Delete the ${ct.code} blueprint and its ${series.length} series?`
+                        )
+                      ) {
+                        dispatch({ type: "removeCampaignTemplate", templateId: ct.id });
+                      }
+                    }}
+                    className="cursor-pointer rounded-lg border border-white/10 bg-navy/80 p-1.5 text-mist transition-colors hover:border-[#eb320f]/40 hover:text-[#ff7a55]"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      <p className="mt-3 text-xs text-mist">
+        {campaignTemplates.length} campaign blueprint
+        {campaignTemplates.length === 1 ? "" : "s"} in the library.
+      </p>
     </>
   );
 }

@@ -9,7 +9,6 @@ import {
   ChevronDown,
   GripVertical,
   Layers,
-  Mail,
   MapPin,
   Plus,
   Trash2,
@@ -32,7 +31,11 @@ import {
   fmtDateShort,
   fmtWeekday,
 } from "@/lib/store";
-import type { CampaignStatus } from "@/lib/types";
+import type {
+  CampaignStatus,
+  ClientAssignmentRole,
+  PhoenixAssignmentRole,
+} from "@/lib/types";
 
 const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: string }> = {
   active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
@@ -320,70 +323,21 @@ export default function CampaignDetailPage() {
         </div>
       </section>
 
-      {/* Phoenix team & champions */}
+      {/* Campaign team — same add-person system on both sides */}
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
-        <section className="card p-6">
-          <h2 className="mb-1 text-base font-bold">Phoenix team for this campaign</h2>
-          <p className="mb-4 text-xs text-mist">
-            By default the client&rsquo;s own Phoenix team applies — override any
-            role for this campaign. The Coach is the one the emails are sent from.
-          </p>
-          <div className="flex flex-col gap-3">
-            {(
-              [
-                ["Phoenix Leader", "phoenixLeaderId"],
-                ["Phoenix Coach", "phoenixCoachId"],
-                ["Project Manager", "projectManagerId"],
-              ] as const
-            ).map(([label, key]) => {
-              const clientDefault = findStaff(team, client[key]);
-              return (
-                <div key={key} className="flex items-center justify-between gap-3">
-                  <span className="brand-gradient rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
-                    {label}
-                  </span>
-                  <select
-                    title={`${label} for this campaign — leave on the client default or override`}
-                    value={campaign[key] ?? ""}
-                    onChange={(e) =>
-                      dispatch({
-                        type: "updateCampaign",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        patch: { [key]: e.target.value || undefined },
-                      })
-                    }
-                    className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
-                  >
-                    <option value="">
-                      {clientDefault
-                        ? `Client default (${clientDefault.name})`
-                        : "Client default (unassigned)"}
-                    </option>
-                    {team.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
+        {/* Phoenix side */}
         <section className="card p-6">
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-base font-bold">Client Transformational Champion</h2>
+            <h2 className="text-base font-bold">Phoenix team</h2>
             <button
-              data-tip="Add another champion for this campaign"
+              data-tip="Add a Phoenix collaborator to this campaign"
               onClick={() =>
                 dispatch({
-                  type: "addChampion",
+                  type: "addPhoenixAssignment",
                   clientId: client.id,
                   campaignId: campaign.id,
-                  name: "New champion",
-                  email: "",
+                  staffId: team[0]?.id ?? "",
+                  role: "phoenix_coach",
                 })
               }
               className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
@@ -392,80 +346,202 @@ export default function CampaignDetailPage() {
             </button>
           </div>
           <p className="mb-4 text-xs text-mist">
-            The client-side leader(s) of this campaign — campaign-specific, and
-            there can be more than one.
+            Who at Phoenix works on this campaign — any number of people, each
+            with a role. The Coach is the one the emails are sent from.
           </p>
+
           <div className="flex flex-col gap-2">
-            {campaign.champions.map((champ) => (
-              <div
-                key={champ.id}
-                className="group flex items-center gap-3 rounded-xl border border-white/8 px-3 py-2"
-              >
-                <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
-                  {champ.name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join("") || "?"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <EditableText
-                    value={champ.name}
-                    placeholder="Champion name…"
-                    onCommit={(v) =>
-                      dispatch({
-                        type: "updateChampion",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        championId: champ.id,
-                        patch: { name: v },
-                      })
-                    }
-                    className="text-sm font-semibold"
-                  />
-                  <EditableText
-                    value={champ.email}
-                    placeholder="email@client.org"
-                    onCommit={(v) =>
-                      dispatch({
-                        type: "updateChampion",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        championId: champ.id,
-                        patch: { email: v },
-                      })
-                    }
-                    className="text-xs text-mist"
-                  />
-                </div>
-                {champ.email && (
-                  <a
-                    data-tip="Write an email to this champion"
-                    href={`mailto:${champ.email}`}
-                    className="shrink-0 text-mist hover:text-paper"
-                  >
-                    <Mail size={13} />
-                  </a>
-                )}
-                <button
-                  data-tip="Remove this champion"
-                  onClick={() =>
-                    dispatch({
-                      type: "removeChampion",
-                      clientId: client.id,
-                      campaignId: campaign.id,
-                      championId: champ.id,
-                    })
-                  }
-                  className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+            {campaign.phoenixTeam.map((a) => {
+              const person = findStaff(team, a.staffId);
+              return (
+                <div
+                  key={a.id}
+                  className="group flex items-center gap-3 rounded-xl border border-white/8 px-3 py-2"
                 >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))}
-            {campaign.champions.length === 0 && (
+                  <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                    {person?.initials ?? "?"}
+                  </span>
+                  <select
+                    title="Which Phoenix collaborator"
+                    value={a.staffId}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "updatePhoenixAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        assignmentId: a.id,
+                        patch: { staffId: e.target.value },
+                      })
+                    }
+                    className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                  >
+                    {team.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    title="Their role on this campaign"
+                    value={a.role}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "updatePhoenixAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        assignmentId: a.id,
+                        patch: { role: e.target.value as PhoenixAssignmentRole },
+                      })
+                    }
+                    className="w-36 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                  >
+                    <option value="phoenix_leader">Phoenix Leader</option>
+                    <option value="phoenix_coach">Phoenix Coach</option>
+                    <option value="project_manager">Project Manager</option>
+                  </select>
+                  <button
+                    data-tip="Remove this assignment"
+                    onClick={() =>
+                      dispatch({
+                        type: "removePhoenixAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        assignmentId: a.id,
+                      })
+                    }
+                    className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })}
+            {campaign.phoenixTeam.length === 0 && (
               <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
-                No champion yet — add the client leader for this campaign.
+                No one assigned yet — the client defaults apply
+                {(() => {
+                  const d = [
+                    findStaff(team, client.phoenixLeaderId),
+                    findStaff(team, client.phoenixCoachId),
+                    findStaff(team, client.projectManagerId),
+                  ]
+                    .filter(Boolean)
+                    .map((x) => x!.name);
+                  return d.length ? ` (${[...new Set(d)].join(", ")})` : "";
+                })()}
+                .
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* Client side — same system */}
+        <section className="card p-6">
+          <div className="mb-1 flex items-center justify-between">
+            <h2 className="text-base font-bold">Client team</h2>
+            <button
+              data-tip={
+                client.members.length === 0
+                  ? "Add members on the client page first"
+                  : "Add a client member to this campaign"
+              }
+              onClick={() => {
+                if (client.members.length === 0) return;
+                dispatch({
+                  type: "addClientAssignment",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  memberId: client.members[0].id,
+                  role: "champion",
+                });
+              }}
+              className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+          <p className="mb-4 text-xs text-mist">
+            Who at the client is responsible — chosen from the client&rsquo;s
+            members, each with a role, e.g. the Client Transformational Champion.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            {campaign.clientTeam.map((a) => {
+              const member = client.members.find((m) => m.id === a.memberId);
+              return (
+                <div
+                  key={a.id}
+                  className="group flex items-center gap-3 rounded-xl border border-white/8 px-3 py-2"
+                >
+                  <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                    {member
+                      ? member.name
+                          .split(" ")
+                          .map((w) => w[0])
+                          .slice(0, 2)
+                          .join("")
+                      : "?"}
+                  </span>
+                  <select
+                    title="Which member of the client"
+                    value={a.memberId}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "updateClientAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        assignmentId: a.id,
+                        patch: { memberId: e.target.value },
+                      })
+                    }
+                    className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                  >
+                    {client.members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                        {m.title ? ` — ${m.title}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    title="Their role on this campaign"
+                    value={a.role}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "updateClientAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        assignmentId: a.id,
+                        patch: { role: e.target.value as ClientAssignmentRole },
+                      })
+                    }
+                    className="w-36 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                  >
+                    <option value="champion">Transf. Champion</option>
+                    <option value="contact">Contact</option>
+                  </select>
+                  <button
+                    data-tip="Remove this assignment"
+                    onClick={() =>
+                      dispatch({
+                        type: "removeClientAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        assignmentId: a.id,
+                      })
+                    }
+                    className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })}
+            {campaign.clientTeam.length === 0 && (
+              <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+                {client.members.length === 0
+                  ? "This client has no members yet — add them on the client page first."
+                  : "No one assigned yet — add the Client Transformational Champion."}
               </p>
             )}
           </div>

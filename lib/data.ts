@@ -725,9 +725,8 @@ export const clients: Client[] = [
         templateId: "tle-e",
         startDate: "2026-08-05",
         endDate: "2027-02-03",
-        champions: [
-          { id: "cs-champ-1", name: "Ann Lewis", email: "ann.lewis@caresouth.example" },
-        ],
+        phoenixTeam: [],
+        clientTeam: [{ id: "cs-ca-1", memberId: "cs-m1", role: "champion" }],
         sessions: [
           { id: "cs-s1", kind: "orientation", name: "Orientation Session", date: "2026-08-05", mode: "virtual" },
           { id: "cs-s2", kind: "workshop", name: "Workshop", date: "2026-09-16", mode: "in-person" },
@@ -762,7 +761,8 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/New_York",
         templateId: "tle-e",
-        champions: [],
+        phoenixTeam: [],
+        clientTeam: [],
         sessions: [
           { id: "br-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "br-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },
@@ -797,7 +797,8 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/New_York",
         templateId: "tle-e",
-        champions: [],
+        phoenixTeam: [],
+        clientTeam: [],
         sessions: [
           { id: "me-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "me-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },
@@ -832,7 +833,8 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/Los_Angeles",
         templateId: "tle-e",
-        champions: [],
+        phoenixTeam: [],
+        clientTeam: [],
         sessions: [
           { id: "tl-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "tl-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },
@@ -867,7 +869,8 @@ export const clients: Client[] = [
         name: "TLE for Executives",
         timezone: "America/Chicago",
         templateId: "tle-e",
-        champions: [],
+        phoenixTeam: [],
+        clientTeam: [],
         sessions: [
           { id: "zv-s1", kind: "orientation", name: "Orientation Session", date: null, mode: "virtual" },
           { id: "zv-s2", kind: "workshop", name: "Workshop", date: null, mode: "in-person" },

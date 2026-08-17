@@ -74,14 +74,43 @@ export function findCampaign(
 
 export type PhoenixRole = "phoenixLeaderId" | "phoenixCoachId" | "projectManagerId";
 
-/** Campaign-level override wins; otherwise the client's own assignment. */
+const ROLE_TO_ASSIGNMENT: Record<
+  PhoenixRole,
+  import("./types").PhoenixAssignmentRole
+> = {
+  phoenixLeaderId: "phoenix_leader",
+  phoenixCoachId: "phoenix_coach",
+  projectManagerId: "project_manager",
+};
+
+/** First campaign assignment for the role wins; otherwise the client's
+ *  own default assignment. */
 export function effectiveRole(
   client: Client,
   campaign: Campaign,
   role: PhoenixRole,
   staff: StaffMember[]
 ): StaffMember | undefined {
-  return findStaff(staff, campaign[role] ?? client[role]);
+  const assigned = campaign.phoenixTeam.find(
+    (a) => a.role === ROLE_TO_ASSIGNMENT[role]
+  );
+  return findStaff(staff, assigned?.staffId ?? client[role]);
+}
+
+/** True when the person is on this campaign in any capacity — assigned
+ *  directly or applying as a client default. */
+export function campaignHasResponsible(
+  client: Client,
+  campaign: Campaign,
+  staffId: string,
+  staff: StaffMember[]
+): boolean {
+  if (campaign.phoenixTeam.some((a) => a.staffId === staffId)) return true;
+  return (
+    effectiveRole(client, campaign, "phoenixLeaderId", staff)?.id === staffId ||
+    effectiveRole(client, campaign, "phoenixCoachId", staff)?.id === staffId ||
+    effectiveRole(client, campaign, "projectManagerId", staff)?.id === staffId
+  );
 }
 
 export function triggerSession(campaign: Campaign, loaded: LoadedSeries) {

@@ -84,13 +84,15 @@ function ClientsContent() {
         },
         { sent: 0, total: 0 }
       );
+      const activeCount = client.campaigns.filter(
+        (c) => campaignStatus(c, templates, today) === "active"
+      ).length;
       return {
         client,
         totals,
         pct: totals.total ? Math.round((totals.sent / totals.total) * 100) : 0,
-        hasActiveCampaign: client.campaigns.some(
-          (c) => campaignStatus(c, templates, today) === "active"
-        ),
+        activeCount,
+        hasActiveCampaign: activeCount > 0,
       };
     })
     .sort((a, b) => a.client.name.localeCompare(b.client.name));
@@ -186,7 +188,7 @@ function ClientsContent() {
         <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-mist lg:grid">
           <span>Client</span>
           <span>Status</span>
-          <span>Campaigns</span>
+          <span>Active campaigns</span>
           <span>Members</span>
           <span>Phoenix leader</span>
           <span>Phoenix coach</span>
@@ -194,7 +196,7 @@ function ClientsContent() {
         </div>
 
         <ul className="divide-y divide-white/5">
-          {filtered.map(({ client, totals, pct }) => (
+          {filtered.map(({ client, totals, pct, activeCount }) => (
             <li key={client.id}>
               <Link
                 href={`/clients/${client.id}`}
@@ -214,13 +216,15 @@ function ClientsContent() {
                 <div className="min-w-0">
                   {client.campaigns.length > 0 ? (
                     <>
-                      <div className="flex flex-wrap gap-1.5">
-                        {client.campaigns.map((c) => (
-                          <Chip key={c.id} color="#a3a4f0">
-                            {c.code}
-                          </Chip>
-                        ))}
-                      </div>
+                      <p
+                        data-tip={`${client.campaigns.length} campaign${client.campaigns.length === 1 ? "" : "s"} in total for this client`}
+                        className="w-fit text-sm font-bold tabular-nums"
+                      >
+                        {activeCount}
+                        <span className="ml-1.5 text-xs font-semibold text-mist">
+                          active campaign{activeCount === 1 ? "" : "s"}
+                        </span>
+                      </p>
                       <div className="mt-1.5 max-w-44">
                         <ProgressBar pct={pct} />
                         <p className="mt-1 text-[10px] text-mist">
