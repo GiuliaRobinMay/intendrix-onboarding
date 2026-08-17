@@ -186,6 +186,19 @@ export interface Client {
   campaigns: Campaign[];
 }
 
+/** A pending invitation created from inside the app. In the Supabase
+ *  phase this row triggers an invite email; the person signs in with
+ *  their email address and sets their own password. */
+export type AppRole = "phoenix_admin" | "client_admin";
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: AppRole;
+  /** required for client_admin: the one company they may see */
+  clientId?: string;
+}
+
 export interface ScheduledStep {
   step: SeriesStep;
   series: SeriesTemplate;

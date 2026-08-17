@@ -21,7 +21,9 @@ import type {
   Campaign,
   CampaignSession,
   CampaignTemplate,
+  AppRole,
   ClientAssignmentRole,
+  Invitation,
   PhoenixAssignmentRole,
   Client,
   MemberRole,
@@ -33,11 +35,12 @@ import type {
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
-const SEED_VERSION = 7;
+const SEED_VERSION = 8;
 
 interface DB {
   seedVersion: number;
   clients: Client[];
+  invitations: Invitation[];
   /** campaign blueprints (Settings → Campaigns) */
   campaignTemplates: CampaignTemplate[];
   /** series belonging to those blueprints */
@@ -47,6 +50,7 @@ interface DB {
 const seed = (): DB => ({
   seedVersion: SEED_VERSION,
   clients: seedClients,
+  invitations: [],
   campaignTemplates: seedCampaignTemplates,
   templates: seedTemplates,
 });
@@ -264,6 +268,9 @@ export type Action =
       campaignId: string;
       assignmentId: string;
     }
+  // invitations (mock of the Supabase invite flow)
+  | { type: "addInvitation"; email: string; role: AppRole; clientId?: string }
+  | { type: "removeInvitation"; invitationId: string }
   // campaign blueprints
   | { type: "addCampaignTemplate"; name: string; code: string; description: string }
   | { type: "duplicateCampaignTemplate"; templateId: string }
@@ -471,6 +478,28 @@ function reducer(db: DB, action: Action): DB {
         sessions.splice(to, 0, moved);
         return { ...c, sessions };
       });
+
+    // ——— invitations ———————————————————————————————————————
+
+    case "addInvitation":
+      return {
+        ...db,
+        invitations: [
+          ...db.invitations,
+          {
+            id: uid("inv"),
+            email: action.email,
+            role: action.role,
+            clientId: action.clientId,
+          },
+        ],
+      };
+
+    case "removeInvitation":
+      return {
+        ...db,
+        invitations: db.invitations.filter((i) => i.id !== action.invitationId),
+      };
 
     // ——— campaign assignments ——————————————————————————————
 
@@ -725,6 +754,7 @@ function reducer(db: DB, action: Action): DB {
 
 interface DataContextValue {
   clients: Client[];
+  invitations: Invitation[];
   campaignTemplates: CampaignTemplate[];
   templates: SeriesTemplate[];
   dispatch: (action: Action) => void;
@@ -766,6 +796,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider
       value={{
         clients: db.clients,
+        invitations: db.invitations,
         campaignTemplates: db.campaignTemplates,
         templates: db.templates,
         dispatch,

@@ -12,7 +12,9 @@ can start.
    Kevin is setting up the environment).
 2. Open *SQL Editor* → *New query*.
 3. Paste and run `migrations/0001_initial_schema.sql`.
-4. Paste and run `seed.sql` — loads the current prototype data: the Phoenix
+4. Paste and run `migrations/0002_auth_roles_invitations.sql` — sign-in,
+   roles and invitations (see below).
+5. Paste and run `seed.sql` — loads the current prototype data: the Phoenix
    team, the three campaign blueprints (TLE-E, TLE-L, TLE-IC) with every
    series, lesson and email variant, and the five clients with their
    campaigns, sessions and assignments.
@@ -45,6 +47,8 @@ Both files are idempotent (`on conflict do nothing`) — safe to re-run.
 | `campaign_phoenix_assignments` | `PhoenixAssignment` (person + role) |
 | `campaign_client_assignments` | `ClientAssignment` (member + role) |
 | `email_sends` | phase-3 sending engine log (no prototype equivalent) |
+| `profiles` | one row per signed-up user: their role + scope (0002) |
+| `invitations` | `Invitation` — pending invites created in Settings → Team |
 
 Ordering that the prototype keeps in array order is a `sort_order` column
 (sessions, series, steps, links). Statuses that the prototype derives
@@ -52,13 +56,41 @@ Ordering that the prototype keeps in array order is a `sort_order` column
 derived — only the manual override (`campaigns.status_override`, including
 `paused`) is stored.
 
-## Security
+## Sign-in, roles & invitations (0002)
 
-- RLS is enabled on every table with one policy: any **authenticated** user
-  has full access. That fits the internal team tool with email + password
-  sign-in; tighten per-role later (edit blueprints vs run campaigns).
-- `staff.auth_user_id` links a team member to their Supabase auth user once
-  accounts exist.
+Brad's choice: the email address is the account name, with a password the
+person sets themselves. Nobody can self-register into the app — access only
+comes through an invitation created in *Settings → Team*.
+
+The flow, once the app is wired to Supabase:
+
+1. A Phoenix admin invites someone from Settings → Team: email + role
+   (+ company for a client admin). The app inserts an `invitations` row and
+   calls `supabase.auth.admin.inviteUserByEmail(email)` (server-side, using
+   the service-role key).
+2. The person receives Supabase's invite email, follows the link and sets
+   their own password.
+3. The moment their auth user is created, the `handle_new_user` trigger
+   provisions a `profiles` row, copying role and scope from the matching
+   invitation and stamping it accepted. Someone who signs up without an
+   invitation gets a profile with **no role — and no access to anything**.
+
+Two roles (`app_role`), designed for the future Giulia described:
+
+- **`phoenix_admin`** — the Phoenix team. Full access to every table.
+- **`client_admin`** — an external person at a client company who runs
+  certain campaigns. Row Level Security limits them to their own company:
+  read their client + members, read **and update** that client's campaigns
+  (sessions, series bindings, assignments), read their email log, and
+  read-only access to the lesson library and staff names. They cannot see
+  any other client, and they cannot touch blueprints or invitations.
+
+The scoping is enforced in the **database** (RLS policies in 0002), not in
+the UI — so even a client admin using the API directly can only ever reach
+their own company's rows.
+
+- `staff.auth_user_id` / `profiles.staff_id` link a Phoenix team member to
+  their auth account once accounts exist.
 
 ## App wiring (next phase)
 
