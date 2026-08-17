@@ -356,7 +356,7 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="group flex items-center gap-3 rounded-xl border border-white/8 px-3 py-2"
+                  className="group flex items-center gap-3 rounded-lg border border-white/8 px-3 py-2"
                 >
                   <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                     {person?.initials ?? "?"}
@@ -417,7 +417,7 @@ export default function CampaignDetailPage() {
               );
             })}
             {campaign.phoenixTeam.length === 0 && (
-              <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+              <p className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
                 No one assigned yet — the client defaults apply
                 {(() => {
                   const d = [
@@ -471,7 +471,7 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="group flex items-center gap-3 rounded-xl border border-white/8 px-3 py-2"
+                  className="group flex items-center gap-3 rounded-lg border border-white/8 px-3 py-2"
                 >
                   <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                     {member
@@ -538,7 +538,7 @@ export default function CampaignDetailPage() {
               );
             })}
             {campaign.clientTeam.length === 0 && (
-              <p className="rounded-xl border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+              <p className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
                 {client.members.length === 0
                   ? "This client has no members yet — add them on the client page first."
                   : "No one assigned yet — add the Client Transformational Champion."}
@@ -718,7 +718,7 @@ export default function CampaignDetailPage() {
                     campaignId: campaign.id,
                   })
                 }
-                className="flex min-h-52 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[1.25rem] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
+                className="flex min-h-52 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
               >
                 <Plus size={18} />
                 <span className="text-xs font-semibold">New session</span>
@@ -745,7 +745,7 @@ export default function CampaignDetailPage() {
           </p>
 
           {pickingModule && (
-            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 p-3">
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-white/10 p-3">
               {unloaded.length === 0 && (
                 <p className="text-xs text-mist">
                   Every series from the library is already in this campaign.{" "}
@@ -840,7 +840,7 @@ export default function CampaignDetailPage() {
                       />
                     </span>
                     <div
-                      className="flex size-11 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-paper"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-paper"
                       style={{ backgroundColor: series.color }}
                     >
                       {series.code}
@@ -984,7 +984,7 @@ export default function CampaignDetailPage() {
             {campaign.series.length === 0 && (
               <button
                 onClick={() => setPickingModule(true)}
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+                className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
               >
                 <Plus size={15} /> Add a series to this campaign
               </button>

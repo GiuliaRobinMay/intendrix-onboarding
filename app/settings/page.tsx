@@ -91,7 +91,7 @@ export default function AppSettingsPage() {
           {palette.map((c) => (
             <div key={c.hex} className="text-center">
               <div
-                className="size-14 rounded-xl border border-white/10"
+                className="size-14 rounded-lg border border-white/10"
                 style={{ backgroundColor: c.hex }}
               />
               <p className="mt-1.5 text-[11px] font-semibold">{c.name}</p>
@@ -99,7 +99,7 @@ export default function AppSettingsPage() {
             </div>
           ))}
           <div className="text-center">
-            <div className="brand-gradient size-14 rounded-xl" />
+            <div className="brand-gradient size-14 rounded-lg" />
             <p className="mt-1.5 text-[11px] font-semibold">Gradient</p>
             <p className="text-[10px] text-mist">flame → indigo</p>
           </div>

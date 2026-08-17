@@ -7,65 +7,116 @@ import {
   Users,
   Megaphone,
   CalendarDays,
+  ChevronsUpDown,
   Inbox,
   Settings,
 } from "lucide-react";
 
-const nav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/campaigns", label: "Campaigns", icon: Megaphone },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/mailbox", label: "Mailbox", icon: Inbox },
-  { href: "/settings", label: "Settings", icon: Settings },
+const groups: Array<{
+  label?: string;
+  links: Array<{ href: string; label: string; icon: typeof Users }>;
+}> = [
+  {
+    links: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Work",
+    links: [
+      { href: "/clients", label: "Clients", icon: Users },
+      { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+    ],
+  },
+  {
+    label: "Planning",
+    links: [
+      { href: "/calendar", label: "Calendar", icon: CalendarDays },
+      { href: "/mailbox", label: "Mailbox", icon: Inbox },
+    ],
+  },
 ];
+
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: typeof Users;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
+        active
+          ? "bg-white/6 font-semibold text-paper"
+          : "font-medium text-mist hover:bg-white/4 hover:text-paper"
+      }`}
+    >
+      {active && (
+        <span
+          className="brand-gradient absolute inset-y-1 left-0 w-0.5 rounded-full"
+          aria-hidden
+        />
+      )}
+      <Icon size={15} strokeWidth={2} className="shrink-0" />
+      {label}
+    </Link>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-white/5 bg-navy/40 px-4 py-6 backdrop-blur">
-      <Link href="/" className="px-3">
-        <span className="brand-gradient-text text-2xl font-bold tracking-tight">
-          Intendrix
+    <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r border-white/8 bg-[#0b0d1d] px-3 py-4">
+      {/* profile management at the top */}
+      <button className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-white/4">
+        <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-md text-[10px] font-bold">
+          GM
         </span>
-        <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.18em] text-mist/70">
-          Team Backend
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-semibold leading-tight">
+            Giulia May
+          </span>
+          <span className="block truncate text-[11px] leading-tight text-mist">
+            Intendrix
+          </span>
         </span>
-      </Link>
+        <ChevronsUpDown size={13} className="shrink-0 text-mist" />
+      </button>
 
-      <nav className="mt-10 flex flex-col gap-1.5">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={
-                active
-                  ? "brand-gradient-soft flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-paper shadow-lg shadow-flame/10"
-                  : "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-mist transition-colors hover:bg-white/5 hover:text-paper"
-              }
-            >
-              <Icon size={17} strokeWidth={2.2} />
-              {label}
-            </Link>
-          );
-        })}
+      <div className="my-3 border-t border-white/8" />
+
+      {/* grouped navigation */}
+      <nav className="flex flex-col gap-4">
+        {groups.map((g, i) => (
+          <div key={i} className="flex flex-col gap-0.5">
+            {g.label && (
+              <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-mist/60">
+                {g.label}
+              </p>
+            )}
+            {g.links.map((l) => (
+              <NavLink key={l.href} {...l} active={isActive(l.href)} />
+            ))}
+          </div>
+        ))}
       </nav>
 
-      <div className="mt-auto">
-        <div className="card flex items-center gap-3 px-3 py-3">
-          <div className="brand-gradient flex size-9 items-center justify-center rounded-full text-xs font-bold">
-            GM
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">Giulia May</p>
-            <p className="truncate text-xs text-mist">Admin</p>
-          </div>
-        </div>
-        <p className="mt-3 px-1 text-[11px] leading-relaxed text-mist/60">
+      {/* rarely used links live at the bottom */}
+      <div className="mt-auto flex flex-col gap-0.5 border-t border-white/8 pt-3">
+        <NavLink
+          href="/settings"
+          label="Settings"
+          icon={Settings}
+          active={isActive("/settings")}
+        />
+        <p className="px-2.5 pt-2 text-[10px] leading-relaxed text-mist/50">
           Email + password sign-in arrives with the Supabase phase.
         </p>
       </div>

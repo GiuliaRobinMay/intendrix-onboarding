@@ -13,19 +13,19 @@
 body {
   color-scheme: dark;
   background-color: var(--color-ink);
-  background-image:
-    radial-gradient(900px 500px at 85% -10%, rgba(44, 45, 131, 0.35), transparent 60%),
-    radial-gradient(700px 420px at -10% 25%, rgba(235, 50, 15, 0.10), transparent 55%),
-    radial-gradient(800px 600px at 50% 110%, rgba(44, 45, 131, 0.25), transparent 60%);
-  background-attachment: fixed;
 }
 
 .brand-gradient {
   background-image: linear-gradient(135deg, var(--color-flame) 0%, var(--color-brand) 100%);
 }
 
+/* Flat active/selected state (tabs, nav, filled controls) — Notion-like.
+   Kept under the old name so every existing usage flattens at once. */
 .brand-gradient-soft {
-  background-image: linear-gradient(135deg, rgba(235, 50, 15, 0.85) 0%, rgba(44, 45, 131, 0.95) 100%);
+  background-image: none;
+  background-color: rgba(238, 238, 239, 0.08);
+  border: 1px solid rgba(238, 238, 239, 0.12) !important;
+  color: var(--color-paper);
 }
 
 .brand-gradient-text {
@@ -36,18 +36,17 @@ body {
 }
 
 .card {
-  background-color: rgba(20, 20, 60, 0.62);
-  border: 1px solid rgba(238, 238, 239, 0.07);
-  border-radius: 1.25rem;
-  backdrop-filter: blur(8px);
+  background-color: #0b0d1d;
+  border: 1px solid rgba(238, 238, 239, 0.08);
+  border-radius: 10px;
 }
 
 .card-hover {
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .card-hover:hover {
-  border-color: rgba(238, 238, 239, 0.18);
-  transform: translateY(-2px);
+  border-color: rgba(238, 238, 239, 0.2);
+  background-color: #0d0f22;
 }
 
 /* Tooltips — add data-tip="…" to any non-replaced element.

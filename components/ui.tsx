@@ -10,9 +10,9 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-white/8 pb-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-mist">{subtitle}</p>}
       </div>
       {action}
@@ -33,7 +33,7 @@ export function GradientButton({
     <button
       data-tip={tip}
       onClick={onClick}
-      className="brand-gradient cursor-pointer rounded-xl px-4 py-2.5 text-sm font-semibold text-paper shadow-lg shadow-flame/20 transition-transform hover:scale-[1.02]"
+      className="brand-gradient cursor-pointer rounded-lg px-3.5 py-2 text-[13px] font-semibold text-paper transition-opacity hover:opacity-90"
     >
       {children}
     </button>
@@ -53,7 +53,7 @@ export function GhostButton({
     <button
       data-tip={tip}
       onClick={onClick}
-      className="cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+      className="cursor-pointer rounded-lg border border-white/10 px-3.5 py-2 text-[13px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
     >
       {children}
     </button>
@@ -72,20 +72,15 @@ export function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`card px-5 py-4 ${accent ? "brand-gradient-soft border-transparent" : ""}`}>
-      <p
-        className={`text-xs font-semibold uppercase tracking-wider ${
-          accent ? "text-paper/80" : "text-mist"
-        }`}
-      >
+    <div className={`card relative overflow-hidden px-4 py-3.5 ${accent ? "pl-5" : ""}`}>
+      {accent && (
+        <span className="brand-gradient absolute inset-y-0 left-0 w-0.5" aria-hidden />
+      )}
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-mist">
         {label}
       </p>
-      <p className="mt-2 text-3xl font-bold tabular-nums">{value}</p>
-      {hint && (
-        <p className={`mt-1 text-xs ${accent ? "text-paper/70" : "text-mist/80"}`}>
-          {hint}
-        </p>
-      )}
+      <p className="mt-1.5 text-2xl font-bold tabular-nums">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-mist/80">{hint}</p>}
     </div>
   );
 }

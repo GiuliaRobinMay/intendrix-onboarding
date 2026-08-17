@@ -178,7 +178,7 @@ export default function CampaignTemplateDetailPage() {
               <Link href={`/settings/campaigns/${ct.id}/series/${s.id}`} className="block p-6">
                 <div className="flex items-start justify-between pr-6">
                   <div
-                    className="flex size-12 items-center justify-center rounded-xl text-sm font-bold text-paper"
+                    className="flex size-12 items-center justify-center rounded-lg text-sm font-bold text-paper"
                     style={{ backgroundColor: s.color }}
                   >
                     {s.code}
@@ -223,7 +223,7 @@ export default function CampaignTemplateDetailPage() {
 
         <button
           onClick={() => setShowForm(true)}
-          className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-white/10 p-6 text-center transition-colors hover:border-white/25"
+          className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/10 p-6 text-center transition-colors hover:border-white/25"
         >
           <p className="text-sm font-semibold text-mist/70">+ Add a series</p>
           <p className="max-w-52 text-xs text-mist/50">

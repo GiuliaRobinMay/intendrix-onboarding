@@ -208,7 +208,7 @@ export default function CalendarPage() {
                 <li key={i}>
                   <Link
                     href={`/campaigns/${e.campaignId}`}
-                    className="flex items-start gap-3 rounded-xl p-2 transition-colors hover:bg-white/4"
+                    className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-white/4"
                   >
                     <span
                       className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-paper"

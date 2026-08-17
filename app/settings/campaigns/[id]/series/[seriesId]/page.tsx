@@ -70,7 +70,7 @@ function VariantEditor({
   onPatch: (patch: Partial<StepContent>) => void;
 }) {
   return (
-    <div className="rounded-xl bg-white/3 p-4">
+    <div className="rounded-lg bg-white/3 p-4">
       <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-mist">
         {leader ? <Crown size={12} className="text-[#ff7a55]" /> : <Users size={12} />}
         {label}
@@ -335,7 +335,7 @@ export default function SeriesEditorPage() {
 
       <button
         onClick={() => dispatch({ type: "addStep", templateId: series.id })}
-        className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-white/10 py-5 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+        className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/10 py-5 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
       >
         <Plus size={15} /> Add a lesson to this series
       </button>

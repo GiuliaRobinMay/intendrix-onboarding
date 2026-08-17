@@ -52,7 +52,7 @@ function VariantPreview({
   leader?: boolean;
 }) {
   return (
-    <div className="rounded-xl bg-white/3 p-3.5">
+    <div className="rounded-lg bg-white/3 p-3.5">
       <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-mist">
         {leader ? <Crown size={11} className="text-[#ff7a55]" /> : <Users size={11} />}
         {label}

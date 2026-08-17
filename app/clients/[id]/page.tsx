@@ -70,7 +70,7 @@ function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () =>
   const [role, setRole] = useState<MemberRole>("participant");
 
   return (
-    <div className="mb-4 rounded-xl border border-white/10 p-4">
+    <div className="mb-4 rounded-lg border border-white/10 p-4">
       <div className="grid gap-3">
         <Field label="Name" value={name} onChange={setName} placeholder="Full name" />
         <Field label="Title" value={title} onChange={setTitle} placeholder="e.g. COO" />
@@ -234,7 +234,7 @@ export default function ClientDetailPage() {
 
             <button
               onClick={() => setAddingCampaign(true)}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
             >
               <Plus size={15} />
               {client.campaigns.length === 0
@@ -383,7 +383,7 @@ export default function ClientDetailPage() {
             {client.members.map((m) => (
               <li
                 key={m.id}
-                className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-white/4"
+                className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white/4"
               >
                 <div
                   className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${

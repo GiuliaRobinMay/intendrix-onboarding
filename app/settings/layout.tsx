@@ -30,8 +30,8 @@ export default function SettingsLayout({
               href={href}
               className={
                 active
-                  ? "brand-gradient-soft flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold text-paper"
-                  : "flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium text-mist transition-colors hover:bg-white/5 hover:text-paper"
+                  ? "brand-gradient-soft flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold text-paper"
+                  : "flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium text-mist transition-colors hover:bg-white/5 hover:text-paper"
               }
             >
               <Icon size={15} strokeWidth={2.2} />

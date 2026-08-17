@@ -66,7 +66,7 @@ export function NewCampaignForm({
             <button
               key={ct.id}
               onClick={() => chooseTemplate(ct.id)}
-              className={`cursor-pointer rounded-xl px-3.5 py-2 text-left text-xs font-bold transition-transform hover:scale-[1.02] ${
+              className={`cursor-pointer rounded-lg px-3.5 py-2 text-left text-xs font-bold transition-transform hover:scale-[1.02] ${
                 on ? "brand-gradient text-paper" : "bg-white/6 text-mist"
               }`}
             >
@@ -80,7 +80,7 @@ export function NewCampaignForm({
             setTemplateId("");
             setPicked([]);
           }}
-          className={`cursor-pointer rounded-xl px-3.5 py-2 text-xs font-bold transition-transform hover:scale-[1.02] ${
+          className={`cursor-pointer rounded-lg px-3.5 py-2 text-xs font-bold transition-transform hover:scale-[1.02] ${
             templateId === "" ? "brand-gradient text-paper" : "bg-white/6 text-mist"
           }`}
         >
