@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -69,14 +69,12 @@ function InlineSelect({
   value,
   onChange,
   options,
-  tone,
   tip,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
-  tone?: { bg: string; fg: string };
   tip?: string;
 }) {
   return (
@@ -88,16 +86,7 @@ function InlineSelect({
         title={tip}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="cursor-pointer rounded-lg border px-2 py-1 text-xs font-semibold focus:outline-none"
-        style={
-          tone
-            ? { backgroundColor: tone.bg, color: tone.fg, borderColor: "transparent" }
-            : {
-                backgroundColor: "rgba(20,20,60,0.6)",
-                color: "#eeeeef",
-                borderColor: "rgba(255,255,255,0.10)",
-              }
-        }
+        className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -232,17 +221,14 @@ export default function CampaignDetailPage() {
                         patch: { statusOverride: s === derived ? undefined : s },
                       });
                     }}
-                    className="cursor-pointer px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[7px] last:rounded-r-[7px]"
-                    style={
-                      on
-                        ? { backgroundColor: st.bg, color: st.fg }
-                        : { color: "rgba(174,176,178,0.75)" }
-                    }
+                    data-on={on}
+                    className="status-seg cursor-pointer px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[7px] last:rounded-r-[7px]"
+                    style={{ "--chip-c": st.fg } as CSSProperties}
                   >
                     <span className="flex items-center gap-1.5">
                       <span
-                        className="size-1.5 rounded-full"
-                        style={{ backgroundColor: st.fg, opacity: on ? 1 : 0.45 }}
+                        className="seg-dot size-1.5 rounded-full"
+                        style={{ opacity: on ? 1 : 0.45 }}
                       />
                       {st.label}
                     </span>
@@ -394,9 +380,6 @@ export default function CampaignDetailPage() {
                   key={a.id}
                   className="group flex items-center gap-3 rounded-lg border border-white/8 px-3 py-2"
                 >
-                  <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
-                    {person?.initials ?? "?"}
-                  </span>
                   <select
                     title="Which Phoenix collaborator"
                     value={a.staffId}
@@ -509,15 +492,6 @@ export default function CampaignDetailPage() {
                   key={a.id}
                   className="group flex items-center gap-3 rounded-lg border border-white/8 px-3 py-2"
                 >
-                  <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
-                    {member
-                      ? member.name
-                          .split(" ")
-                          .map((w) => w[0])
-                          .slice(0, 2)
-                          .join("")
-                      : "?"}
-                  </span>
                   <select
                     title="Which member of the client"
                     value={a.memberId}

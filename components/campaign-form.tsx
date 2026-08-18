@@ -67,7 +67,7 @@ export function NewCampaignForm({
               key={ct.id}
               onClick={() => chooseTemplate(ct.id)}
               className={`cursor-pointer rounded-lg px-3.5 py-2 text-left text-xs font-bold transition-transform hover:scale-[1.02] ${
-                on ? "brand-gradient text-paper" : "bg-white/6 text-mist"
+                on ? "brand-gradient-soft" : "bg-white/6 text-mist"
               }`}
             >
               {ct.code}
@@ -81,7 +81,7 @@ export function NewCampaignForm({
             setPicked([]);
           }}
           className={`cursor-pointer rounded-lg px-3.5 py-2 text-xs font-bold transition-transform hover:scale-[1.02] ${
-            templateId === "" ? "brand-gradient text-paper" : "bg-white/6 text-mist"
+            templateId === "" ? "brand-gradient-soft" : "bg-white/6 text-mist"
           }`}
         >
           Blank campaign
@@ -135,7 +135,7 @@ export function NewCampaignForm({
                   style={
                     on
                       ? { backgroundColor: t.color, color: "#eeeeef" }
-                      : { backgroundColor: "rgba(174,176,178,0.10)", color: "#aeb0b2" }
+                      : { backgroundColor: "color-mix(in srgb, var(--color-mist) 12%, transparent)", color: "var(--color-mist)" }
                   }
                 >
                   {on ? "✓ " : "+ "}

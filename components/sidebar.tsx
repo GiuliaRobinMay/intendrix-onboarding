@@ -10,12 +10,15 @@ import {
   CalendarDays,
   ChevronsUpDown,
   Inbox,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  Sun,
 } from "lucide-react";
 
 const COLLAPSE_KEY = "intendrix-sidebar-collapsed";
+const THEME_KEY = "intendrix-theme";
 
 const groups: Array<{
   label?: string;
@@ -84,11 +87,13 @@ export function Sidebar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const [collapsed, setCollapsed] = useState(false);
+  const [light, setLight] = useState(false);
   useEffect(() => {
     try {
       setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+      setLight(document.documentElement.classList.contains("light"));
     } catch {
-      // storage unavailable — start expanded
+      // storage unavailable — start expanded, dark
     }
   }, []);
   const toggle = () => {
@@ -101,10 +106,22 @@ export function Sidebar() {
       return !v;
     });
   };
+  const toggleTheme = () => {
+    setLight((v) => {
+      const next = !v;
+      document.documentElement.classList.toggle("light", next);
+      try {
+        localStorage.setItem(THEME_KEY, next ? "light" : "dark");
+      } catch {
+        // storage unavailable — the choice just won't persist
+      }
+      return next;
+    });
+  };
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-white/8 bg-[#0b0d1d] py-4 transition-[width] duration-200 ${
+      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-white/8 bg-panel py-4 transition-[width] duration-200 ${
         collapsed ? "w-14 px-2" : "w-56 px-3"
       }`}
     >
@@ -169,6 +186,21 @@ export function Sidebar() {
           active={isActive("/settings")}
           collapsed={collapsed}
         />
+        <button
+          onClick={toggleTheme}
+          data-tip={collapsed ? (light ? "Dark mode" : "Light mode") : undefined}
+          data-tip-pos={collapsed ? "right" : undefined}
+          className={`flex cursor-pointer items-center gap-2.5 rounded-md py-1.5 text-[13px] font-medium text-mist transition-colors hover:bg-white/4 hover:text-paper ${
+            collapsed ? "justify-center px-0" : "px-2.5"
+          }`}
+        >
+          {light ? (
+            <Moon size={15} strokeWidth={2} className="shrink-0" />
+          ) : (
+            <Sun size={15} strokeWidth={2} className="shrink-0" />
+          )}
+          {!collapsed && (light ? "Dark mode" : "Light mode")}
+        </button>
         <button
           onClick={toggle}
           data-tip={collapsed ? "Expand the sidebar" : undefined}

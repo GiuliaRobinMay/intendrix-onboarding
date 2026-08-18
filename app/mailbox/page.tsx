@@ -36,10 +36,10 @@ function iso(d: Date): string {
 }
 
 const DOT: Record<SendStatus, { color: string; tip: string }> = {
-  sent: { color: "#4ade80", tip: "Sent — this email has already gone out" },
-  scheduled: { color: "#a3a4f0", tip: "Scheduled — sends automatically on its date" },
-  unscheduled: { color: "#aeb0b2", tip: "Awaiting date — its trigger session isn't planned yet" },
-  paused: { color: "#facc15", tip: "Paused — on hold until the campaign reopens" },
+  sent: { color: "var(--tone-green)", tip: "Sent — this email has already gone out" },
+  scheduled: { color: "var(--tone-indigo)", tip: "Scheduled — sends automatically on its date" },
+  unscheduled: { color: "var(--color-mist)", tip: "Awaiting date — its trigger session isn't planned yet" },
+  paused: { color: "var(--tone-yellow)", tip: "Paused — on hold until the campaign reopens" },
 };
 
 function ContentLinks({ content }: { content: StepContent }) {
@@ -470,8 +470,8 @@ export default function MailboxPage() {
           </p>
         </div>
       ) : (
-        <div className="card grid overflow-hidden lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <ul className="max-h-[calc(100vh-19rem)] min-h-96 overflow-y-auto border-b border-white/8 lg:border-b-0 lg:border-r">
+        <div className="card grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <ul className="border-b border-white/8 lg:border-b-0 lg:border-r">
             {ordered.map((item) => {
               const k = keyOf(item);
               const on = selected !== null && keyOf(selected) === k;
@@ -519,7 +519,7 @@ export default function MailboxPage() {
             })}
           </ul>
 
-          <div className="max-h-[calc(100vh-19rem)] min-h-96 overflow-y-auto">
+          <div className="min-h-96 self-start lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
             {selected && (
               <ReadingPane
                 key={keyOf(selected)}

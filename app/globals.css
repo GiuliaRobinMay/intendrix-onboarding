@@ -1,30 +1,61 @@
 @import "tailwindcss";
 
 @theme {
-  /* Intendrix brand palette */
+  /* Intendrix brand palette (dark theme values — the default) */
   --color-ink: #050714;
   --color-navy: #14143c;
   --color-brand: #2c2d83;
   --color-flame: #eb320f;
   --color-mist: #aeb0b2;
   --color-paper: #eeeeef;
+  /* sidebar + card surface */
+  --color-panel: #0b0d1d;
+}
+
+/* Light theme — toggled from the sidebar, persisted in localStorage.
+   The trick: utilities compile to var(--color-…), so remapping the
+   primitives here re-skins the whole app. --color-white flips to ink so
+   every white-alpha hairline/hover becomes an ink-alpha one. */
+:root {
+  /* status/accent tones that need a darker version on light */
+  --tone-green: #4ade80;
+  --tone-yellow: #facc15;
+  --tone-indigo: #a3a4f0;
+}
+html.light {
+  --color-ink: #f2f2f4;   /* page background */
+  --color-navy: #ffffff;  /* input surfaces (bg-navy/60) */
+  --color-mist: #5f6170;  /* secondary text */
+  --color-paper: #101223; /* primary text */
+  --color-panel: #ffffff; /* sidebar + cards */
+  --color-white: #0b0d1d; /* white-alpha utilities become ink-alpha */
+  --tone-green: #15803d;
+  --tone-yellow: #b45309;
+  --tone-indigo: #4547b8;
 }
 
 body {
   color-scheme: dark;
   background-color: var(--color-ink);
+  /* the typeface is a Settings choice, persisted in localStorage */
+  font-family: var(--app-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
+}
+html.light body {
+  color-scheme: light;
 }
 
 .brand-gradient {
   background-image: linear-gradient(135deg, var(--color-flame) 0%, var(--color-brand) 100%);
+  /* text on the gradient stays pale in both themes */
+  color: #eeeeef;
 }
 
 /* Flat active/selected state (tabs, nav, filled controls) — Notion-like.
    Kept under the old name so every existing usage flattens at once. */
 .brand-gradient-soft {
   background-image: none;
-  background-color: rgba(238, 238, 239, 0.08);
-  border: 1px solid rgba(238, 238, 239, 0.12) !important;
+  background-color: color-mix(in srgb, var(--color-white) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent) !important;
   color: var(--color-paper);
 }
 
@@ -36,8 +67,8 @@ body {
 }
 
 .card {
-  background-color: #0b0d1d;
-  border: 1px solid rgba(238, 238, 239, 0.08);
+  background-color: var(--color-panel);
+  border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
   border-radius: 10px;
 }
 
@@ -45,8 +76,36 @@ body {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .card-hover:hover {
-  border-color: rgba(238, 238, 239, 0.2);
-  background-color: #0d0f22;
+  border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
+  background-color: color-mix(in srgb, var(--color-white) 3%, var(--color-panel));
+}
+
+/* Tinted chip — set --chip-c (a hex) on the element. On light the text
+   darkens toward ink so pale tones stay readable. */
+.chip {
+  background-color: color-mix(in srgb, var(--chip-c) 15%, transparent);
+  color: var(--chip-c);
+}
+html.light .chip {
+  color: color-mix(in srgb, var(--chip-c) 60%, #101223);
+}
+
+/* Segmented status control (campaign header) */
+.status-seg {
+  color: color-mix(in srgb, var(--color-mist) 75%, transparent);
+}
+.status-seg[data-on="true"] {
+  background-color: color-mix(in srgb, var(--chip-c) 14%, transparent);
+  color: var(--chip-c);
+}
+html.light .status-seg[data-on="true"] {
+  color: color-mix(in srgb, var(--chip-c) 60%, #101223);
+}
+.status-seg .seg-dot {
+  background-color: var(--chip-c);
+}
+html.light .status-seg .seg-dot {
+  background-color: color-mix(in srgb, var(--chip-c) 70%, #101223);
 }
 
 /* Tooltips — add data-tip="…" to any non-replaced element.

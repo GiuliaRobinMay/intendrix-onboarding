@@ -482,11 +482,7 @@ export default function ClientDetailPage() {
                 key={m.id}
                 className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white/4"
               >
-                <div
-                  className={`flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                    m.role === "leader" ? "brand-gradient" : "bg-white/8 text-mist"
-                  }`}
-                >
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-bold text-mist">
                   {m.name
                     .split(" ")
                     .map((w) => w[0])

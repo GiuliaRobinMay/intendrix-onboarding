@@ -105,7 +105,7 @@ export default function CampaignTemplatesPage() {
                   className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] lg:gap-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="brand-gradient flex h-9 w-16 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-paper">
+                    <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/6 text-xs font-bold text-paper">
                       {ct.code}
                     </span>
                     <span className="min-w-0">

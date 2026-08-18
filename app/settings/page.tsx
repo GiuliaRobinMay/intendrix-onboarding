@@ -1,8 +1,89 @@
 "use client";
 
-import { Building2, DatabaseBackup, Mail, Palette, Plug } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2, Check, DatabaseBackup, Mail, Palette, Plug, Type } from "lucide-react";
 import { Chip, GhostButton } from "@/components/ui";
 import { useData } from "@/lib/state";
+
+/** Typeface choice — applied app-wide, persisted in this browser. */
+const FONTS = [
+  {
+    id: "system",
+    label: "System default",
+    stack: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+  },
+  { id: "inter", label: "Inter", stack: '"Inter", ui-sans-serif, system-ui, sans-serif' },
+  { id: "nunito", label: "Nunito", stack: '"Nunito", ui-sans-serif, system-ui, sans-serif' },
+  { id: "poppins", label: "Poppins", stack: '"Poppins", ui-sans-serif, system-ui, sans-serif' },
+  {
+    id: "helvetica",
+    label: "Helvetica",
+    stack: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  },
+  { id: "verdana", label: "Verdana", stack: "Verdana, Geneva, sans-serif" },
+  { id: "times", label: "Times", stack: '"Times New Roman", Times, serif' },
+];
+
+function TypefaceCard() {
+  const [fontId, setFontId] = useState("system");
+  useEffect(() => {
+    try {
+      setFontId(localStorage.getItem("intendrix-font") ?? "system");
+    } catch {
+      // storage unavailable — show the default
+    }
+  }, []);
+
+  const choose = (id: string) => {
+    const font = FONTS.find((f) => f.id === id);
+    if (!font) return;
+    setFontId(id);
+    document.documentElement.style.setProperty("--app-font", font.stack);
+    try {
+      localStorage.setItem("intendrix-font", id);
+      localStorage.setItem("intendrix-font-stack", font.stack);
+    } catch {
+      // storage unavailable — applies for this visit only
+    }
+  };
+
+  return (
+    <section className="card p-6">
+      <h2 className="mb-1 flex items-center gap-2 text-base font-bold">
+        <Type size={17} className="text-mist" /> Typeface
+      </h2>
+      <p className="mb-4 text-xs text-mist">
+        Try the design in a different font — applies everywhere, saved in this
+        browser.
+      </p>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+        {FONTS.map((f) => {
+          const on = f.id === fontId;
+          return (
+            <button
+              key={f.id}
+              onClick={() => choose(f.id)}
+              className={`cursor-pointer rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                on
+                  ? "border-white/25 bg-white/6"
+                  : "border-white/10 hover:border-white/25"
+              }`}
+              style={{ fontFamily: f.stack }}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-lg font-bold leading-none">Aa</span>
+                {on && <Check size={14} className="shrink-0 text-mist" />}
+              </span>
+              <span className="mt-1.5 block truncate text-xs font-semibold">
+                {f.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 const palette = [
   { hex: "#050714", name: "Ink" },
@@ -108,6 +189,8 @@ export default function AppSettingsPage() {
           Logo placeholder in use — swap in the official logo file when provided.
         </p>
       </section>
+
+      <TypefaceCard />
 
       {/* Prototype data */}
       <section className="card p-6">

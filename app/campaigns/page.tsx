@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { CalendarDays, ChevronRight, Layers, Search, Users } from "lucide-react";
 import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
 import { NewCampaignForm } from "@/components/campaign-form";
@@ -37,8 +37,8 @@ function StatusPill({ status }: { status: CampaignStatus }) {
   return (
     <span
       data-tip={STATUS_TIP[status]}
-      className="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-      style={{ backgroundColor: s.bg, color: s.fg }}
+      className="chip inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+      style={{ "--chip-c": s.fg } as CSSProperties}
     >
       {s.label}
     </span>
@@ -51,11 +51,11 @@ function StaffTag({ id, fallback }: { id?: string; fallback: string }) {
     return <span className="text-[11px] italic text-mist/50">{fallback}</span>;
   }
   return (
-    <span data-tip={person.role} className="flex w-fit items-center gap-1.5">
-      <span className="brand-gradient flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold">
-        {person.initials}
-      </span>
-      <span className="truncate text-xs font-medium">{person.name}</span>
+    <span
+      data-tip={person.role}
+      className="w-fit max-w-full truncate text-xs font-medium"
+    >
+      {person.name}
     </span>
   );
 }

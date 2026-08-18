@@ -132,7 +132,7 @@ export default function TeamSettingsPage() {
                 key={t.name}
                 className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/4"
               >
-                <div className="brand-gradient flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-xs font-bold text-mist">
                   {t.initials}
                 </div>
                 <div className="min-w-0 flex-1">

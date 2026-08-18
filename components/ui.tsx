@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export function PageHeader({
   title,
@@ -74,7 +74,7 @@ export function StatCard({
   return (
     <div className={`card relative overflow-hidden px-4 py-3.5 ${accent ? "pl-5" : ""}`}>
       {accent && (
-        <span className="brand-gradient absolute inset-y-0 left-0 w-0.5" aria-hidden />
+        <span className="absolute inset-y-0 left-0 w-0.5 bg-flame" aria-hidden />
       )}
       <p className="text-[11px] font-semibold uppercase tracking-wider text-mist">
         {label}
@@ -94,11 +94,8 @@ export function Chip({
 }) {
   return (
     <span
-      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-      style={{
-        backgroundColor: color ? `${color}26` : "rgba(174,176,178,0.12)",
-        color: color ?? "#aeb0b2",
-      }}
+      className="chip inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+      style={{ "--chip-c": color ?? "#aeb0b2" } as CSSProperties}
     >
       {children}
     </span>
@@ -110,33 +107,33 @@ export function StatusChip({
 }: {
   status: "sent" | "scheduled" | "unscheduled" | "paused" | "active" | "onboarding" | "archived";
 }) {
-  const map: Record<string, { bg: string; fg: string; label: string; tip: string }> = {
+  const map: Record<string, { fg: string; label: string; tip: string }> = {
     sent: {
-      bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Sent",
+      fg: "#4ade80", label: "Sent",
       tip: "This lesson has already gone out",
     },
     scheduled: {
-      bg: "rgba(123,124,216,0.18)", fg: "#a3a4f0", label: "Scheduled",
+      fg: "#a3a4f0", label: "Scheduled",
       tip: "On the calendar — sends automatically on its date",
     },
     unscheduled: {
-      bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Awaiting date",
+      fg: "#aeb0b2", label: "Awaiting date",
       tip: "Waits until its trigger session gets a date",
     },
     paused: {
-      bg: "rgba(250,204,21,0.15)", fg: "#facc15", label: "Paused",
+      fg: "#facc15", label: "Paused",
       tip: "The campaign is paused — this send is on hold until it reopens",
     },
     active: {
-      bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active",
+      fg: "#4ade80", label: "Active",
       tip: "This client has work in progress",
     },
     onboarding: {
-      bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Onboarding",
+      fg: "#ff7a55", label: "Onboarding",
       tip: "Client is being set up — no campaign running yet",
     },
     archived: {
-      bg: "rgba(174,176,178,0.12)", fg: "#aeb0b2", label: "Archived",
+      fg: "#aeb0b2", label: "Archived",
       tip: "No longer active",
     },
   };
@@ -144,8 +141,8 @@ export function StatusChip({
   return (
     <span
       data-tip={s.tip}
-      className="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-      style={{ backgroundColor: s.bg, color: s.fg }}
+      className="chip inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+      style={{ "--chip-c": s.fg } as CSSProperties}
     >
       {s.label}
     </span>
@@ -162,10 +159,10 @@ export function ProgressBar({
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
       <div
-        className={color ? "h-full rounded-full" : "brand-gradient h-full rounded-full"}
+        className="h-full rounded-full"
         style={{
           width: `${Math.max(pct, pct > 0 ? 4 : 0)}%`,
-          ...(color ? { backgroundColor: color } : {}),
+          backgroundColor: color ?? "var(--color-flame)",
         }}
       />
     </div>
