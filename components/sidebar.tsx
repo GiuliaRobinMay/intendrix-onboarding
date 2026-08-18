@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -9,8 +10,12 @@ import {
   CalendarDays,
   ChevronsUpDown,
   Inbox,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
 } from "lucide-react";
+
+const COLLAPSE_KEY = "intendrix-sidebar-collapsed";
 
 const groups: Array<{
   label?: string;
@@ -40,16 +45,22 @@ function NavLink({
   label,
   icon: Icon,
   active,
+  collapsed,
 }: {
   href: string;
   label: string;
   icon: typeof Users;
   active: boolean;
+  collapsed: boolean;
 }) {
   return (
     <Link
       href={href}
-      className={`relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] transition-colors ${
+      data-tip={collapsed ? label : undefined}
+      data-tip-pos={collapsed ? "right" : undefined}
+      className={`relative flex items-center gap-2.5 rounded-md py-1.5 text-[13px] transition-colors ${
+        collapsed ? "justify-center px-0" : "px-2.5"
+      } ${
         active
           ? "bg-white/6 font-semibold text-paper"
           : "font-medium text-mist hover:bg-white/4 hover:text-paper"
@@ -62,7 +73,7 @@ function NavLink({
         />
       )}
       <Icon size={15} strokeWidth={2} className="shrink-0" />
-      {label}
+      {!collapsed && label}
     </Link>
   );
 }
@@ -72,22 +83,55 @@ export function Sidebar() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+    } catch {
+      // storage unavailable — start expanded
+    }
+  }, []);
+  const toggle = () => {
+    setCollapsed((v) => {
+      try {
+        localStorage.setItem(COLLAPSE_KEY, v ? "0" : "1");
+      } catch {
+        // storage unavailable — the choice just won't persist
+      }
+      return !v;
+    });
+  };
+
   return (
-    <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col border-r border-white/8 bg-[#0b0d1d] px-3 py-4">
+    <aside
+      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-white/8 bg-[#0b0d1d] py-4 transition-[width] duration-200 ${
+        collapsed ? "w-14 px-2" : "w-56 px-3"
+      }`}
+    >
       {/* profile management at the top */}
-      <button className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-white/4">
+      <button
+        data-tip={collapsed ? "Giulia May · Intendrix" : undefined}
+        data-tip-pos={collapsed ? "right" : undefined}
+        className={`flex w-full cursor-pointer items-center gap-2.5 rounded-md py-2 text-left transition-colors hover:bg-white/4 ${
+          collapsed ? "justify-center px-0" : "px-2"
+        }`}
+      >
         <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-md text-[10px] font-bold">
           GM
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold leading-tight">
-            Giulia May
-          </span>
-          <span className="block truncate text-[11px] leading-tight text-mist">
-            Intendrix
-          </span>
-        </span>
-        <ChevronsUpDown size={13} className="shrink-0 text-mist" />
+        {!collapsed && (
+          <>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-semibold leading-tight">
+                Giulia May
+              </span>
+              <span className="block truncate text-[11px] leading-tight text-mist">
+                Intendrix
+              </span>
+            </span>
+            <ChevronsUpDown size={13} className="shrink-0 text-mist" />
+          </>
+        )}
       </button>
 
       <div className="my-3 border-t border-white/8" />
@@ -96,13 +140,21 @@ export function Sidebar() {
       <nav className="flex flex-col gap-4">
         {groups.map((g, i) => (
           <div key={i} className="flex flex-col gap-0.5">
-            {g.label && (
-              <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-mist/60">
-                {g.label}
-              </p>
-            )}
+            {g.label &&
+              (collapsed ? (
+                <div className="mx-1 mb-1.5 border-t border-white/8" aria-hidden />
+              ) : (
+                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-mist/60">
+                  {g.label}
+                </p>
+              ))}
             {g.links.map((l) => (
-              <NavLink key={l.href} {...l} active={isActive(l.href)} />
+              <NavLink
+                key={l.href}
+                {...l}
+                active={isActive(l.href)}
+                collapsed={collapsed}
+              />
             ))}
           </div>
         ))}
@@ -115,10 +167,30 @@ export function Sidebar() {
           label="Settings"
           icon={Settings}
           active={isActive("/settings")}
+          collapsed={collapsed}
         />
-        <p className="px-2.5 pt-2 text-[10px] leading-relaxed text-mist/50">
-          Email + password sign-in arrives with the Supabase phase.
-        </p>
+        <button
+          onClick={toggle}
+          data-tip={collapsed ? "Expand the sidebar" : undefined}
+          data-tip-pos={collapsed ? "right" : undefined}
+          className={`flex cursor-pointer items-center gap-2.5 rounded-md py-1.5 text-[13px] font-medium text-mist transition-colors hover:bg-white/4 hover:text-paper ${
+            collapsed ? "justify-center px-0" : "px-2.5"
+          }`}
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={15} strokeWidth={2} className="shrink-0" />
+          ) : (
+            <>
+              <PanelLeftClose size={15} strokeWidth={2} className="shrink-0" />
+              Collapse
+            </>
+          )}
+        </button>
+        {!collapsed && (
+          <p className="px-2.5 pt-2 text-[10px] leading-relaxed text-mist/50">
+            Email + password sign-in arrives with the Supabase phase.
+          </p>
+        )}
       </div>
     </aside>
   );

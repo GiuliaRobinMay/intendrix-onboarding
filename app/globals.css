@@ -96,6 +96,16 @@ body {
 [data-tip-pos="bottom"]:focus-visible::after {
   transform: translateX(-50%) translateY(0);
 }
+[data-tip-pos="right"]::after {
+  bottom: auto;
+  top: 50%;
+  left: calc(100% + 9px);
+  transform: translateY(-50%) translateX(-3px);
+}
+[data-tip-pos="right"]:hover::after,
+[data-tip-pos="right"]:focus-visible::after {
+  transform: translateY(-50%) translateX(0);
+}
 
 ::selection {
   background: rgba(235, 50, 15, 0.55);

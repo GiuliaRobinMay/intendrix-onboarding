@@ -4,11 +4,11 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChevronRight, Megaphone, Search, Users, X } from "lucide-react";
-import { PageHeader, StatusChip, ProgressBar, GradientButton, Chip } from "@/components/ui";
+import { PageHeader, StatusChip, GradientButton } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
 import { team } from "@/lib/data";
-import { campaignCompletion, campaignStatus, findStaff } from "@/lib/store";
+import { campaignStatus, findStaff } from "@/lib/store";
 
 function NewClientForm({ onClose }: { onClose: () => void }) {
   const { dispatch } = useData();
@@ -47,22 +47,14 @@ function NewClientForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ResponsibleTag({ id, label }: { id?: string; label: string }) {
+function ResponsibleName({ id }: { id?: string }) {
   const person = findStaff(team, id);
+  if (!person)
+    return <p className="text-[11px] italic text-mist/50">Unassigned</p>;
   return (
-    <div className="min-w-0">
-      <p className="text-[9px] font-bold uppercase tracking-wider text-mist/70">{label}</p>
-      {person ? (
-        <p data-tip={person.role} className="mt-0.5 flex w-fit items-center gap-1.5">
-          <span className="brand-gradient flex size-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold">
-            {person.initials}
-          </span>
-          <span className="truncate text-xs font-medium">{person.name}</span>
-        </p>
-      ) : (
-        <p className="mt-0.5 text-[11px] italic text-mist/50">Unassigned</p>
-      )}
-    </div>
+    <p data-tip={person.role} className="w-fit max-w-full truncate text-xs font-medium">
+      {person.name}
+    </p>
   );
 }
 
@@ -77,23 +69,10 @@ function ClientsContent() {
 
   const rows = clients
     .map((client) => {
-      const totals = client.campaigns.reduce(
-        (acc, c) => {
-          const x = campaignCompletion(c, templates, today);
-          return { sent: acc.sent + x.sent, total: acc.total + x.total };
-        },
-        { sent: 0, total: 0 }
-      );
       const activeCount = client.campaigns.filter(
         (c) => campaignStatus(c, templates, today) === "active"
       ).length;
-      return {
-        client,
-        totals,
-        pct: totals.total ? Math.round((totals.sent / totals.total) * 100) : 0,
-        activeCount,
-        hasActiveCampaign: activeCount > 0,
-      };
+      return { client, activeCount, hasActiveCampaign: activeCount > 0 };
     })
     .sort((a, b) => a.client.name.localeCompare(b.client.name));
 
@@ -196,18 +175,13 @@ function ClientsContent() {
         </div>
 
         <ul className="divide-y divide-white/5">
-          {filtered.map(({ client, totals, pct, activeCount }) => (
+          {filtered.map(({ client, activeCount }) => (
             <li key={client.id}>
               <Link
                 href={`/clients/${client.id}`}
-                className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] lg:gap-4"
+                className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] lg:gap-4"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{client.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-mist">
-                    {client.sector} · {client.location}
-                  </p>
-                </div>
+                <p className="truncate text-sm font-bold">{client.name}</p>
 
                 <div>
                   <StatusChip status={client.status} />
@@ -215,23 +189,15 @@ function ClientsContent() {
 
                 <div className="min-w-0">
                   {client.campaigns.length > 0 ? (
-                    <>
-                      <p
-                        data-tip={`${client.campaigns.length} campaign${client.campaigns.length === 1 ? "" : "s"} in total for this client`}
-                        className="w-fit text-sm font-bold tabular-nums"
-                      >
-                        {activeCount}
-                        <span className="ml-1.5 text-xs font-semibold text-mist">
-                          active campaign{activeCount === 1 ? "" : "s"}
-                        </span>
-                      </p>
-                      <div className="mt-1.5 max-w-44">
-                        <ProgressBar pct={pct} />
-                        <p className="mt-1 text-[10px] text-mist">
-                          {totals.sent}/{totals.total} lessons sent
-                        </p>
-                      </div>
-                    </>
+                    <p
+                      data-tip={`${client.campaigns.length} campaign${client.campaigns.length === 1 ? "" : "s"} in total for this client`}
+                      className="w-fit text-sm font-bold tabular-nums"
+                    >
+                      {activeCount}
+                      <span className="ml-1.5 text-xs font-semibold text-mist">
+                        active campaign{activeCount === 1 ? "" : "s"}
+                      </span>
+                    </p>
                   ) : (
                     <span className="text-[11px] italic text-mist/50">No campaigns</span>
                   )}
@@ -244,8 +210,8 @@ function ClientsContent() {
                   </span>
                 </div>
 
-                <ResponsibleTag id={client.phoenixLeaderId} label="Leader" />
-                <ResponsibleTag id={client.phoenixCoachId} label="Coach" />
+                <ResponsibleName id={client.phoenixLeaderId} />
+                <ResponsibleName id={client.phoenixCoachId} />
 
                 <ChevronRight size={16} className="hidden text-mist lg:block" />
               </Link>
