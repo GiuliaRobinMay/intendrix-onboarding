@@ -936,10 +936,56 @@ export default function CampaignDetailPage() {
                     </span>
                   </div>
 
-                  {/* expanded: the lessons in this series */}
+                  {/* expanded: the meetup this series follows + its lessons */}
                   {isExpanded && (
                     <div className="border-t border-white/5 px-4 py-3">
                       <ol className="flex flex-col">
+                        {session && (
+                          <li
+                            className="mb-1.5 flex items-center gap-3 rounded-md border px-2 py-2"
+                            style={{
+                              borderColor: `${series.color}55`,
+                              backgroundColor: `${series.color}14`,
+                            }}
+                          >
+                            <span
+                              className="flex size-5 shrink-0 items-center justify-center rounded-full text-paper"
+                              style={{ backgroundColor: series.color }}
+                            >
+                              {session.mode === "virtual" ? (
+                                <Video size={11} />
+                              ) : (
+                                <MapPin size={11} />
+                              )}
+                            </span>
+                            <span className="w-20 shrink-0 text-xs font-bold text-mist">
+                              {session.mode === "virtual" ? "Online" : "Live"}
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-xs font-semibold">
+                              {session.name}
+                              <span className="ml-1.5 hidden font-medium text-mist lg:inline">
+                                — the meetup that starts this series
+                              </span>
+                            </span>
+                            <input
+                              type="date"
+                              value={session.date ?? ""}
+                              title="Reschedule this session — every send below moves with it"
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                dispatch({
+                                  type: "updateSession",
+                                  clientId: client.id,
+                                  campaignId: campaign.id,
+                                  sessionId: session.id,
+                                  patch: { date: e.target.value || null },
+                                })
+                              }
+                              className="shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                            />
+                          </li>
+                        )}
                         {schedule.map((item, si) => (
                           <li
                             key={item.step.id}
