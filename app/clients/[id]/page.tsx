@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
+  CalendarRange,
   Copy,
   Crown,
   ExternalLink,
@@ -28,37 +29,161 @@ import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
 import { team } from "@/lib/data";
 import { findTemplate, campaignCompletion, seriesProgress, fmtDate } from "@/lib/store";
-import type { MemberRole } from "@/lib/types";
+import type { Client, MemberRole } from "@/lib/types";
 
-/** Phoenix responsible for this organization, with its distinctive label. */
-function ResponsibleSelect({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
+/** The three Phoenix roles at client level — one person each. */
+const ROLE_FIELDS = [
+  { field: "phoenixLeaderId", label: "Phoenix Leader" },
+  { field: "phoenixCoachId", label: "Phoenix Coach" },
+  { field: "projectManagerId", label: "Project Manager" },
+] as const;
+type RoleField = (typeof ROLE_FIELDS)[number]["field"];
+
+const selectCls =
+  "w-full min-w-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none";
+
+/** Phoenix responsibles as a small name + role table, rows added with +. */
+function ResponsiblesCard({ client }: { client: Client }) {
+  const { dispatch } = useData();
+  const [adding, setAdding] = useState(false);
+  const [staffId, setStaffId] = useState(team[0]?.id ?? "");
+  const [role, setRole] = useState<RoleField>("phoenixLeaderId");
+
+  const assigned = ROLE_FIELDS.filter((r) => client[r.field]);
+  const free = ROLE_FIELDS.filter((r) => !client[r.field]);
+
+  const patchRoles = (patch: Partial<Record<RoleField, string | undefined>>) =>
+    dispatch({ type: "updateClient", clientId: client.id, patch });
+
+  const openAdd = () => {
+    setStaffId(team[0]?.id ?? "");
+    setRole(free[0].field);
+    setAdding(true);
+  };
+
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="brand-gradient rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
-        {label}
-      </span>
-      <select
-        title={`Who at Phoenix is the ${label} for this organization`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
-      >
-        <option value="">— unassigned —</option>
-        {team.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-      </select>
-    </div>
+    <section className="card p-6">
+      <div className="mb-1 flex items-center justify-between">
+        <h2 className="text-base font-bold">Phoenix responsibles</h2>
+        {free.length > 0 && (
+          <button
+            data-tip="Add a responsible"
+            onClick={openAdd}
+            className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+          >
+            <Plus size={14} />
+          </button>
+        )}
+      </div>
+      <p className="mb-3 text-xs text-mist">Who at Phoenix owns this organization.</p>
+
+      {assigned.length > 0 && (
+        <>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-2 border-b border-white/8 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-mist">
+            <span>Name</span>
+            <span>Role</span>
+            <span />
+          </div>
+          {assigned.map((r) => (
+            <div
+              key={r.field}
+              className="group grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-2 border-b border-white/5 py-2 last:border-b-0"
+            >
+              <select
+                title="Who at Phoenix holds this role"
+                value={client[r.field] ?? ""}
+                onChange={(e) => patchRoles({ [r.field]: e.target.value })}
+                className={selectCls}
+              >
+                {team.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                title="Their role for this organization"
+                value={r.field}
+                onChange={(e) => {
+                  const next = e.target.value as RoleField;
+                  if (next !== r.field)
+                    patchRoles({ [r.field]: undefined, [next]: client[r.field] });
+                }}
+                className={selectCls}
+              >
+                <option value={r.field}>{r.label}</option>
+                {free.map((f) => (
+                  <option key={f.field} value={f.field}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                data-tip="Remove this responsible"
+                onClick={() => patchRoles({ [r.field]: undefined })}
+                className="cursor-pointer justify-self-end rounded-md p-1 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {assigned.length === 0 && !adding && (
+        <p className="py-2 text-sm text-mist">
+          No responsibles yet — add them with the + button.
+        </p>
+      )}
+
+      {adding && (
+        <div className="mt-3 rounded-lg border border-white/10 p-3">
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              title="Who at Phoenix to add"
+              value={staffId}
+              onChange={(e) => setStaffId(e.target.value)}
+              className={selectCls}
+            >
+              {team.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <select
+              title="Their role for this organization"
+              value={role}
+              onChange={(e) => setRole(e.target.value as RoleField)}
+              className={selectCls}
+            >
+              {free.map((f) => (
+                <option key={f.field} value={f.field}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-2.5 flex gap-2">
+            <GradientButton
+              onClick={() => {
+                if (!staffId || !free.some((f) => f.field === role)) return;
+                patchRoles({ [role]: staffId });
+                setAdding(false);
+              }}
+            >
+              Add
+            </GradientButton>
+            <GhostButton onClick={() => setAdding(false)}>Cancel</GhostButton>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-mist">
+        The Coach is the one emails are sent from. Campaigns can override each
+        role on their own page.
+      </p>
+    </section>
   );
 }
 
@@ -179,7 +304,24 @@ export default function ClientDetailPage() {
                       </p>
                       <Chip color="#a3a4f0">{campaign.code}</Chip>
                     </div>
-                    <p className="mt-1 flex flex-wrap gap-x-4 text-xs text-mist">
+                    <p className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-mist">
+                      <span
+                        data-tip="When this campaign runs — set the dates on the campaign page"
+                        className="flex items-center gap-1.5 font-semibold text-paper/90"
+                      >
+                        <CalendarRange size={12} />
+                        {campaign.startDate || campaign.endDate
+                          ? `${
+                              campaign.startDate
+                                ? fmtDate(new Date(`${campaign.startDate}T00:00:00`))
+                                : "…"
+                            } – ${
+                              campaign.endDate
+                                ? fmtDate(new Date(`${campaign.endDate}T00:00:00`))
+                                : "…"
+                            }`
+                          : "No start & end date yet"}
+                      </span>
                       <span className="flex items-center gap-1.5">
                         <CalendarDays size={12} />
                         {campaign.sessions.length} session
@@ -246,52 +388,7 @@ export default function ClientDetailPage() {
 
         {/* Right column */}
         <div className="flex flex-col gap-6">
-        {/* Phoenix responsibles */}
-        <section className="card p-6">
-          <h2 className="mb-1 text-base font-bold">Phoenix responsibles</h2>
-          <p className="mb-4 text-xs text-mist">
-            Who at Phoenix owns this organization.
-          </p>
-          <div className="flex flex-col gap-3">
-            <ResponsibleSelect
-              label="Phoenix Leader"
-              value={client.phoenixLeaderId ?? ""}
-              onChange={(v) =>
-                dispatch({
-                  type: "updateClient",
-                  clientId: client.id,
-                  patch: { phoenixLeaderId: v || undefined },
-                })
-              }
-            />
-            <ResponsibleSelect
-              label="Phoenix Coach"
-              value={client.phoenixCoachId ?? ""}
-              onChange={(v) =>
-                dispatch({
-                  type: "updateClient",
-                  clientId: client.id,
-                  patch: { phoenixCoachId: v || undefined },
-                })
-              }
-            />
-            <ResponsibleSelect
-              label="Project Manager"
-              value={client.projectManagerId ?? ""}
-              onChange={(v) =>
-                dispatch({
-                  type: "updateClient",
-                  clientId: client.id,
-                  patch: { projectManagerId: v || undefined },
-                })
-              }
-            />
-          </div>
-          <p className="mt-3 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-mist">
-            The Coach is the one emails are sent from. Campaigns can override
-            each role on their own page.
-          </p>
-        </section>
+        <ResponsiblesCard client={client} />
 
         {/* Mighty Networks */}
         <section className="card p-6">

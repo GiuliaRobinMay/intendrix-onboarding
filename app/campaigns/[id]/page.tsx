@@ -44,6 +44,15 @@ const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: stri
   closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
 };
 
+const STATUS_ORDER: CampaignStatus[] = ["upcoming", "active", "paused", "closed"];
+
+const STATUS_TIP: Record<CampaignStatus, string> = {
+  upcoming: "Hasn't started yet — the first sends are still ahead",
+  active: "Running — scheduled emails go out",
+  paused: "Pause the campaign — every send is on hold until you reopen it",
+  closed: "Finished — nothing more will be sent",
+};
+
 const TIMEZONES = [
   "America/New_York",
   "America/Chicago",
@@ -194,27 +203,54 @@ export default function CampaignDetailPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <InlineSelect
-            label="Status"
-            tip="Automatic follows the schedule; pick a value to override it by hand"
-            value={campaign.statusOverride ?? ""}
-            tone={STATUS_STYLE[status]}
-            onChange={(v) =>
-              dispatch({
-                type: "updateCampaign",
-                clientId: client.id,
-                campaignId: campaign.id,
-                patch: { statusOverride: (v || undefined) as CampaignStatus | undefined },
-              })
-            }
-            options={[
-              { value: "", label: `Automatic (${STATUS_STYLE[status].label})` },
-              { value: "upcoming", label: "Upcoming" },
-              { value: "active", label: "Active" },
-              { value: "paused", label: "Paused" },
-              { value: "closed", label: "Closed" },
-            ]}
-          />
+          {/* status: all four always visible, each in its own color */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+              Status
+            </span>
+            <div className="flex divide-x divide-white/8 rounded-lg border border-white/10">
+              {STATUS_ORDER.map((s) => {
+                const on = s === status;
+                const st = STATUS_STYLE[s];
+                return (
+                  <button
+                    key={s}
+                    data-tip={STATUS_TIP[s]}
+                    data-tip-pos="bottom"
+                    onClick={() => {
+                      // picking the status the schedule already derives goes
+                      // back to automatic; anything else is a manual override
+                      const derived = campaignStatus(
+                        { ...campaign, statusOverride: undefined },
+                        templates,
+                        today
+                      );
+                      dispatch({
+                        type: "updateCampaign",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        patch: { statusOverride: s === derived ? undefined : s },
+                      });
+                    }}
+                    className="cursor-pointer px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[7px] last:rounded-r-[7px]"
+                    style={
+                      on
+                        ? { backgroundColor: st.bg, color: st.fg }
+                        : { color: "rgba(174,176,178,0.75)" }
+                    }
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="size-1.5 rounded-full"
+                        style={{ backgroundColor: st.fg, opacity: on ? 1 : 0.45 }}
+                      />
+                      {st.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <InlineSelect
             label="Timezone"
             tip="The client's timezone — send times apply in this zone"

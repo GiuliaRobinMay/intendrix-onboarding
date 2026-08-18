@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  ChevronDown,
   Crown,
   ExternalLink,
   Inbox,
@@ -28,6 +27,7 @@ import {
 import type { StepContent } from "@/lib/types";
 
 type Scope = "today" | "week" | "upcoming" | "sent" | "awaiting";
+type SendStatus = "sent" | "scheduled" | "unscheduled" | "paused";
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -35,59 +35,187 @@ function iso(d: Date): string {
   ).padStart(2, "0")}`;
 }
 
-function dayLabel(d: Date, today: Date): string {
-  const dIso = iso(d);
-  if (dIso === iso(today)) return `Today · ${fmtWeekday(d)} ${fmtDateShort(d)}`;
-  if (dIso === iso(addDays(today, 1))) return `Tomorrow · ${fmtWeekday(d)} ${fmtDateShort(d)}`;
-  return `${fmtWeekday(d)} ${fmtDate(d)}`;
+const DOT: Record<SendStatus, { color: string; tip: string }> = {
+  sent: { color: "#4ade80", tip: "Sent — this email has already gone out" },
+  scheduled: { color: "#a3a4f0", tip: "Scheduled — sends automatically on its date" },
+  unscheduled: { color: "#aeb0b2", tip: "Awaiting date — its trigger session isn't planned yet" },
+  paused: { color: "#facc15", tip: "Paused — on hold until the campaign reopens" },
+};
+
+function ContentLinks({ content }: { content: StepContent }) {
+  if (!content.lesson && !content.extras?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {content.lesson &&
+        (content.lesson.url ? (
+          <a
+            href={content.lesson.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+          >
+            <ExternalLink size={11} /> {content.lesson.label}
+          </a>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#eb320f]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff7a55]">
+            <TriangleAlert size={11} /> {content.lesson.label} — link missing
+          </span>
+        ))}
+      {content.extras?.map((x) =>
+        x.url ? (
+          <a
+            key={x.label}
+            href={x.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+          >
+            <ExternalLink size={11} /> {x.label}
+          </a>
+        ) : null
+      )}
+    </div>
+  );
 }
 
-function VariantPreview({
-  label,
-  content,
-  leader,
-}: {
-  label: string;
-  content: StepContent;
-  leader?: boolean;
-}) {
+/** The right pane: one email in full, like any email client. */
+function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
+  const [variant, setVariant] = useState<"participant" | "leader">("participant");
+  const same =
+    JSON.stringify(item.step.participant) === JSON.stringify(item.step.leader);
+  const content = same ? item.step.participant : item.step[variant];
+  const status: SendStatus = paused ? "paused" : item.status;
+
   return (
-    <div className="rounded-lg bg-white/3 p-3.5">
-      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-mist">
-        {leader ? <Crown size={11} className="text-[#ff7a55]" /> : <Users size={11} />}
-        {label}
-      </p>
-      <p className="mt-1.5 text-sm font-semibold">{content.emailSubject}</p>
-      <p className="mt-1 text-xs leading-relaxed text-mist">{content.emailBody}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {content.lesson &&
-          (content.lesson.url ? (
-            <a
-              href={content.lesson.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-0.5 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
-            >
-              <ExternalLink size={11} /> {content.lesson.label}
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#eb320f]/15 px-2 py-0.5 text-[11px] font-semibold text-[#ff7a55]">
-              <TriangleAlert size={11} /> {content.lesson.label} — link missing
+    <div className="flex min-h-full flex-col p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 className="min-w-0 text-lg font-bold leading-snug">
+          {content.emailSubject}
+        </h2>
+        <StatusChip status={status} />
+      </div>
+
+      {/* email headers */}
+      <dl className="mt-4 flex flex-col gap-1.5 border-y border-white/8 py-3 text-xs">
+        <div className="flex gap-2">
+          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+            From
+          </dt>
+          <dd className="min-w-0">
+            {item.sender ? (
+              <span className="font-semibold">
+                {item.sender.name}{" "}
+                <span className="font-normal text-mist">
+                  &lt;{item.sender.email}&gt; · {item.sender.role}
+                </span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 font-semibold text-[#ff7a55]">
+                <TriangleAlert size={12} /> no sender — assign a responsible to
+                this campaign
+              </span>
+            )}
+          </dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+            To
+          </dt>
+          <dd className="min-w-0 text-mist">
+            Members of{" "}
+            <span className="font-semibold text-paper">{item.client.name}</span>{" "}
+            · {item.campaign.name}
+          </dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+            Date
+          </dt>
+          <dd className="min-w-0 text-mist">
+            {item.date
+              ? `${fmtWeekday(item.date)} ${fmtDate(item.date)} at ${item.step.sendTime}`
+              : "No date yet — the trigger session isn't planned"}
+          </dd>
+        </div>
+        <div className="flex gap-2">
+          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+            Series
+          </dt>
+          <dd className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <Chip color={item.series.color}>{item.series.code}</Chip>
+            <span className="text-mist">
+              {item.step.code} · {item.step.title}
             </span>
-          ))}
-        {content.extras?.map((x) =>
-          x.url ? (
-            <a
-              key={x.label}
-              href={x.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2 py-0.5 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
-            >
-              <ExternalLink size={11} /> {x.label}
-            </a>
-          ) : null
+          </dd>
+        </div>
+      </dl>
+
+      {/* the two audience variants of this send */}
+      {!same && (
+        <div className="mt-4 flex w-fit divide-x divide-white/8 rounded-lg border border-white/10">
+          {(["participant", "leader"] as const).map((v) => {
+            const on = variant === v;
+            return (
+              <button
+                key={v}
+                onClick={() => setVariant(v)}
+                data-tip={
+                  v === "leader"
+                    ? "What the Leader receives — with the Leaders Guides"
+                    : "What Participants receive"
+                }
+                className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold transition-colors first:rounded-l-[7px] last:rounded-r-[7px] ${
+                  on ? "bg-white/8 text-paper" : "text-mist hover:text-paper"
+                }`}
+              >
+                {v === "leader" ? (
+                  <Crown size={11} className="text-[#ff7a55]" />
+                ) : (
+                  <Users size={11} />
+                )}
+                {v === "leader" ? "Leader" : "Participant"}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {same && (
+        <p className="mt-4 flex w-fit items-center gap-1.5 text-[11px] font-semibold text-mist">
+          <Users size={11} /> Participant + Leader receive the same email
+        </p>
+      )}
+
+      {/* body */}
+      <div className="mt-3 flex-1">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-paper/90">
+          {content.emailBody}
+        </p>
+        {content.teamMeeting && (
+          <p className="mt-3 w-fit rounded-lg bg-[#facc15]/10 px-3 py-2 text-xs font-semibold text-[#facc15]">
+            TEAM MEETING — {content.teamMeeting}
+          </p>
         )}
+        <div className="mt-4">
+          <ContentLinks content={content} />
+        </div>
+        {content.note && (
+          <p className="mt-3 text-[11px] italic text-mist/70">{content.note}</p>
+        )}
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3">
+        <Link
+          href={`/campaigns/${item.campaign.id}`}
+          className="text-xs font-semibold text-mist transition-colors hover:text-paper"
+        >
+          Open campaign →
+        </Link>
+        <Link
+          href={`/settings/campaigns/${item.series.campaignTemplateId}/series/${item.series.id}`}
+          className="text-xs font-semibold text-mist transition-colors hover:text-paper"
+        >
+          Edit this email →
+        </Link>
       </div>
     </div>
   );
@@ -171,14 +299,11 @@ export default function MailboxPage() {
   // sent scope reads best newest-first
   const ordered = scope === "sent" && !periodActive ? [...filtered].reverse() : filtered;
 
-  // group by day (undated items in one group at the end)
-  const groups: Array<{ label: string; items: MailboxItem[] }> = [];
-  for (const item of ordered) {
-    const label = item.date ? dayLabel(item.date, today) : "No date yet — session not planned";
-    const last = groups[groups.length - 1];
-    if (last && last.label === label) last.items.push(item);
-    else groups.push({ label, items: [item] });
-  }
+  const keyOf = (i: MailboxItem) => `${i.campaign.id}-${i.step.id}`;
+  const isPaused = (i: MailboxItem) =>
+    i.status !== "sent" && campaignStatus(i.campaign, templates, today) === "paused";
+  // the open email — falls back to the first in the list, like a mailbox
+  const selected = ordered.find((i) => keyOf(i) === openKey) ?? ordered[0] ?? null;
 
   const campaignOptions = clients
     .filter((c) => clientFilter === "all" || c.id === clientFilter)
@@ -196,7 +321,7 @@ export default function MailboxPage() {
     <>
       <PageHeader
         title="Mailbox"
-        subtitle="Every communication that goes out to members — sent by the system from the Phoenix Coach's address. What's leaving today, this week, and what still needs a date."
+        subtitle="Every communication that goes out to members — sent by the system from the Phoenix Coach's address."
       />
 
       {/* Filters */}
@@ -336,179 +461,80 @@ export default function MailboxPage() {
         </div>
       </div>
 
-      {/* Outbox */}
-      <div className="flex flex-col gap-6">
-        {groups.map((group) => (
-          <section key={group.label}>
-            <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-wider text-mist">
-              {group.label}
-              <span className="font-medium normal-case tracking-normal text-mist/60">
-                · {group.items.length} communication{group.items.length === 1 ? "" : "s"}
-              </span>
-            </h2>
-            <div className="card overflow-visible">
-              <ul className="divide-y divide-white/5">
-                {group.items.map((item) => {
-                  const key = `${item.campaign.id}-${item.step.id}`;
-                  const isOpen = openKey === key;
-                  const same =
-                    JSON.stringify(item.step.participant) ===
-                    JSON.stringify(item.step.leader);
-                  return (
-                    <li key={key}>
-                      <button
-                        onClick={() => setOpenKey(isOpen ? null : key)}
-                        className="flex w-full cursor-pointer items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-white/4"
-                      >
-                        <div className="w-12 shrink-0 text-center">
-                          <p className="text-[10px] font-bold uppercase text-mist">
-                            {item.date ? fmtWeekday(item.date) : "—"}
-                          </p>
-                          <p className="text-xs font-bold tabular-nums">
-                            {item.date ? fmtDateShort(item.date) : "?"}
-                          </p>
-                          <p className="text-[10px] tabular-nums text-mist">
-                            {item.step.sendTime}
-                          </p>
-                        </div>
-
-                        <div
-                          className="h-10 w-1 shrink-0 rounded-full"
-                          style={{ backgroundColor: item.series.color }}
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold">
-                            {item.step.participant.emailSubject}
-                          </p>
-                          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-mist">
-                            <span className="font-semibold text-paper/80">
-                              {item.client.name}
-                            </span>
-                            <Chip color="#a3a4f0">{item.campaign.code}</Chip>
-                            <Chip color={item.series.color}>{item.series.code}</Chip>
-                            <span>{item.step.code} · {item.step.title}</span>
-                          </p>
-                        </div>
-
+      {/* Mailbox: the list on the left, the open email on the right */}
+      {ordered.length === 0 ? (
+        <div className="card flex flex-col items-center gap-2 p-12 text-center">
+          <Inbox size={22} className="text-mist/50" />
+          <p className="text-sm text-mist">
+            Nothing here — no communications match these filters.
+          </p>
+        </div>
+      ) : (
+        <div className="card grid overflow-hidden lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <ul className="max-h-[calc(100vh-19rem)] min-h-96 overflow-y-auto border-b border-white/8 lg:border-b-0 lg:border-r">
+            {ordered.map((item) => {
+              const k = keyOf(item);
+              const on = selected !== null && keyOf(selected) === k;
+              const dot = DOT[isPaused(item) ? "paused" : item.status];
+              return (
+                <li key={k} className="border-b border-white/5 last:border-b-0">
+                  <button
+                    onClick={() => setOpenKey(k)}
+                    className={`flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors ${
+                      on ? "bg-white/6" : "hover:bg-white/4"
+                    }`}
+                  >
+                    <span
+                      className="h-9 w-1 shrink-0 rounded-full"
+                      style={{ backgroundColor: item.series.color }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
                         <span
-                          data-tip="Goes to the Participant and Leader variants in tandem"
-                          className="hidden shrink-0 items-center gap-1 text-[11px] text-mist xl:flex"
-                        >
-                          <Users size={12} />
-                          {item.client.members.length || "—"}
-                        </span>
-
-                        {item.sender ? (
-                          <span
-                            data-tip={`Sender: ${item.sender.email} (${item.sender.role})`}
-                            className="hidden shrink-0 items-center gap-1.5 lg:flex"
-                          >
-                            <span className="brand-gradient flex size-6 items-center justify-center rounded-full text-[9px] font-bold">
-                              {item.sender.initials}
-                            </span>
-                            <span className="max-w-28 truncate text-xs font-medium">
-                              {item.sender.name}
-                            </span>
-                          </span>
-                        ) : (
-                          <span
-                            data-tip="No responsible assigned to this campaign — assign one so the sender address is known"
-                            className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-[#ff7a55] lg:flex"
-                          >
-                            <TriangleAlert size={12} /> no sender
-                          </span>
-                        )}
-
-                        <span className="shrink-0">
-                          <StatusChip
-                            status={
-                              item.status !== "sent" &&
-                              campaignStatus(item.campaign, templates, today) === "paused"
-                                ? "paused"
-                                : item.status
-                            }
-                          />
-                        </span>
-
-                        <ChevronDown
-                          size={15}
-                          className={`shrink-0 text-mist transition-transform ${
-                            isOpen ? "rotate-180" : ""
+                          className={`truncate text-[13px] ${
+                            on ? "font-bold" : "font-semibold"
                           }`}
+                        >
+                          {item.step.participant.emailSubject}
+                        </span>
+                        <span className="shrink-0 text-[11px] tabular-nums text-mist">
+                          {item.date ? fmtDateShort(item.date) : "no date"}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 flex items-center justify-between gap-2">
+                        <span className="truncate text-xs text-mist">
+                          {item.client.name} · {item.campaign.code} ·{" "}
+                          {item.step.code}
+                        </span>
+                        <span
+                          data-tip={dot.tip}
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: dot.color }}
                         />
-                      </button>
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
 
-                      {isOpen && (
-                        <div className="border-t border-white/5 px-5 py-4">
-                          <p className="mb-3 text-xs text-mist">
-                            From{" "}
-                            <span className="font-semibold text-paper">
-                              {item.sender
-                                ? `${item.sender.name} <${item.sender.email}>`
-                                : "— no sender assigned —"}
-                            </span>{" "}
-                            to the members of {item.client.name} ·{" "}
-                            {item.campaign.code}
-                          </p>
-                          <div className={`grid gap-3 ${same ? "" : "lg:grid-cols-2"}`}>
-                            {same ? (
-                              <VariantPreview
-                                label="Participant + Leader (identical)"
-                                content={item.step.participant}
-                              />
-                            ) : (
-                              <>
-                                <VariantPreview
-                                  label="Participant"
-                                  content={item.step.participant}
-                                />
-                                <VariantPreview
-                                  label="Leader"
-                                  content={item.step.leader}
-                                  leader
-                                />
-                              </>
-                            )}
-                          </div>
-                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-3">
-                            <Link
-                              href={`/campaigns/${item.campaign.id}`}
-                              className="text-xs font-semibold text-mist transition-colors hover:text-paper"
-                            >
-                              Open campaign →
-                            </Link>
-                            <Link
-                              href={`/settings/campaigns/${item.series.campaignTemplateId}/series/${item.series.id}`}
-                              className="text-xs font-semibold text-mist transition-colors hover:text-paper"
-                            >
-                              Edit this email →
-                            </Link>
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </section>
-        ))}
-
-        {groups.length === 0 && (
-          <div className="card flex flex-col items-center gap-2 p-12 text-center">
-            <Inbox size={22} className="text-mist/50" />
-            <p className="text-sm text-mist">
-              Nothing here — no communications match these filters.
-            </p>
+          <div className="max-h-[calc(100vh-19rem)] min-h-96 overflow-y-auto">
+            {selected && (
+              <ReadingPane
+                key={keyOf(selected)}
+                item={selected}
+                paused={isPaused(selected)}
+              />
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {filtered.length > 0 && (
+      {ordered.length > 0 && (
         <p className="mt-4 text-xs text-mist">
-          {filtered.length} communication{filtered.length === 1 ? "" : "s"} shown ·
-          each goes out as two variants (Participant + Leader) from the
+          {ordered.length} communication{ordered.length === 1 ? "" : "s"} in this
+          view · each goes out as two variants (Participant + Leader) from the
           responsible&rsquo;s address.
         </p>
       )}
