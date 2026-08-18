@@ -31,7 +31,7 @@ function LessonLinkEditor({
   const lesson = content.lesson;
   if (!lesson) return null;
   return (
-    <div className={`rounded-lg px-2.5 py-1.5 ${lesson.url ? "bg-white/5" : "bg-[#eb320f]/15"}`}>
+    <div className={`rounded-md px-2.5 py-1.5 ${lesson.url ? "bg-white/5" : "bg-[#eb320f]/15"}`}>
       <div className="flex items-center gap-1.5">
         {lesson.url ? (
           <a data-tip="Open the lesson in Intendrix" href={lesson.url} target="_blank" rel="noreferrer" className="shrink-0">
@@ -70,8 +70,8 @@ function VariantEditor({
   onPatch: (patch: Partial<StepContent>) => void;
 }) {
   return (
-    <div className="rounded-lg bg-white/3 p-4">
-      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-mist">
+    <div className="rounded-md bg-white/3 p-4">
+      <p className="flex items-center gap-1.5 text-[11px] font-bold text-mist">
         {leader ? <Crown size={12} className="text-[#ff7a55]" /> : <Users size={12} />}
         {label}
       </p>
@@ -100,7 +100,7 @@ function VariantEditor({
               href={x.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex w-fit items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-xs font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+              className="inline-flex w-fit items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1 text-xs font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
             >
               <ExternalLink size={12} /> {x.label}
             </a>
@@ -108,7 +108,7 @@ function VariantEditor({
         )}
       </div>
       {content.teamMeeting && (
-        <p className="mt-3 rounded-lg border border-white/10 bg-navy/60 p-2.5 text-xs leading-relaxed">
+        <p className="mt-3 rounded-md border border-white/10 bg-navy/60 p-2.5 text-xs leading-relaxed">
           <span className="font-bold text-[#ff7a55]">TEAM MEETING · </span>
           <span className="text-mist">{content.teamMeeting}</span>
         </p>
@@ -188,7 +188,7 @@ function StepEditor({
                 patch: { offsetDays: Math.max(0, Number(e.target.value) || 0) },
               })
             }
-            className="w-12 rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-center text-xs font-bold tabular-nums focus:border-white/30 focus:outline-none"
+            className="w-12 rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-center text-xs font-bold tabular-nums focus:border-white/30 focus:outline-none"
           />
           <span>{index === 0 ? "days after trigger ·" : "days ·"}</span>
           <input
@@ -203,7 +203,7 @@ function StepEditor({
                 patch: { sendTime: e.target.value || "08:00" },
               })
             }
-            className="rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-xs font-bold tabular-nums focus:border-white/30 focus:outline-none"
+            className="rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-xs font-bold tabular-nums focus:border-white/30 focus:outline-none"
           />
         </div>
 
@@ -212,7 +212,7 @@ function StepEditor({
             data-tip="Move this lesson earlier"
             disabled={index === 0}
             onClick={() => dispatch({ type: "moveStep", templateId: series.id, stepId: step.id, dir: -1 })}
-            className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
+            className="cursor-pointer rounded-md p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
           >
             <ArrowUp size={14} />
           </button>
@@ -220,14 +220,14 @@ function StepEditor({
             data-tip="Move this lesson later"
             disabled={index === count - 1}
             onClick={() => dispatch({ type: "moveStep", templateId: series.id, stepId: step.id, dir: 1 })}
-            className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
+            className="cursor-pointer rounded-md p-1.5 text-mist hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-30"
           >
             <ArrowDown size={14} />
           </button>
           <button
             data-tip="Delete this lesson from the series"
             onClick={() => dispatch({ type: "removeStep", templateId: series.id, stepId: step.id })}
-            className="cursor-pointer rounded-lg p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+            className="cursor-pointer rounded-md p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
           >
             <Trash2 size={14} />
           </button>

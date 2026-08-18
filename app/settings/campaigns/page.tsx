@@ -15,12 +15,12 @@ function NewCampaignTemplateForm({ onClose }: { onClose: () => void }) {
   const [description, setDescription] = useState("");
 
   return (
-    <div className="card mb-6 p-6">
+    <div className="card mb-6 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New campaign blueprint</h2>
         <button
           onClick={onClose}
-          className="cursor-pointer rounded-lg p-1 text-mist hover:bg-white/5 hover:text-paper"
+          className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
           <X size={16} />
         </button>
@@ -80,7 +80,7 @@ export default function CampaignTemplatesPage() {
 
       {/* List */}
       <div className="card overflow-hidden">
-        <div className="hidden grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Campaign</span>
           <span>Series</span>
           <span>Lessons</span>
@@ -105,7 +105,7 @@ export default function CampaignTemplatesPage() {
                   className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] lg:gap-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/6 text-xs font-bold text-paper">
+                    <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/6 text-xs font-bold text-paper">
                       {ct.code}
                     </span>
                     <span className="min-w-0">
@@ -157,7 +157,7 @@ export default function CampaignTemplatesPage() {
                     onClick={() =>
                       dispatch({ type: "duplicateCampaignTemplate", templateId: ct.id })
                     }
-                    className="cursor-pointer rounded-lg border border-white/10 bg-navy/80 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                    className="cursor-pointer rounded-md border border-white/10 bg-navy/80 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
                   >
                     <CopyPlus size={13} />
                   </button>
@@ -172,7 +172,7 @@ export default function CampaignTemplatesPage() {
                         dispatch({ type: "removeCampaignTemplate", templateId: ct.id });
                       }
                     }}
-                    className="cursor-pointer rounded-lg border border-white/10 bg-navy/80 p-1.5 text-mist transition-colors hover:border-[#eb320f]/40 hover:text-[#ff7a55]"
+                    className="cursor-pointer rounded-md border border-white/10 bg-navy/80 p-1.5 text-mist transition-colors hover:border-[#eb320f]/40 hover:text-[#ff7a55]"
                   >
                     <Trash2 size={13} />
                   </button>

@@ -108,7 +108,7 @@ export default function CalendarPage() {
 
       <div className="grid gap-6 xl:grid-cols-4">
         {/* Month grid */}
-        <section className="card p-6 xl:col-span-3">
+        <section className="card p-5 xl:col-span-3">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-lg font-bold tabular-nums">
               {MONTHS[month]} {year}
@@ -116,21 +116,21 @@ export default function CalendarPage() {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()); }}
-                className="cursor-pointer rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                className="cursor-pointer rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 Today
               </button>
               <button
                 data-tip="Previous month"
                 onClick={prevMonth}
-                className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 <ChevronLeft size={15} />
               </button>
               <button
                 data-tip="Next month"
                 onClick={nextMonth}
-                className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 <ChevronRight size={15} />
               </button>
@@ -139,7 +139,7 @@ export default function CalendarPage() {
 
           <div className="grid grid-cols-7 gap-px">
             {WEEKDAYS.map((d) => (
-              <div key={d} className="px-2 pb-2 text-[10px] font-bold uppercase tracking-wider text-mist">
+              <div key={d} className="px-2 pb-2 text-[11px] font-medium text-mist">
                 {d}
               </div>
             ))}
@@ -151,7 +151,7 @@ export default function CalendarPage() {
               return (
                 <div
                   key={dIso}
-                  className={`min-h-24 rounded-lg border p-1.5 ${
+                  className={`min-h-24 rounded-md border p-1.5 ${
                     isToday
                       ? "border-[#ff7a55]/60 bg-[#eb320f]/8"
                       : "border-white/5 bg-navy/30"
@@ -199,7 +199,7 @@ export default function CalendarPage() {
         </section>
 
         {/* Upcoming agenda */}
-        <section className="card self-start p-6">
+        <section className="card self-start p-5">
           <h2 className="mb-4 text-base font-bold">Coming up</h2>
           <ul className="flex flex-col gap-3">
             {upcoming.map((e, i) => {
@@ -208,10 +208,10 @@ export default function CalendarPage() {
                 <li key={i}>
                   <Link
                     href={`/campaigns/${e.campaignId}`}
-                    className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-white/4"
+                    className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-white/4"
                   >
                     <span
-                      className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg text-paper"
+                      className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md text-paper"
                       style={{ backgroundColor: campaignColor.get(e.campaignId) }}
                     >
                       {e.kind === "start" ? (

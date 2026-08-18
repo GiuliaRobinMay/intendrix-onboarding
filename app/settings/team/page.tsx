@@ -28,7 +28,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
     email.includes("@") && (role === "phoenix_admin" || clientId !== "");
 
   return (
-    <div className="mt-4 rounded-lg border border-white/10 bg-white/3 p-4">
+    <div className="mt-4 rounded-md border border-white/10 bg-white/3 p-4">
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Email address"
@@ -38,13 +38,13 @@ function InviteForm({ onClose }: { onClose: () => void }) {
           type="email"
         />
         <label className="block">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+          <span className="text-[11px] font-medium text-mist">
             Access
           </span>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as AppRole)}
-            className="mt-1 w-full cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
+            className="mt-1 w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
           >
             <option value="phoenix_admin">Phoenix team — full access</option>
             <option value="client_admin">
@@ -56,13 +56,13 @@ function InviteForm({ onClose }: { onClose: () => void }) {
 
       {role === "client_admin" && (
         <label className="mt-4 block">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+          <span className="text-[11px] font-medium text-mist">
             Their company
           </span>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className="mt-1 w-full cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
+            className="mt-1 w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -113,7 +113,7 @@ export default function TeamSettingsPage() {
   return (
     <div className="grid gap-6 xl:grid-cols-3">
       <div className="flex flex-col gap-6 xl:col-span-2">
-        <section className="card p-6">
+        <section className="card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-bold">Users</h2>
             <GhostButton
@@ -130,7 +130,7 @@ export default function TeamSettingsPage() {
             {team.map((t) => (
               <li
                 key={t.name}
-                className="flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-white/4"
+                className="flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-white/4"
               >
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/8 text-xs font-bold text-mist">
                   {t.initials}
@@ -147,7 +147,7 @@ export default function TeamSettingsPage() {
           {inviting && <InviteForm onClose={() => setInviting(false)} />}
         </section>
 
-        <section className="card p-6">
+        <section className="card p-5">
           <h2 className="mb-1 flex items-center gap-2 text-base font-bold">
             <Mail size={16} className="text-mist" /> Pending invitations
           </h2>
@@ -156,7 +156,7 @@ export default function TeamSettingsPage() {
           </p>
 
           {invitations.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-white/10 px-4 py-6 text-center text-sm text-mist">
+            <p className="rounded-md border border-dashed border-white/10 px-4 py-6 text-center text-sm text-mist">
               No pending invitations.
             </p>
           ) : (
@@ -186,7 +186,7 @@ export default function TeamSettingsPage() {
                       onClick={() =>
                         dispatch({ type: "removeInvitation", invitationId: inv.id })
                       }
-                      className="cursor-pointer rounded-lg p-1.5 text-mist opacity-0 transition-opacity hover:bg-white/5 hover:text-[#ff7a55] group-hover:opacity-100"
+                      className="cursor-pointer rounded-md p-1.5 text-mist opacity-0 transition-opacity hover:bg-white/5 hover:text-[#ff7a55] group-hover:opacity-100"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -198,7 +198,7 @@ export default function TeamSettingsPage() {
         </section>
       </div>
 
-      <section className="card self-start p-6">
+      <section className="card self-start p-5">
         <h2 className="mb-3 flex items-center gap-2 text-base font-bold">
           <ShieldCheck size={17} className="text-mist" /> Sign-in &amp; roles
         </h2>

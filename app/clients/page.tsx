@@ -17,12 +17,12 @@ function NewClientForm({ onClose }: { onClose: () => void }) {
   const [sector, setSector] = useState("");
 
   return (
-    <div className="card mb-6 p-6">
+    <div className="card mb-6 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New client organization</h2>
         <button
           onClick={onClose}
-          className="cursor-pointer rounded-lg p-1 text-mist hover:bg-white/5 hover:text-paper"
+          className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
           <X size={16} />
         </button>
@@ -118,8 +118,8 @@ function ClientsContent() {
           onClick={() => setActiveOnly((v) => !v)}
           className={
             activeOnly
-              ? "brand-gradient-soft cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-paper"
-              : "cursor-pointer rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+              ? "brand-gradient-soft cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
+              : "cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
           }
         >
           <span className="flex items-center gap-1.5">
@@ -129,13 +129,13 @@ function ClientsContent() {
 
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+            <span className="text-[11px] font-medium text-mist">
               Responsible
             </span>
             <select
               value={responsible}
               onChange={(e) => setResponsible(e.target.value)}
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="all">Anyone</option>
               {team.map((t) => (
@@ -156,7 +156,7 @@ function ClientsContent() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search clients…"
               title="Search by name, sector, location or campaign"
-              className="w-52 rounded-lg border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
+              className="w-52 rounded-md border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
             />
           </div>
         </div>
@@ -164,7 +164,7 @@ function ClientsContent() {
 
       {/* List */}
       <div className="card overflow-hidden">
-        <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client</span>
           <span>Status</span>
           <span>Active campaigns</span>

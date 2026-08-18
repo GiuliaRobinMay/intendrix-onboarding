@@ -44,19 +44,19 @@ export function NewCampaignForm({
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
 
   return (
-    <div className="card mb-6 p-6">
+    <div className="card mb-6 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New campaign</h2>
         <button
           onClick={onClose}
-          className="cursor-pointer rounded-lg p-1 text-mist hover:bg-white/5 hover:text-paper"
+          className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
           <X size={16} />
         </button>
       </div>
 
       {/* blueprint picker */}
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+      <p className="text-[11px] font-medium text-mist">
         Start from a campaign
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -66,7 +66,7 @@ export function NewCampaignForm({
             <button
               key={ct.id}
               onClick={() => chooseTemplate(ct.id)}
-              className={`cursor-pointer rounded-lg px-3.5 py-2 text-left text-xs font-bold transition-transform hover:scale-[1.02] ${
+              className={`cursor-pointer rounded-md px-3.5 py-2 text-left text-xs font-bold ${
                 on ? "brand-gradient-soft" : "bg-white/6 text-mist"
               }`}
             >
@@ -80,7 +80,7 @@ export function NewCampaignForm({
             setTemplateId("");
             setPicked([]);
           }}
-          className={`cursor-pointer rounded-lg px-3.5 py-2 text-xs font-bold transition-transform hover:scale-[1.02] ${
+          className={`cursor-pointer rounded-md px-3.5 py-2 text-xs font-bold ${
             templateId === "" ? "brand-gradient-soft" : "bg-white/6 text-mist"
           }`}
         >
@@ -121,7 +121,7 @@ export function NewCampaignForm({
 
       {available.length > 0 && (
         <div className="mt-5">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+          <p className="text-[11px] font-medium text-mist">
             Series to load
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -131,7 +131,7 @@ export function NewCampaignForm({
                 <button
                   key={t.id}
                   onClick={() => toggle(t.id)}
-                  className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold transition-transform hover:scale-105"
+                  className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold"
                   style={
                     on
                       ? { backgroundColor: t.color, color: "#eeeeef" }

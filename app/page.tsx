@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-6 xl:grid-cols-5">
         {/* Upcoming sends */}
-        <section className="card p-6 xl:col-span-3">
+        <section className="card p-5 xl:col-span-3">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <Mail size={17} className="text-mist" /> Upcoming sends
@@ -110,7 +110,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Campaigns overview */}
-        <section className="card p-6 xl:col-span-2">
+        <section className="card p-5 xl:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <Megaphone size={17} className="text-mist" /> Campaigns

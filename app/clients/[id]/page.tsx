@@ -62,14 +62,14 @@ function ResponsiblesCard({ client }: { client: Client }) {
   };
 
   return (
-    <section className="card p-6">
+    <section className="card p-5">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-base font-bold">Phoenix responsibles</h2>
         {free.length > 0 && (
           <button
             data-tip="Add a responsible"
             onClick={openAdd}
-            className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+            className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
           >
             <Plus size={14} />
           </button>
@@ -79,7 +79,7 @@ function ResponsiblesCard({ client }: { client: Client }) {
 
       {assigned.length > 0 && (
         <>
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-2 border-b border-white/8 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-mist">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_1.5rem] items-center gap-x-2 border-b border-white/8 pb-1.5 text-[11px] font-medium text-mist">
             <span>Name</span>
             <span>Role</span>
             <span />
@@ -137,7 +137,7 @@ function ResponsiblesCard({ client }: { client: Client }) {
       )}
 
       {adding && (
-        <div className="mt-3 rounded-lg border border-white/10 p-3">
+        <div className="mt-3 rounded-md border border-white/10 p-3">
           <div className="grid grid-cols-2 gap-2">
             <select
               title="Who at Phoenix to add"
@@ -195,19 +195,19 @@ function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () =>
   const [role, setRole] = useState<MemberRole>("participant");
 
   return (
-    <div className="mb-4 rounded-lg border border-white/10 p-4">
+    <div className="mb-4 rounded-md border border-white/10 p-4">
       <div className="grid gap-3">
         <Field label="Name" value={name} onChange={setName} placeholder="Full name" />
         <Field label="Title" value={title} onChange={setTitle} placeholder="e.g. COO" />
         <Field label="Email" value={email} onChange={setEmail} placeholder="name@org.com" type="email" />
         <label className="block">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+          <span className="text-[11px] font-medium text-mist">
             Series
           </span>
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as MemberRole)}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
           >
             <option value="participant">Participant series</option>
             <option value="leader">Leader series (CEO)</option>
@@ -279,7 +279,7 @@ export default function ClientDetailPage() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         {/* Campaigns */}
-        <section className="card p-6 xl:col-span-2">
+        <section className="card p-5 xl:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <Layers size={17} className="text-mist" /> Campaigns
@@ -366,7 +366,7 @@ export default function ClientDetailPage() {
                         campaignId: campaign.id,
                       })
                     }
-                    className="absolute right-3 top-3 hidden cursor-pointer rounded-lg p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                    className="absolute right-3 top-3 hidden cursor-pointer rounded-md p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -376,7 +376,7 @@ export default function ClientDetailPage() {
 
             <button
               onClick={() => setAddingCampaign(true)}
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
             >
               <Plus size={15} />
               {client.campaigns.length === 0
@@ -391,14 +391,14 @@ export default function ClientDetailPage() {
         <ResponsiblesCard client={client} />
 
         {/* Mighty Networks */}
-        <section className="card p-6">
+        <section className="card p-5">
           <h2 className="mb-1 text-base font-bold">Mighty Networks</h2>
           <p className="mb-4 text-xs text-mist">
             This client&rsquo;s space and the invitation link members use to join.
           </p>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
                 Space
               </span>
               <EditableText
@@ -426,7 +426,7 @@ export default function ClientDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-wider text-mist">
+              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
                 Invite
               </span>
               <EditableText
@@ -445,7 +445,7 @@ export default function ClientDetailPage() {
                 <button
                   data-tip="Copy the invitation link to send it by email"
                   onClick={() => navigator.clipboard?.writeText(client.inviteUrl!)}
-                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg border border-white/10 px-2 py-1 text-[10px] font-bold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold text-mist transition-colors hover:border-white/25 hover:text-paper"
                 >
                   <Copy size={11} /> Copy
                 </button>
@@ -455,7 +455,7 @@ export default function ClientDetailPage() {
         </section>
 
         {/* Members */}
-        <section className="card p-6">
+        <section className="card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-bold">Members</h2>
             <div className="flex items-center gap-2">
@@ -465,7 +465,7 @@ export default function ClientDetailPage() {
               <button
                 data-tip="Add a member to this client"
                 onClick={() => setAddingMember(true)}
-                className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 <Plus size={14} />
               </button>
@@ -480,7 +480,7 @@ export default function ClientDetailPage() {
             {client.members.map((m) => (
               <li
                 key={m.id}
-                className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white/4"
+                className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-white/4"
               >
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-bold text-mist">
                   {m.name
@@ -500,7 +500,7 @@ export default function ClientDetailPage() {
                   </p>
                   <p className="truncate text-[11px] text-mist">{m.title}</p>
                 </div>
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-mist/70 group-hover:hidden">
+                <span className="shrink-0 text-[10px] font-medium text-mist/70 group-hover:hidden">
                   {m.role === "leader"
                     ? "Leader series"
                     : m.role === "coach"
@@ -512,7 +512,7 @@ export default function ClientDetailPage() {
                   onClick={() =>
                     dispatch({ type: "removeMember", clientId: client.id, memberId: m.id })
                   }
-                  className="hidden shrink-0 cursor-pointer rounded-lg p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                  className="hidden shrink-0 cursor-pointer rounded-md p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                 >
                   <Trash2 size={13} />
                 </button>

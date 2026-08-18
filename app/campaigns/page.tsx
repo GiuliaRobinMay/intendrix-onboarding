@@ -73,13 +73,13 @@ function FilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+      <span className="text-[11px] font-medium text-mist">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+        className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -181,13 +181,13 @@ export default function CampaignsPage() {
       {creatingFor && (
         <div className="mb-6">
           <div className="card mb-3 flex flex-wrap items-center gap-3 p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-mist">
+            <span className="text-xs font-medium text-mist">
               Client
             </span>
             <select
               value={creatingFor}
               onChange={(e) => setCreatingFor(e.target.value)}
-              className="rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
+              className="rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
             >
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -211,8 +211,8 @@ export default function CampaignsPage() {
                 onClick={() => setStatus(t.key)}
                 className={
                   on
-                    ? "brand-gradient-soft cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-paper"
-                    : "cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
+                    ? "brand-gradient-soft cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
+                    : "cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
                 }
               >
                 {t.label}
@@ -253,7 +253,7 @@ export default function CampaignsPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search client or campaign…"
               title="Type to filter by client or campaign name"
-              className="w-52 rounded-lg border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
+              className="w-52 rounded-md border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
             />
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function CampaignsPage() {
       {/* List */}
       <div className="card overflow-hidden">
         {/* header row */}
-        <div className="hidden grid-cols-[minmax(0,2.4fr)_6rem_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,2.4fr)_6rem_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client / campaign</span>
           <span>Status</span>
           <span>Progress</span>

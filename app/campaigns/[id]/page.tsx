@@ -79,14 +79,14 @@ function InlineSelect({
 }) {
   return (
     <label className="flex items-center gap-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+      <span className="text-[11px] font-medium text-mist">
         {label}
       </span>
       <select
         title={tip}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
+        className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -194,10 +194,10 @@ export default function CampaignDetailPage() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           {/* status: all four always visible, each in its own color */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+            <span className="text-[11px] font-medium text-mist">
               Status
             </span>
-            <div className="flex divide-x divide-white/8 rounded-lg border border-white/10">
+            <div className="flex divide-x divide-white/8 rounded-md border border-white/10">
               {STATUS_ORDER.map((s) => {
                 const on = s === status;
                 const st = STATUS_STYLE[s];
@@ -222,7 +222,7 @@ export default function CampaignDetailPage() {
                       });
                     }}
                     data-on={on}
-                    className="status-seg cursor-pointer px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[7px] last:rounded-r-[7px]"
+                    className="status-seg cursor-pointer px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[5px] last:rounded-r-[5px]"
                     style={{ "--chip-c": st.fg } as CSSProperties}
                   >
                     <span className="flex items-center gap-1.5">
@@ -255,10 +255,10 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Progress overview */}
-      <section className="card mb-6 p-6">
+      <section className="card mb-6 p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-mist">
+            <p className="text-xs font-medium text-mist">
               Campaign progress
             </p>
             <p className="mt-1 text-3xl font-bold tabular-nums">
@@ -305,7 +305,7 @@ export default function CampaignDetailPage() {
                     patch: { startDate: e.target.value || null },
                   })
                 }
-                className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
               />
               <span>→</span>
               <input
@@ -320,7 +320,7 @@ export default function CampaignDetailPage() {
                     patch: { endDate: e.target.value || null },
                   })
                 }
-                className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
               />
             </span>
           </div>
@@ -348,7 +348,7 @@ export default function CampaignDetailPage() {
       {/* Campaign team — same add-person system on both sides */}
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         {/* Phoenix side */}
-        <section className="card p-6">
+        <section className="card p-5">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-base font-bold">Phoenix team</h2>
             <button
@@ -362,7 +362,7 @@ export default function CampaignDetailPage() {
                   role: "phoenix_coach",
                 })
               }
-              className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+              className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
             >
               <Plus size={14} />
             </button>
@@ -378,7 +378,7 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="group flex items-center gap-3 rounded-lg border border-white/8 px-3 py-2"
+                  className="group flex items-center gap-3 rounded-md border border-white/8 px-3 py-2"
                 >
                   <select
                     title="Which Phoenix collaborator"
@@ -392,7 +392,7 @@ export default function CampaignDetailPage() {
                         patch: { staffId: e.target.value },
                       })
                     }
-                    className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
                   >
                     {team.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -412,7 +412,7 @@ export default function CampaignDetailPage() {
                         patch: { role: e.target.value as PhoenixAssignmentRole },
                       })
                     }
-                    className="w-36 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="w-36 shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
                   >
                     <option value="phoenix_leader">Phoenix Leader</option>
                     <option value="phoenix_coach">Phoenix Coach</option>
@@ -436,7 +436,7 @@ export default function CampaignDetailPage() {
               );
             })}
             {campaign.phoenixTeam.length === 0 && (
-              <p className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+              <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
                 No one assigned yet — the client defaults apply
                 {(() => {
                   const d = [
@@ -455,7 +455,7 @@ export default function CampaignDetailPage() {
         </section>
 
         {/* Client side — same system */}
-        <section className="card p-6">
+        <section className="card p-5">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-base font-bold">Client team</h2>
             <button
@@ -474,7 +474,7 @@ export default function CampaignDetailPage() {
                   role: "champion",
                 });
               }}
-              className="cursor-pointer rounded-lg border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+              className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
             >
               <Plus size={14} />
             </button>
@@ -490,7 +490,7 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="group flex items-center gap-3 rounded-lg border border-white/8 px-3 py-2"
+                  className="group flex items-center gap-3 rounded-md border border-white/8 px-3 py-2"
                 >
                   <select
                     title="Which member of the client"
@@ -504,7 +504,7 @@ export default function CampaignDetailPage() {
                         patch: { memberId: e.target.value },
                       })
                     }
-                    className="min-w-0 flex-1 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
                   >
                     {client.members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -525,7 +525,7 @@ export default function CampaignDetailPage() {
                         patch: { role: e.target.value as ClientAssignmentRole },
                       })
                     }
-                    className="w-36 shrink-0 cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="w-36 shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
                   >
                     <option value="champion">Transf. Champion</option>
                     <option value="contact">Contact</option>
@@ -548,7 +548,7 @@ export default function CampaignDetailPage() {
               );
             })}
             {campaign.clientTeam.length === 0 && (
-              <p className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+              <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
                 {client.members.length === 0
                   ? "This client has no members yet — add them on the client page first."
                   : "No one assigned yet — add the Client Transformational Champion."}
@@ -560,7 +560,7 @@ export default function CampaignDetailPage() {
 
       <div className="flex flex-col gap-6">
         {/* Sessions — square, draggable cards */}
-        <section className="card p-6">
+        <section className="card p-5">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <CalendarDays size={17} className="text-mist" /> Sessions
@@ -620,7 +620,7 @@ export default function CampaignDetailPage() {
                   } ${isOver ? "ring-2 ring-[#ff7a55]" : ""}`}
                 >
                   <div className="flex items-start justify-between">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-mist">
+                    <p className="text-[11px] font-medium text-mist">
                       Session {i + 1}
                     </p>
                     <div className="flex items-center gap-0.5">
@@ -702,7 +702,7 @@ export default function CampaignDetailPage() {
                           patch: { date: e.target.value || null },
                         })
                       }
-                      className={`w-full cursor-pointer rounded-lg border px-1 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
+                      className={`w-full cursor-pointer rounded-md border px-1 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
                         date
                           ? past
                             ? "border-transparent bg-white/8 text-paper"
@@ -738,7 +738,7 @@ export default function CampaignDetailPage() {
         </section>
 
         {/* Campaign series */}
-        <section className="card p-6">
+        <section className="card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <Layers size={17} className="text-mist" /> Campaign series
@@ -755,7 +755,7 @@ export default function CampaignDetailPage() {
           </p>
 
           {pickingModule && (
-            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-white/10 p-3">
+            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-white/10 p-3">
               {unloaded.length === 0 && (
                 <p className="text-xs text-mist">
                   Every series from the library is already in this campaign.{" "}
@@ -779,7 +779,7 @@ export default function CampaignDetailPage() {
                     });
                     setPickingModule(false);
                   }}
-                  className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-paper transition-transform hover:scale-105"
+                  className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
                   style={{ backgroundColor: t.color }}
                 >
                   + {t.code} · {t.name}
@@ -850,7 +850,7 @@ export default function CampaignDetailPage() {
                       />
                     </span>
                     <div
-                      className="flex size-11 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-paper"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-md text-xs font-bold text-paper"
                       style={{ backgroundColor: series.color }}
                     >
                       {series.code}
@@ -876,7 +876,7 @@ export default function CampaignDetailPage() {
                               sessionId: e.target.value || null,
                             })
                           }
-                          className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
+                          className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
                         >
                           <option value="">— not bound —</option>
                           {campaign.sessions.map((s, si) => (
@@ -943,7 +943,7 @@ export default function CampaignDetailPage() {
                         {schedule.map((item, si) => (
                           <li
                             key={item.step.id}
-                            className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white/4"
+                            className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-white/4"
                           >
                             <span
                               className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
@@ -994,7 +994,7 @@ export default function CampaignDetailPage() {
             {campaign.series.length === 0 && (
               <button
                 onClick={() => setPickingModule(true)}
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+                className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
               >
                 <Plus size={15} /> Add a series to this campaign
               </button>

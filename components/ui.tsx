@@ -10,7 +10,7 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-white/8 pb-4">
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-white/8 pb-3.5">
       <div>
         <h1 className="text-xl font-bold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-mist">{subtitle}</p>}
@@ -33,7 +33,7 @@ export function GradientButton({
     <button
       data-tip={tip}
       onClick={onClick}
-      className="brand-gradient cursor-pointer rounded-lg px-3.5 py-2 text-[13px] font-semibold text-paper transition-opacity hover:opacity-90"
+      className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold transition-opacity hover:opacity-90"
     >
       {children}
     </button>
@@ -53,7 +53,7 @@ export function GhostButton({
     <button
       data-tip={tip}
       onClick={onClick}
-      className="cursor-pointer rounded-lg border border-white/10 px-3.5 py-2 text-[13px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+      className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-[13px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
     >
       {children}
     </button>
@@ -76,7 +76,7 @@ export function StatCard({
       {accent && (
         <span className="absolute inset-y-0 left-0 w-0.5 bg-flame" aria-hidden />
       )}
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+      <p className="text-[11px] font-medium text-mist">
         {label}
       </p>
       <p className="mt-1.5 text-2xl font-bold tabular-nums">{value}</p>

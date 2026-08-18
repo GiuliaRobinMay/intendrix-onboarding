@@ -69,7 +69,7 @@ html.light body {
 .card {
   background-color: var(--color-panel);
   border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .card-hover {
@@ -126,14 +126,14 @@ html.light .status-seg .seg-dot {
   text-align: center;
   text-transform: none;
   letter-spacing: normal;
-  border-radius: 0.5rem;
+  border-radius: 6px;
   border: 1px solid rgba(238, 238, 239, 0.16);
   background: #1c1c52;
-  padding: 4px 9px;
+  padding: 3px 8px;
   font-size: 11px;
   font-weight: 600;
   line-height: 1.35;
-  color: var(--color-paper);
+  color: #eeeeef;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
   opacity: 0;
   pointer-events: none;
@@ -164,6 +164,24 @@ html.light .status-seg .seg-dot {
 [data-tip-pos="right"]:hover::after,
 [data-tip-pos="right"]:focus-visible::after {
   transform: translateY(-50%) translateX(0);
+}
+
+/* Focus rings — visible, brand-tinted, on every control */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand) 60%, transparent);
+  outline-offset: 0;
+}
+html.light input:focus-visible,
+html.light select:focus-visible,
+html.light textarea:focus-visible {
+  outline-color: color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-brand) 60%, transparent);
+  outline-offset: 1px;
 }
 
 ::selection {

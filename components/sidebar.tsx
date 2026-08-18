@@ -161,7 +161,7 @@ export function Sidebar() {
               (collapsed ? (
                 <div className="mx-1 mb-1.5 border-t border-white/8" aria-hidden />
               ) : (
-                <p className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-mist/60">
+                <p className="px-2.5 pb-1 text-[11px] font-medium text-mist/60">
                   {g.label}
                 </p>
               ))}

@@ -20,7 +20,7 @@ export function EditableText({
   useEffect(() => setDraft(value), [value]);
 
   const base =
-    "w-full rounded-lg border border-transparent bg-transparent px-1.5 py-0.5 -mx-1.5 transition-colors hover:border-white/10 focus:border-white/25 focus:bg-navy/60 focus:outline-none";
+    "w-full rounded-md border border-transparent bg-transparent px-1.5 py-0.5 -mx-1.5 transition-colors hover:border-white/10 focus:border-white/25 focus:bg-navy/60 focus:outline-none";
 
   if (multiline) {
     return (
@@ -61,7 +61,7 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+      <span className="text-[11px] font-medium text-mist">
         {label}
       </span>
       <input
@@ -69,7 +69,7 @@ export function Field({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
+        className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
       />
     </label>
   );

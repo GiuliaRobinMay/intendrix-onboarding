@@ -48,7 +48,7 @@ function TypefaceCard() {
   };
 
   return (
-    <section className="card p-6">
+    <section className="card p-5">
       <h2 className="mb-1 flex items-center gap-2 text-base font-bold">
         <Type size={17} className="text-mist" /> Typeface
       </h2>
@@ -63,7 +63,7 @@ function TypefaceCard() {
             <button
               key={f.id}
               onClick={() => choose(f.id)}
-              className={`cursor-pointer rounded-lg border px-3 py-2.5 text-left transition-colors ${
+              className={`cursor-pointer rounded-md border px-3 py-2.5 text-left transition-colors ${
                 on
                   ? "border-white/25 bg-white/6"
                   : "border-white/10 hover:border-white/25"
@@ -119,27 +119,27 @@ export default function AppSettingsPage() {
   return (
     <div className="grid gap-6 xl:grid-cols-2">
       {/* Organization */}
-      <section className="card p-6">
+      <section className="card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold">
           <Building2 size={17} className="text-mist" /> Organization
         </h2>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wider text-mist">Name</dt>
+            <dt className="text-xs font-medium text-mist">Name</dt>
             <dd className="mt-1 font-semibold">Intendrix</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wider text-mist">Community</dt>
+            <dt className="text-xs font-medium text-mist">Community</dt>
             <dd className="mt-1 font-semibold">intendrix.ai</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wider text-mist">
+            <dt className="text-xs font-medium text-mist">
               Default timezone
             </dt>
             <dd className="mt-1 font-semibold">America/New_York</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wider text-mist">
+            <dt className="text-xs font-medium text-mist">
               Default send time
             </dt>
             <dd className="mt-1 font-semibold">08:00</dd>
@@ -148,7 +148,7 @@ export default function AppSettingsPage() {
       </section>
 
       {/* Sending */}
-      <section className="card p-6">
+      <section className="card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold">
           <Mail size={17} className="text-mist" /> Email sending
         </h2>
@@ -164,7 +164,7 @@ export default function AppSettingsPage() {
       </section>
 
       {/* Branding */}
-      <section className="card p-6">
+      <section className="card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold">
           <Palette size={17} className="text-mist" /> Branding
         </h2>
@@ -172,7 +172,7 @@ export default function AppSettingsPage() {
           {palette.map((c) => (
             <div key={c.hex} className="text-center">
               <div
-                className="size-14 rounded-lg border border-white/10"
+                className="size-14 rounded-md border border-white/10"
                 style={{ backgroundColor: c.hex }}
               />
               <p className="mt-1.5 text-[11px] font-semibold">{c.name}</p>
@@ -180,7 +180,7 @@ export default function AppSettingsPage() {
             </div>
           ))}
           <div className="text-center">
-            <div className="brand-gradient size-14 rounded-lg" />
+            <div className="brand-gradient size-14 rounded-md" />
             <p className="mt-1.5 text-[11px] font-semibold">Gradient</p>
             <p className="text-[10px] text-mist">flame → indigo</p>
           </div>
@@ -193,7 +193,7 @@ export default function AppSettingsPage() {
       <TypefaceCard />
 
       {/* Prototype data */}
-      <section className="card p-6">
+      <section className="card p-5">
         <h2 className="mb-2 flex items-center gap-2 text-base font-bold">
           <DatabaseBackup size={17} className="text-mist" /> Prototype data
         </h2>
@@ -216,7 +216,7 @@ export default function AppSettingsPage() {
       </section>
 
       {/* Integrations */}
-      <section className="card p-6 xl:col-span-2">
+      <section className="card p-5 xl:col-span-2">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold">
           <Plug size={17} className="text-mist" /> Integrations
         </h2>

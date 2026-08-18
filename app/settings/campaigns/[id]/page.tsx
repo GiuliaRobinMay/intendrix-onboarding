@@ -24,12 +24,12 @@ function NewSeriesForm({
   const [trigger, setTrigger] = useState<SessionKey>("orientation");
 
   return (
-    <div className="card mb-6 p-6">
+    <div className="card mb-6 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New series</h2>
         <button
           onClick={onClose}
-          className="cursor-pointer rounded-lg p-1 text-mist hover:bg-white/5 hover:text-paper"
+          className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
           <X size={16} />
         </button>
@@ -39,13 +39,13 @@ function NewSeriesForm({
         <Field label="Code" value={code} onChange={setCode} placeholder="e.g. PWEA" />
         <Field label="Focus" value={focus} onChange={setFocus} placeholder="e.g. Leadership" />
         <label className="block">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-mist">
+          <span className="text-[11px] font-medium text-mist">
             Usually triggered by
           </span>
           <select
             value={trigger}
             onChange={(e) => setTrigger(e.target.value as SessionKey)}
-            className="mt-1 w-full rounded-lg border border-white/10 bg-navy/60 px-3 py-2 text-sm focus:border-white/30 focus:outline-none"
+            className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
           >
             <option value="orientation">Orientation Session</option>
             <option value="workshop">Workshop</option>
@@ -178,7 +178,7 @@ export default function CampaignTemplateDetailPage() {
               <Link href={`/settings/campaigns/${ct.id}/series/${s.id}`} className="block p-6">
                 <div className="flex items-start justify-between pr-6">
                   <div
-                    className="flex size-12 items-center justify-center rounded-lg text-sm font-bold text-paper"
+                    className="flex size-12 items-center justify-center rounded-md text-sm font-bold text-paper"
                     style={{ backgroundColor: s.color }}
                   >
                     {s.code}
@@ -213,7 +213,7 @@ export default function CampaignTemplateDetailPage() {
                     dispatch({ type: "removeSeries", templateId: s.id });
                   }
                 }}
-                className="absolute right-3 top-3 hidden cursor-pointer rounded-lg p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                className="absolute right-3 top-3 hidden cursor-pointer rounded-md p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
               >
                 <Trash2 size={14} />
               </button>

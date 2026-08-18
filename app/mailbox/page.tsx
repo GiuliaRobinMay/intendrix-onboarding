@@ -52,12 +52,12 @@ function ContentLinks({ content }: { content: StepContent }) {
             href={content.lesson.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+            className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
           >
             <ExternalLink size={11} /> {content.lesson.label}
           </a>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#eb320f]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff7a55]">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-[#eb320f]/15 px-2.5 py-1 text-[11px] font-semibold text-[#ff7a55]">
             <TriangleAlert size={11} /> {content.lesson.label} — link missing
           </span>
         ))}
@@ -68,7 +68,7 @@ function ContentLinks({ content }: { content: StepContent }) {
             href={x.url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
+            className="inline-flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1 text-[11px] font-medium text-mist transition-colors hover:bg-white/10 hover:text-paper"
           >
             <ExternalLink size={11} /> {x.label}
           </a>
@@ -98,7 +98,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
       {/* email headers */}
       <dl className="mt-4 flex flex-col gap-1.5 border-y border-white/8 py-3 text-xs">
         <div className="flex gap-2">
-          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+          <dt className="w-12 shrink-0 font-bold text-mist/70">
             From
           </dt>
           <dd className="min-w-0">
@@ -118,7 +118,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           </dd>
         </div>
         <div className="flex gap-2">
-          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+          <dt className="w-12 shrink-0 font-bold text-mist/70">
             To
           </dt>
           <dd className="min-w-0 text-mist">
@@ -128,7 +128,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           </dd>
         </div>
         <div className="flex gap-2">
-          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+          <dt className="w-12 shrink-0 font-bold text-mist/70">
             Date
           </dt>
           <dd className="min-w-0 text-mist">
@@ -138,7 +138,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           </dd>
         </div>
         <div className="flex gap-2">
-          <dt className="w-12 shrink-0 font-bold uppercase tracking-wider text-mist/70">
+          <dt className="w-12 shrink-0 font-bold text-mist/70">
             Series
           </dt>
           <dd className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -152,7 +152,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
 
       {/* the two audience variants of this send */}
       {!same && (
-        <div className="mt-4 flex w-fit divide-x divide-white/8 rounded-lg border border-white/10">
+        <div className="mt-4 flex w-fit divide-x divide-white/8 rounded-md border border-white/10">
           {(["participant", "leader"] as const).map((v) => {
             const on = variant === v;
             return (
@@ -164,7 +164,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
                     ? "What the Leader receives — with the Leaders Guides"
                     : "What Participants receive"
                 }
-                className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold transition-colors first:rounded-l-[7px] last:rounded-r-[7px] ${
+                className={`flex cursor-pointer items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold transition-colors first:rounded-l-[5px] last:rounded-r-[5px] ${
                   on ? "bg-white/8 text-paper" : "text-mist hover:text-paper"
                 }`}
               >
@@ -191,7 +191,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           {content.emailBody}
         </p>
         {content.teamMeeting && (
-          <p className="mt-3 w-fit rounded-lg bg-[#facc15]/10 px-3 py-2 text-xs font-semibold text-[#facc15]">
+          <p className="mt-3 w-fit rounded-md bg-[#facc15]/10 px-3 py-2 text-xs font-semibold text-[#facc15]">
             TEAM MEETING — {content.teamMeeting}
           </p>
         )}
@@ -339,8 +339,8 @@ export default function MailboxPage() {
                 }}
                 className={
                   on
-                    ? "brand-gradient-soft cursor-pointer rounded-lg px-3 py-1.5 text-xs font-bold text-paper"
-                    : "cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
+                    ? "brand-gradient-soft cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
+                    : "cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
                 }
               >
                 {t.label}
@@ -354,7 +354,7 @@ export default function MailboxPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+            <span className="text-[11px] font-medium text-mist">
               Period
             </span>
             <input
@@ -362,7 +362,7 @@ export default function MailboxPage() {
               value={from}
               title="Show communications from this date"
               onChange={(e) => setFrom(e.target.value)}
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
             />
             <span className="text-xs text-mist">→</span>
             <input
@@ -370,7 +370,7 @@ export default function MailboxPage() {
               value={to}
               title="…until this date"
               onChange={(e) => setTo(e.target.value)}
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
             />
             {periodActive && (
               <button
@@ -387,7 +387,7 @@ export default function MailboxPage() {
           </label>
 
           <label className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+            <span className="text-[11px] font-medium text-mist">
               Client
             </span>
             <select
@@ -396,7 +396,7 @@ export default function MailboxPage() {
                 setClientFilter(e.target.value);
                 setCampaignFilter("all");
               }}
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="all">All</option>
               {clients
@@ -410,13 +410,13 @@ export default function MailboxPage() {
           </label>
 
           <label className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+            <span className="text-[11px] font-medium text-mist">
               Campaign
             </span>
             <select
               value={campaignFilter}
               onChange={(e) => setCampaignFilter(e.target.value)}
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="all">All</option>
               {campaignOptions.map((o) => (
@@ -428,13 +428,13 @@ export default function MailboxPage() {
           </label>
 
           <label className="flex items-center gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-mist">
+            <span className="text-[11px] font-medium text-mist">
               Responsible
             </span>
             <select
               value={responsible}
               onChange={(e) => setResponsible(e.target.value)}
-              className="cursor-pointer rounded-lg border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="all">Anyone</option>
               {team.map((t) => (
@@ -455,7 +455,7 @@ export default function MailboxPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search…"
               title="Search by client, campaign, lesson or subject"
-              className="w-40 rounded-lg border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
+              className="w-40 rounded-md border border-white/10 bg-navy/60 py-1.5 pl-7 pr-2.5 text-xs focus:border-white/30 focus:outline-none"
             />
           </div>
         </div>
