@@ -6,20 +6,20 @@ can start.
 
 ## Apply
 
-**Option A — Supabase Studio (simplest):**
+**Option A — one paste (simplest):**
 
-1. Create a project at supabase.com (organization: Phoenix's own account —
-   Kevin is setting up the environment).
-2. Open *SQL Editor* → *New query*.
-3. Paste and run `migrations/0001_initial_schema.sql`.
-4. Paste and run `migrations/0002_auth_roles_invitations.sql` — sign-in,
-   roles and invitations (see below).
-5. Paste and run `seed.sql` — loads the current prototype data: the Phoenix
-   team, the three campaign blueprints (TLE-E, TLE-L, TLE-IC) with every
-   series, lesson and email variant, and the five clients with their
-   campaigns, sessions and assignments.
+1. Open the project's *SQL Editor* → *New query*.
+2. Paste the whole of **`setup.sql`** and Run. It contains everything in
+   order — schema, sign-in/roles, and the seed data (the Phoenix team, the
+   three campaign blueprints with every series, lesson and email variant,
+   and the five clients with their campaigns, sessions and assignments).
+   Verified end-to-end against Postgres 16; the seed is idempotent, so
+   re-running is safe.
 
-**Option B — Supabase CLI:**
+**Option B — file by file:** run `migrations/0001_initial_schema.sql`,
+then `migrations/0002_auth_roles_invitations.sql`, then `seed.sql`.
+
+**Option C — Supabase CLI:**
 
 ```bash
 supabase link --project-ref <project-ref>
