@@ -130,3 +130,32 @@ to their own company server-side, on top of the RLS in 0002).
 One Supabase setting must match: *Authentication → URL Configuration →
 Site URL* has to be the app's address (e.g. the Vercel URL), otherwise
 invitation links point to the wrong place.
+
+## The sending engine
+
+`GET /api/cron/send` is the engine: each run finds lesson emails that are
+due (per campaign timezone, cumulative offsets from the trigger session),
+sends the Participant and Leader variants from the responsible's address
+(Coach → Leader → Project Manager), and logs every send in `email_sends`.
+Vercel Cron calls it daily at 12:15 UTC (`vercel.json`); on a paid Vercel
+plan the schedule can tighten to every 15 minutes.
+
+Safety rules built in:
+
+- a **paused** or closed campaign sends nothing;
+- anything **more than 2 days overdue is logged as `held`**, never
+  auto-sent — switching the engine on can't flood members with a backlog;
+- **one log row per member per lesson** — a rerun never double-sends;
+- without `RESEND_API_KEY` (or with `?dryrun=1`) a run only reports what
+  it would do and writes nothing.
+
+It needs two more variables in Vercel:
+
+```
+RESEND_API_KEY=  # from resend.com, after verifying the intendrix.ai domain
+CRON_SECRET=     # any long random string; Vercel Cron authenticates with it
+```
+
+Sending from the team's own addresses requires the domain (e.g.
+intendrix.ai) to be verified with the provider — DNS records that the
+domain owner adds once.

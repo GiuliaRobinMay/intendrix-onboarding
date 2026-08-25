@@ -1,0 +1,286 @@
+// GET /api/cron/send — the sending engine. Vercel Cron calls this on a
+// schedule; each run finds lesson emails that are due and sends them
+// from the responsible's address (Coach → Leader → Project Manager),
+// honoring pauses and each campaign's timezone, and logs every send in
+// email_sends.
+//
+// Safety rules:
+//  * a paused or closed campaign sends nothing;
+//  * anything more than GRACE_DAYS overdue is logged as "held", never
+//    auto-sent — switching the engine on can't flood members with a
+//    backlog;
+//  * one log row per member per lesson — a rerun never double-sends;
+//  * without RESEND_API_KEY (or with ?dryrun=1) the run only reports
+//    what it would do and writes nothing.
+
+import { NextResponse } from "next/server";
+import { dbConfigured, getPool } from "@/lib/server/db";
+import { authEnforced } from "@/lib/server/auth";
+import { emailConfigured, renderLessonEmail, sendEmail } from "@/lib/server/email";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+const GRACE_DAYS = 2;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+function nowInZone(tz: string): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    time: `${get("hour")}:${get("minute")}`,
+  };
+}
+
+function addDays(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + days));
+  return t.toISOString().slice(0, 10);
+}
+
+function daysBetween(fromIso: string, toIso: string): number {
+  const p = (s: string) => {
+    const [y, m, d] = s.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((p(toIso) - p(fromIso)) / 86400000);
+}
+
+export async function GET(req: Request) {
+  // Vercel Cron authenticates with the CRON_SECRET env var
+  const secret = process.env.CRON_SECRET;
+  const header = req.headers.get("authorization") ?? "";
+  if (secret) {
+    if (header !== `Bearer ${secret}`)
+      return NextResponse.json({ error: "not allowed" }, { status: 401 });
+  } else if (authEnforced) {
+    return NextResponse.json(
+      { error: "set CRON_SECRET before running the engine" },
+      { status: 503 }
+    );
+  }
+
+  if (!dbConfigured)
+    return NextResponse.json({ configured: false, sent: 0, held: 0 });
+
+  const dryRun =
+    !emailConfigured || new URL(req.url).searchParams.get("dryrun") === "1";
+
+  const pool = getPool();
+  const q = async (text: string, params: any[] = []) =>
+    (await pool.query(text, params)).rows;
+
+  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged] =
+    await Promise.all([
+      q(`select id, client_id, code, name, timezone, status_override from campaigns`),
+      q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
+      q(`select id, client_id, name, email, role from members`),
+      q(`select id, name, email from staff`),
+      q(`select campaign_id, series_template_id, trigger_session_id
+           from campaign_series order by campaign_id, sort_order, created_at`),
+      q(`select id, session_date::text as session_date from campaign_sessions`),
+      q(`select id, series_template_id, code, title, offset_days,
+                to_char(send_time, 'HH24:MI') as send_time
+           from series_steps order by series_template_id, sort_order, created_at`),
+      q(`select id, step_id, variant, email_subject, email_body,
+                lesson_label, lesson_url, team_meeting from step_contents`),
+      q(`select step_content_id, label, url from step_links order by sort_order`),
+      q(`select campaign_id, step_id, member_id from email_sends`),
+    ]);
+
+  const clientById = new Map(clients.map((c: any) => [c.id, c]));
+  const staffById = new Map(staff.map((s: any) => [s.id, s]));
+  const sessionDate = new Map(sessions.map((s: any) => [s.id, s.session_date]));
+  const membersByClient = new Map<string, any[]>();
+  for (const m of members) {
+    const list = membersByClient.get(m.client_id) ?? [];
+    list.push(m);
+    membersByClient.set(m.client_id, list);
+  }
+  const stepsBySeries = new Map<string, any[]>();
+  for (const s of steps) {
+    const list = stepsBySeries.get(s.series_template_id) ?? [];
+    list.push(s);
+    stepsBySeries.set(s.series_template_id, list);
+  }
+  const linksByContent = new Map<string, any[]>();
+  for (const l of links) {
+    const list = linksByContent.get(l.step_content_id) ?? [];
+    list.push(l);
+    linksByContent.set(l.step_content_id, list);
+  }
+  const contentByStep = new Map<string, Record<string, any>>();
+  for (const c of contents) {
+    const both = contentByStep.get(c.step_id) ?? {};
+    both[c.variant] = c;
+    contentByStep.set(c.step_id, both);
+  }
+  const already = new Set(
+    logged.map((r: any) => `${r.campaign_id}|${r.step_id}|${r.member_id}`)
+  );
+  const assignments = await q(
+    `select campaign_id, staff_id, role from campaign_phoenix_assignments
+      order by created_at`
+  );
+
+  const senderFor = (campaign: any): any | null => {
+    const client = clientById.get(campaign.client_id);
+    const pick = (role: string, fallbackId?: string | null) => {
+      const a = assignments.find(
+        (x: any) => x.campaign_id === campaign.id && x.role === role
+      );
+      const id = a?.staff_id ?? fallbackId;
+      return id ? staffById.get(id) : null;
+    };
+    return (
+      pick("phoenix_coach", client?.phoenix_coach_id) ??
+      pick("phoenix_leader", client?.phoenix_leader_id) ??
+      pick("project_manager", client?.project_manager_id) ??
+      null
+    );
+  };
+
+  let sent = 0;
+  let failed = 0;
+  let held = 0;
+  let skippedPaused = 0;
+  const wouldSend: any[] = [];
+
+  const logRow = async (
+    campaign: any,
+    stepId: string,
+    memberId: string | null,
+    variant: string,
+    senderId: string | null,
+    localDate: string,
+    time: string,
+    status: string,
+    error: string | null
+  ) => {
+    await pool.query(
+      `insert into email_sends
+         (campaign_id, step_id, member_id, variant, sender_id, scheduled_for,
+          sent_at, status, error)
+       values ($1, $2, $3, $4, $5,
+               ($6 || ' ' || $7)::timestamp at time zone $8,
+               case when $9 = 'sent' then now() end, $9, $10)`,
+      [campaign.id, stepId, memberId, variant, senderId, localDate, time,
+       campaign.timezone, status, error]
+    );
+  };
+
+  for (const campaign of campaigns) {
+    if (campaign.status_override === "paused" || campaign.status_override === "closed") {
+      skippedPaused++;
+      continue;
+    }
+    const now = nowInZone(campaign.timezone || "America/New_York");
+    const sender = senderFor(campaign);
+    const clientMembers = membersByClient.get(campaign.client_id) ?? [];
+
+    for (const ls of loaded.filter((x: any) => x.campaign_id === campaign.id)) {
+      const baseDate = ls.trigger_session_id
+        ? sessionDate.get(ls.trigger_session_id)
+        : null;
+      if (!baseDate) continue;
+      let cumulative = 0;
+      for (const step of stepsBySeries.get(ls.series_template_id) ?? []) {
+        cumulative += step.offset_days;
+        const localDate = addDays(baseDate, cumulative);
+        const time = step.send_time as string;
+        const isDue =
+          localDate < now.date || (localDate === now.date && time <= now.time);
+        if (!isDue) break; // later steps in this series are even further out
+        const age = daysBetween(localDate, now.date);
+        const stale = age > GRACE_DAYS;
+        const both = contentByStep.get(step.id) ?? {};
+
+        for (const member of clientMembers) {
+          const variant = member.role === "participant" ? "participant" : "leader";
+          const content = both[variant] ?? both.participant;
+          if (!content) continue;
+          if (already.has(`${campaign.id}|${step.id}|${member.id}`)) continue;
+
+          if (dryRun) {
+            if (!stale)
+              wouldSend.push({
+                campaign: campaign.code,
+                step: step.code,
+                to: member.email,
+                variant,
+                date: localDate,
+                time,
+              });
+            else held++;
+            continue;
+          }
+
+          already.add(`${campaign.id}|${step.id}|${member.id}`);
+          if (stale) {
+            await logRow(campaign, step.id, member.id, variant,
+              sender?.id ?? null, localDate, time, "held",
+              `overdue by ${age} days — review and send by hand`);
+            held++;
+            continue;
+          }
+          if (!sender) {
+            await logRow(campaign, step.id, member.id, variant, null,
+              localDate, time, "held", "no responsible assigned — no sender address");
+            held++;
+            continue;
+          }
+          if (!member.email) {
+            await logRow(campaign, step.id, member.id, variant, sender.id,
+              localDate, time, "failed", "member has no email address");
+            failed++;
+            continue;
+          }
+          const html = renderLessonEmail({
+            body: content.email_body ?? "",
+            lesson: content.lesson_label || content.lesson_url
+              ? { label: content.lesson_label ?? "Open the lesson", url: content.lesson_url }
+              : null,
+            extras: (linksByContent.get(content.id) ?? []).map((l: any) => ({
+              label: l.label,
+              url: l.url,
+            })),
+            teamMeeting: content.team_meeting,
+            senderName: sender.name,
+          });
+          const result = await sendEmail({
+            from: `${sender.name} <${sender.email}>`,
+            to: member.email,
+            replyTo: sender.email,
+            subject: content.email_subject || step.title,
+            html,
+          });
+          await logRow(campaign, step.id, member.id, variant, sender.id,
+            localDate, time, result.ok ? "sent" : "failed",
+            result.ok ? null : (result.error ?? "unknown error"));
+          if (result.ok) sent++;
+          else failed++;
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({
+    configured: true,
+    dryRun,
+    sent,
+    failed,
+    held,
+    skippedPaused,
+    ...(dryRun ? { wouldSend: wouldSend.slice(0, 50), wouldSendCount: wouldSend.length } : {}),
+  });
+}
