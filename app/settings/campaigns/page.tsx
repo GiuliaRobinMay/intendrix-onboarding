@@ -19,6 +19,7 @@ function NewCampaignTemplateForm({ onClose }: { onClose: () => void }) {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New campaign blueprint</h2>
         <button
+          data-tip="Close without creating"
           onClick={onClose}
           className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
@@ -102,6 +103,8 @@ export default function CampaignTemplatesPage() {
               <li key={ct.id} className="group relative">
                 <Link
                   href={`/settings/campaigns/${ct.id}`}
+                  data-tip="Open this blueprint and its series"
+                  data-tip-pos="bottom"
                   className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1.6fr)_5.5rem_5.5rem_7rem_4.5rem_1rem] lg:gap-4"
                 >
                   <div className="flex min-w-0 items-center gap-3">

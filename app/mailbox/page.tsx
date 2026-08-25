@@ -206,12 +206,14 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3">
         <Link
           href={`/campaigns/${item.campaign.id}`}
+          data-tip="Go to this campaign's page"
           className="text-xs font-semibold text-mist transition-colors hover:text-paper"
         >
           Open campaign →
         </Link>
         <Link
           href={`/settings/campaigns/${item.series.campaignTemplateId}/series/${item.series.id}`}
+          data-tip="Change the subject, text and links in the blueprint"
           className="text-xs font-semibold text-mist transition-colors hover:text-paper"
         >
           Edit this email →
@@ -332,6 +334,13 @@ export default function MailboxPage() {
             return (
               <button
                 key={t.key}
+                data-tip={{
+                  today: "Emails going out today",
+                  week: "Everything leaving this week",
+                  upcoming: "All scheduled future sends",
+                  sent: "What has already gone out",
+                  awaiting: "Sends whose trigger session has no date yet",
+                }[t.key]}
                 onClick={() => {
                   setScope(t.key);
                   setFrom("");
@@ -391,6 +400,7 @@ export default function MailboxPage() {
               Client
             </span>
             <select
+              title="Show only this client's emails"
               value={clientFilter}
               onChange={(e) => {
                 setClientFilter(e.target.value);
@@ -414,6 +424,7 @@ export default function MailboxPage() {
               Campaign
             </span>
             <select
+              title="Show only this campaign's emails"
               value={campaignFilter}
               onChange={(e) => setCampaignFilter(e.target.value)}
               className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
@@ -432,6 +443,7 @@ export default function MailboxPage() {
               Responsible
             </span>
             <select
+              title="Show only emails this person is responsible for"
               value={responsible}
               onChange={(e) => setResponsible(e.target.value)}
               className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
@@ -479,6 +491,8 @@ export default function MailboxPage() {
               return (
                 <li key={k} className="border-b border-white/5 last:border-b-0">
                   <button
+                    data-tip="Read this email in full on the right"
+                    data-tip-pos="bottom"
                     onClick={() => setOpenKey(k)}
                     className={`flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left transition-colors ${
                       on ? "bg-white/6" : "hover:bg-white/4"

@@ -115,6 +115,7 @@ export default function CalendarPage() {
             </h2>
             <div className="flex items-center gap-1.5">
               <button
+                data-tip="Jump back to the current month"
                 onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()); }}
                 className="cursor-pointer rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
               >

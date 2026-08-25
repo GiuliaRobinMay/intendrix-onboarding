@@ -28,6 +28,7 @@ function NewSeriesForm({
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New series</h2>
         <button
+          data-tip="Close without creating"
           onClick={onClose}
           className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
@@ -43,6 +44,7 @@ function NewSeriesForm({
             Usually triggered by
           </span>
           <select
+            title="The standard session whose date usually starts this series"
             value={trigger}
             onChange={(e) => setTrigger(e.target.value as SessionKey)}
             className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
@@ -175,7 +177,12 @@ export default function CampaignTemplateDetailPage() {
                 : "weekly";
           return (
             <div key={s.id} className="card card-hover group relative">
-              <Link href={`/settings/campaigns/${ct.id}/series/${s.id}`} className="block p-6">
+              <Link
+                href={`/settings/campaigns/${ct.id}/series/${s.id}`}
+                data-tip="Open the lessons and emails of this series"
+                data-tip-pos="bottom"
+                className="block p-6"
+              >
                 <div className="flex items-start justify-between pr-6">
                   <div
                     className="flex size-12 items-center justify-center rounded-md text-sm font-bold text-paper"
@@ -222,6 +229,7 @@ export default function CampaignTemplateDetailPage() {
         })}
 
         <button
+          data-tip="Create a new series in this blueprint"
           onClick={() => setShowForm(true)}
           className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/10 p-6 text-center transition-colors hover:border-white/25"
         >

@@ -77,6 +77,7 @@ function FilterSelect({
         {label}
       </span>
       <select
+        title={`Filter the list by ${label.toLowerCase()}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
@@ -208,6 +209,7 @@ export default function CampaignsPage() {
             return (
               <button
                 key={t.key}
+                data-tip={t.key === "all" ? "Every campaign, whatever its status" : STATUS_TIP[t.key]}
                 onClick={() => setStatus(t.key)}
                 className={
                   on

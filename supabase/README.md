@@ -92,16 +92,30 @@ their own company's rows.
 - `staff.auth_user_id` / `profiles.staff_id` link a Phoenix team member to
   their auth account once accounts exist.
 
-## App wiring (next phase)
+## App wiring (live)
 
-Environment variables the app will need (in Vercel, never committed):
+The app talks to the database through its own server (`app/api/state` reads
+the whole tree, `app/api/action` persists each edit — the SQL mirror of the
+reducer in `lib/state.tsx`). One environment variable switches it on:
+
+```
+DATABASE_URL=   # the Supabase connection string (Transaction pooler)
+```
+
+- **Where to find it:** Supabase dashboard → the project → *Connect* (top
+  bar) → *Transaction pooler* — a `postgresql://…pooler.supabase.com:6543/…`
+  URI. Replace `[YOUR-PASSWORD]` with the database password (resettable
+  under *Project Settings → Database → Reset database password*).
+- **Where to put it:** Vercel → the project → *Settings → Environment
+  Variables* → add `DATABASE_URL`, then redeploy.
+- Without the variable the app keeps running in prototype mode (edits stay
+  in the browser); with it, everyone shares the database. The sidebar's
+  bottom line shows which mode is active.
+
+Sign-in (phase 3) additionally needs:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=   # server-side only
 ```
-
-The UI already reads everything through the reducer in `lib/state.tsx`;
-wiring means replacing those actions with Supabase queries/mutations behind
-the same interface.

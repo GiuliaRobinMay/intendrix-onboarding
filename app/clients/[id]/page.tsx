@@ -205,6 +205,7 @@ function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () =>
             Series
           </span>
           <select
+            title="Which series this member receives"
             value={role}
             onChange={(e) => setRole(e.target.value as MemberRole)}
             className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
@@ -297,7 +298,12 @@ export default function ClientDetailPage() {
                 .sort((a, b) => a.date!.localeCompare(b.date!))[0];
               return (
                 <div key={campaign.id} className="card group relative">
-                  <Link href={`/campaigns/${campaign.id}`} className="block p-4">
+                  <Link
+                    href={`/campaigns/${campaign.id}`}
+                    data-tip="Open this campaign"
+                    data-tip-pos="bottom"
+                    className="block p-4"
+                  >
                     <div className="flex items-center justify-between gap-3 pr-8">
                       <p className="min-w-0 truncate text-sm font-bold">
                         {campaign.name}

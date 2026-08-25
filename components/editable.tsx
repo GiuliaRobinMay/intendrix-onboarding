@@ -25,6 +25,7 @@ export function EditableText({
   if (multiline) {
     return (
       <textarea
+        title="Click to edit — saves when you click away"
         value={draft}
         placeholder={placeholder}
         onChange={(e) => setDraft(e.target.value)}
@@ -36,6 +37,7 @@ export function EditableText({
   }
   return (
     <input
+      title="Click to edit — saves when you click away"
       value={draft}
       placeholder={placeholder}
       onChange={(e) => setDraft(e.target.value)}
@@ -65,6 +67,7 @@ export function Field({
         {label}
       </span>
       <input
+        title={placeholder ?? label}
         type={type}
         value={value}
         placeholder={placeholder}

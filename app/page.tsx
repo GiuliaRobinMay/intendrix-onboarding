@@ -73,6 +73,7 @@ export default function DashboardPage() {
             </h2>
             <Link
               href="/calendar"
+              data-tip="Open the full calendar"
               className="flex items-center gap-1 text-xs font-semibold text-mist transition-colors hover:text-paper"
             >
               View all <ArrowRight size={13} />
@@ -117,6 +118,7 @@ export default function DashboardPage() {
             </h2>
             <Link
               href="/campaigns"
+              data-tip="Open the full campaigns list"
               className="flex items-center gap-1 text-xs font-semibold text-mist transition-colors hover:text-paper"
             >
               All campaigns <ArrowRight size={13} />
@@ -130,6 +132,7 @@ export default function DashboardPage() {
                 <Link
                   key={campaign.id}
                   href={`/campaigns/${campaign.id}`}
+                  data-tip="Open this campaign"
                   className="card card-hover block p-4"
                 >
                   <div className="flex items-center justify-between gap-2">

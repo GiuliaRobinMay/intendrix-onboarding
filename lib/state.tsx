@@ -10,6 +10,7 @@ import {
   useEffect,
   useReducer,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 import {
@@ -82,11 +83,22 @@ function uid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Pre-generated ids for a blueprint duplication, so the browser and
+ *  the database create exactly the same copy. */
+export interface DuplicatePlan {
+  newId: string;
+  series: Array<{
+    sourceId: string;
+    newId: string;
+    steps: Array<{ sourceId: string; newId: string }>;
+  }>;
+}
+
 export type Action =
   | { type: "hydrate"; db: DB }
   | { type: "reset" }
   // clients
-  | { type: "addClient"; name: string; location: string; sector: string }
+  | { type: "addClient"; id?: string; name: string; location: string; sector: string }
   | { type: "removeClient"; clientId: string }
   | {
       type: "updateClient";
@@ -108,6 +120,7 @@ export type Action =
     }
   | {
       type: "addMember";
+      id?: string;
       clientId: string;
       name: string;
       title: string;
@@ -118,6 +131,9 @@ export type Action =
   // campaigns
   | {
       type: "addCampaign";
+      id?: string;
+      /** ids for the standard sessions, generated client-side */
+      sessionIds?: string[];
       clientId: string;
       name: string;
       code: string;
@@ -147,7 +163,7 @@ export type Action =
       >;
     }
   // sessions (variable number per campaign)
-  | { type: "addSession"; clientId: string; campaignId: string; name?: string }
+  | { type: "addSession"; id?: string; clientId: string; campaignId: string; name?: string }
   | { type: "removeSession"; clientId: string; campaignId: string; sessionId: string }
   | {
       type: "updateSession";
@@ -216,11 +232,12 @@ export type Action =
       patch: Partial<StepContent>;
     }
   | { type: "removeSeries"; templateId: string }
-  | { type: "addStep"; templateId: string }
+  | { type: "addStep"; id?: string; templateId: string }
   | { type: "removeStep"; templateId: string; stepId: string }
   | { type: "moveStep"; templateId: string; stepId: string; dir: -1 | 1 }
   | {
       type: "addSeries";
+      id?: string;
       campaignTemplateId: string;
       name: string;
       code: string;
@@ -230,6 +247,7 @@ export type Action =
   // campaign assignments — same system on both sides
   | {
       type: "addPhoenixAssignment";
+      id?: string;
       clientId: string;
       campaignId: string;
       staffId: string;
@@ -250,6 +268,7 @@ export type Action =
     }
   | {
       type: "addClientAssignment";
+      id?: string;
       clientId: string;
       campaignId: string;
       memberId: string;
@@ -269,11 +288,11 @@ export type Action =
       assignmentId: string;
     }
   // invitations (mock of the Supabase invite flow)
-  | { type: "addInvitation"; email: string; role: AppRole; clientId?: string }
+  | { type: "addInvitation"; id?: string; email: string; role: AppRole; clientId?: string }
   | { type: "removeInvitation"; invitationId: string }
   // campaign blueprints
-  | { type: "addCampaignTemplate"; name: string; code: string; description: string }
-  | { type: "duplicateCampaignTemplate"; templateId: string }
+  | { type: "addCampaignTemplate"; id?: string; name: string; code: string; description: string }
+  | { type: "duplicateCampaignTemplate"; templateId: string; plan?: DuplicatePlan }
   | { type: "removeCampaignTemplate"; templateId: string }
   | {
       type: "updateCampaignTemplate";
@@ -331,7 +350,7 @@ function reducer(db: DB, action: Action): DB {
 
     case "addClient": {
       const client: Client = {
-        id: uid("client"),
+        id: action.id ?? uid("client"),
         name: action.name,
         shortName: action.name.split(" ")[0],
         location: action.location || "—",
@@ -355,7 +374,7 @@ function reducer(db: DB, action: Action): DB {
         members: [
           ...c.members,
           {
-            id: uid("member"),
+            id: action.id ?? uid("member"),
             name: action.name,
             title: action.title,
             email: action.email,
@@ -374,8 +393,8 @@ function reducer(db: DB, action: Action): DB {
 
     case "addCampaign": {
       const sessions: CampaignSession[] = action.withStandardSessions
-        ? STANDARD_SESSIONS.map((s) => ({
-            id: uid("session"),
+        ? STANDARD_SESSIONS.map((s, i) => ({
+            id: action.sessionIds?.[i] ?? uid("session"),
             kind: s.kind,
             name: s.name,
             date: null,
@@ -393,7 +412,7 @@ function reducer(db: DB, action: Action): DB {
       });
 
       const campaign: Campaign = {
-        id: uid("campaign"),
+        id: action.id ?? uid("campaign"),
         code: action.code || "TLE",
         name: action.name,
         timezone: action.timezone || "America/New_York",
@@ -431,7 +450,7 @@ function reducer(db: DB, action: Action): DB {
         sessions: [
           ...c.sessions,
           {
-            id: uid("session"),
+            id: action.id ?? uid("session"),
             name: action.name ?? `Session ${c.sessions.length + 1}`,
             date: null,
             mode: "virtual",
@@ -487,7 +506,7 @@ function reducer(db: DB, action: Action): DB {
         invitations: [
           ...db.invitations,
           {
-            id: uid("inv"),
+            id: action.id ?? uid("inv"),
             email: action.email,
             role: action.role,
             clientId: action.clientId,
@@ -508,7 +527,7 @@ function reducer(db: DB, action: Action): DB {
         ...c,
         phoenixTeam: [
           ...c.phoenixTeam,
-          { id: uid("pa"), staffId: action.staffId, role: action.role },
+          { id: action.id ?? uid("pa"), staffId: action.staffId, role: action.role },
         ],
       }));
 
@@ -531,7 +550,7 @@ function reducer(db: DB, action: Action): DB {
         ...c,
         clientTeam: [
           ...c.clientTeam,
-          { id: uid("ca"), memberId: action.memberId, role: action.role },
+          { id: action.id ?? uid("ca"), memberId: action.memberId, role: action.role },
         ],
       }));
 
@@ -645,7 +664,7 @@ function reducer(db: DB, action: Action): DB {
           lesson: { label: "Lesson link", url: null },
         };
         const step: SeriesStep = {
-          id: uid("step"),
+          id: action.id ?? uid("step"),
           code: `${t.code} ${t.steps.length + 1}`,
           title: "New lesson",
           offsetDays: 7,
@@ -677,7 +696,7 @@ function reducer(db: DB, action: Action): DB {
         (t) => t.campaignTemplateId === action.campaignTemplateId
       );
       const template: SeriesTemplate = {
-        id: uid("series"),
+        id: action.id ?? uid("series"),
         campaignTemplateId: action.campaignTemplateId,
         code: action.code.toUpperCase(),
         name: action.name,
@@ -692,7 +711,7 @@ function reducer(db: DB, action: Action): DB {
 
     case "addCampaignTemplate": {
       const template: CampaignTemplate = {
-        id: uid("ctpl"),
+        id: action.id ?? uid("ctpl"),
         code: action.code.toUpperCase(),
         name: action.name,
         description: action.description,
@@ -704,7 +723,7 @@ function reducer(db: DB, action: Action): DB {
       const source = db.campaignTemplates.find((t) => t.id === action.templateId);
       if (!source) return db;
       const copy: CampaignTemplate = {
-        id: uid("ctpl"),
+        id: action.plan?.newId ?? uid("ctpl"),
         code: `${source.code}-2`,
         name: `${source.name} (copy)`,
         description: source.description,
@@ -712,17 +731,22 @@ function reducer(db: DB, action: Action): DB {
       // deep-copy the source's series and their lessons with fresh ids
       const seriesCopies = db.templates
         .filter((t) => t.campaignTemplateId === source.id)
-        .map((t) => ({
-          ...t,
-          id: uid("series"),
-          campaignTemplateId: copy.id,
-          steps: t.steps.map((step) => ({
-            ...step,
-            id: uid("step"),
-            participant: { ...step.participant },
-            leader: { ...step.leader },
-          })),
-        }));
+        .map((t) => {
+          const sPlan = action.plan?.series.find((x) => x.sourceId === t.id);
+          return {
+            ...t,
+            id: sPlan?.newId ?? uid("series"),
+            campaignTemplateId: copy.id,
+            steps: t.steps.map((step) => ({
+              ...step,
+              id:
+                sPlan?.steps.find((y) => y.sourceId === step.id)?.newId ??
+                uid("step"),
+              participant: { ...step.participant },
+              leader: { ...step.leader },
+            })),
+          };
+        });
       return {
         ...db,
         campaignTemplates: [...db.campaignTemplates, copy],
@@ -752,45 +776,173 @@ function reducer(db: DB, action: Action): DB {
   }
 }
 
+/** Where the data lives: the shared database (Supabase) when the server
+ *  is configured, otherwise this browser's storage (prototype mode). */
+export type Backend = "loading" | "database" | "browser";
+
 interface DataContextValue {
   clients: Client[];
   invitations: Invitation[];
   campaignTemplates: CampaignTemplate[];
   templates: SeriesTemplate[];
+  backend: Backend;
+  /** true when a change could not be saved to the database */
+  syncError: boolean;
   dispatch: (action: Action) => void;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
 
-export function DataProvider({ children }: { children: ReactNode }) {
-  const [db, dispatch] = useReducer(reducer, undefined, seed);
-  const hydrated = useRef(false);
+/** Generate the ids a creating action needs, so the browser and the
+ *  database end up with exactly the same rows. */
+function prepareAction(action: Action, db: DB): Action {
+  switch (action.type) {
+    case "addClient":
+      return { ...action, id: action.id ?? uid("client") };
+    case "addMember":
+      return { ...action, id: action.id ?? uid("member") };
+    case "addCampaign":
+      return {
+        ...action,
+        id: action.id ?? uid("campaign"),
+        sessionIds:
+          action.sessionIds ??
+          (action.withStandardSessions
+            ? STANDARD_SESSIONS.map(() => uid("session"))
+            : []),
+      };
+    case "addSession":
+      return { ...action, id: action.id ?? uid("session") };
+    case "addPhoenixAssignment":
+      return { ...action, id: action.id ?? uid("pa") };
+    case "addClientAssignment":
+      return { ...action, id: action.id ?? uid("ca") };
+    case "addInvitation":
+      return { ...action, id: action.id ?? uid("inv") };
+    case "addStep":
+      return { ...action, id: action.id ?? uid("step") };
+    case "addSeries":
+      return { ...action, id: action.id ?? uid("series") };
+    case "addCampaignTemplate":
+      return { ...action, id: action.id ?? uid("ctpl") };
+    case "duplicateCampaignTemplate":
+      return {
+        ...action,
+        plan:
+          action.plan ??
+          {
+            newId: uid("ctpl"),
+            series: db.templates
+              .filter((t) => t.campaignTemplateId === action.templateId)
+              .map((t) => ({
+                sourceId: t.id,
+                newId: uid("series"),
+                steps: t.steps.map((step) => ({
+                  sourceId: step.id,
+                  newId: uid("step"),
+                })),
+              })),
+          },
+      };
+    default:
+      return action;
+  }
+}
 
-  // load persisted edits after mount (SSR and first client render use the seed)
+export function DataProvider({ children }: { children: ReactNode }) {
+  const [db, rawDispatch] = useReducer(reducer, undefined, seed);
+  const [backend, setBackend] = useState<Backend>("loading");
+  const [syncError, setSyncError] = useState(false);
+
+  const dbRef = useRef(db);
+  const backendRef = useRef(backend);
+  const queue = useRef<Promise<void>>(Promise.resolve());
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as DB;
-        if (parsed.seedVersion === SEED_VERSION) {
-          dispatch({ type: "hydrate", db: parsed });
+    dbRef.current = db;
+  }, [db]);
+  useEffect(() => {
+    backendRef.current = backend;
+  }, [backend]);
+
+  // pick the backend: the shared database when the server has one,
+  // otherwise this browser's storage
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateFromBrowser = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as DB;
+          if (parsed.seedVersion === SEED_VERSION) {
+            rawDispatch({ type: "hydrate", db: parsed });
+          }
         }
+      } catch {
+        // corrupted storage — fall back to seed
       }
-    } catch {
-      // corrupted storage — fall back to seed
-    }
-    hydrated.current = true;
+      setBackend("browser");
+    };
+    fetch("/api/state")
+      .then((r) => r.json())
+      .then((res) => {
+        if (cancelled) return;
+        if (res.configured && res.db) {
+          rawDispatch({
+            type: "hydrate",
+            db: { seedVersion: SEED_VERSION, ...res.db },
+          });
+          setBackend("database");
+        } else {
+          hydrateFromBrowser();
+        }
+      })
+      .catch(() => {
+        if (!cancelled) hydrateFromBrowser();
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  // browser mode persists locally; database mode persists via /api/action
   useEffect(() => {
-    if (hydrated.current) {
+    if (backend === "browser") {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
       } catch {
         // storage full/unavailable — prototype keeps working in memory
       }
     }
-  }, [db]);
+  }, [db, backend]);
+
+  const dispatch = (action: Action) => {
+    // wiping demo data is a prototype-only tool
+    if (action.type === "reset" && backendRef.current === "database") return;
+    const prepared = prepareAction(action, dbRef.current);
+    rawDispatch(prepared);
+    if (
+      backendRef.current === "database" &&
+      prepared.type !== "hydrate" &&
+      prepared.type !== "reset"
+    ) {
+      // `undefined` disappears in JSON — send explicit nulls so clearing
+      // a field (e.g. the status override) reaches the database
+      const body = JSON.stringify({ action: prepared }, (_k, v) =>
+        v === undefined ? null : v
+      );
+      queue.current = queue.current.then(() =>
+        fetch("/api/action", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body,
+        })
+          .then((r) => {
+            if (!r.ok) throw new Error(String(r.status));
+          })
+          .catch(() => setSyncError(true))
+      );
+    }
+  };
 
   return (
     <DataContext.Provider
@@ -799,6 +951,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         invitations: db.invitations,
         campaignTemplates: db.campaignTemplates,
         templates: db.templates,
+        backend,
+        syncError,
         dispatch,
       }}
     >

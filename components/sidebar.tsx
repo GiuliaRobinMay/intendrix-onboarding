@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useData } from "@/lib/state";
 import {
   LayoutDashboard,
   Users,
@@ -22,23 +23,25 @@ const THEME_KEY = "intendrix-theme";
 
 const groups: Array<{
   label?: string;
-  links: Array<{ href: string; label: string; icon: typeof Users }>;
+  links: Array<{ href: string; label: string; icon: typeof Users; tip: string }>;
 }> = [
   {
-    links: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }],
+    links: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard, tip: "Overview of clients, campaigns and upcoming sends" },
+    ],
   },
   {
     label: "Work",
     links: [
-      { href: "/clients", label: "Clients", icon: Users },
-      { href: "/campaigns", label: "Campaigns", icon: Megaphone },
+      { href: "/clients", label: "Clients", icon: Users, tip: "All client organizations" },
+      { href: "/campaigns", label: "Campaigns", icon: Megaphone, tip: "Every campaign across all clients" },
     ],
   },
   {
     label: "Planning",
     links: [
-      { href: "/calendar", label: "Calendar", icon: CalendarDays },
-      { href: "/mailbox", label: "Mailbox", icon: Inbox },
+      { href: "/calendar", label: "Calendar", icon: CalendarDays, tip: "Meetings and milestones in one agenda" },
+      { href: "/mailbox", label: "Mailbox", icon: Inbox, tip: "Every email that goes out to members" },
     ],
   },
 ];
@@ -49,18 +52,20 @@ function NavLink({
   icon: Icon,
   active,
   collapsed,
+  tip,
 }: {
   href: string;
   label: string;
   icon: typeof Users;
   active: boolean;
   collapsed: boolean;
+  tip?: string;
 }) {
   return (
     <Link
       href={href}
-      data-tip={collapsed ? label : undefined}
-      data-tip-pos={collapsed ? "right" : undefined}
+      data-tip={collapsed ? label : tip}
+      data-tip-pos="right"
       className={`relative flex items-center gap-2.5 rounded-md py-1.5 text-[13px] transition-colors ${
         collapsed ? "justify-center px-0" : "px-2.5"
       } ${
@@ -83,6 +88,7 @@ function NavLink({
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { backend, syncError } = useData();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -127,8 +133,8 @@ export function Sidebar() {
     >
       {/* profile management at the top */}
       <button
-        data-tip={collapsed ? "Giulia May · Intendrix" : undefined}
-        data-tip-pos={collapsed ? "right" : undefined}
+        data-tip={collapsed ? "Giulia May · Intendrix" : "Your account — profile management arrives with sign-in"}
+        data-tip-pos="right"
         className={`flex w-full cursor-pointer items-center gap-2.5 rounded-md py-2 text-left transition-colors hover:bg-white/4 ${
           collapsed ? "justify-center px-0" : "px-2"
         }`}
@@ -185,11 +191,12 @@ export function Sidebar() {
           icon={Settings}
           active={isActive("/settings")}
           collapsed={collapsed}
+          tip="App settings, campaign blueprints and team"
         />
         <button
           onClick={toggleTheme}
-          data-tip={collapsed ? (light ? "Dark mode" : "Light mode") : undefined}
-          data-tip-pos={collapsed ? "right" : undefined}
+          data-tip={light ? "Switch the whole app to dark colors" : "Switch the whole app to light colors"}
+          data-tip-pos="right"
           className={`flex cursor-pointer items-center gap-2.5 rounded-md py-1.5 text-[13px] font-medium text-mist transition-colors hover:bg-white/4 hover:text-paper ${
             collapsed ? "justify-center px-0" : "px-2.5"
           }`}
@@ -203,8 +210,8 @@ export function Sidebar() {
         </button>
         <button
           onClick={toggle}
-          data-tip={collapsed ? "Expand the sidebar" : undefined}
-          data-tip-pos={collapsed ? "right" : undefined}
+          data-tip={collapsed ? "Expand the sidebar" : "Shrink the sidebar to icons only"}
+          data-tip-pos="right"
           className={`flex cursor-pointer items-center gap-2.5 rounded-md py-1.5 text-[13px] font-medium text-mist transition-colors hover:bg-white/4 hover:text-paper ${
             collapsed ? "justify-center px-0" : "px-2.5"
           }`}
@@ -219,8 +226,18 @@ export function Sidebar() {
           )}
         </button>
         {!collapsed && (
-          <p className="px-2.5 pt-2 text-[10px] leading-relaxed text-mist/50">
-            Email + password sign-in arrives with the Supabase phase.
+          <p
+            className={`px-2.5 pt-2 text-[10px] leading-relaxed ${
+              syncError ? "font-semibold text-[#ff7a55]" : "text-mist/50"
+            }`}
+          >
+            {syncError
+              ? "A change could not be saved — reload the page."
+              : backend === "database"
+                ? "Connected to the shared database."
+                : backend === "browser"
+                  ? "Prototype mode — edits stay in this browser."
+                  : "…"}
           </p>
         )}
       </div>

@@ -28,6 +28,14 @@ export default function SettingsLayout({
             <Link
               key={href}
               href={href}
+              data-tip-pos="bottom"
+              data-tip={
+                label === "Team"
+                  ? "Users, invitations and sign-in"
+                  : label === "Campaigns"
+                    ? "The blueprint library — series and lessons"
+                    : "Organization, branding, typeface and data"
+              }
               className={
                 active
                   ? "brand-gradient-soft flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold text-paper"

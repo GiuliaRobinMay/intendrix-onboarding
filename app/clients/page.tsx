@@ -21,6 +21,7 @@ function NewClientForm({ onClose }: { onClose: () => void }) {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold">New client organization</h2>
         <button
+          data-tip="Close without creating"
           onClick={onClose}
           className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
@@ -133,6 +134,7 @@ function ClientsContent() {
               Responsible
             </span>
             <select
+              title="Show only clients this person is responsible for"
               value={responsible}
               onChange={(e) => setResponsible(e.target.value)}
               className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
@@ -179,6 +181,8 @@ function ClientsContent() {
             <li key={client.id}>
               <Link
                 href={`/clients/${client.id}`}
+                data-tip="Open this client"
+                data-tip-pos="bottom"
                 className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] lg:gap-4"
               >
                 <p className="truncate text-sm font-bold">{client.name}</p>

@@ -334,6 +334,7 @@ export default function SeriesEditorPage() {
       </ol>
 
       <button
+        data-tip="Add a new lesson at the end of this series"
         onClick={() => dispatch({ type: "addStep", templateId: series.id })}
         className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-dashed border-white/10 py-5 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
       >

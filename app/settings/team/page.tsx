@@ -42,6 +42,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             Access
           </span>
           <select
+            title="What this person may see and do"
             value={role}
             onChange={(e) => setRole(e.target.value as AppRole)}
             className="mt-1 w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
@@ -60,6 +61,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             Their company
           </span>
           <select
+            title="The one company this client admin may see"
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
             className="mt-1 w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"

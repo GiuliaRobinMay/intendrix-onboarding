@@ -62,6 +62,7 @@ function TypefaceCard() {
           return (
             <button
               key={f.id}
+              data-tip={`Preview the whole app in ${f.label}`}
               onClick={() => choose(f.id)}
               className={`cursor-pointer rounded-md border px-3 py-2.5 text-left transition-colors ${
                 on
@@ -114,7 +115,7 @@ const integrations = [
 ];
 
 export default function AppSettingsPage() {
-  const { dispatch } = useData();
+  const { backend, dispatch } = useData();
 
   return (
     <div className="grid gap-6 xl:grid-cols-2">
@@ -198,12 +199,14 @@ export default function AppSettingsPage() {
           <DatabaseBackup size={17} className="text-mist" /> Prototype data
         </h2>
         <p className="text-sm leading-relaxed text-mist">
-          In this prototype phase, your edits (clients, campaigns, dates, emails,
-          series) are saved in this browser only. The Supabase phase moves
-          everything to a shared database with email + password sign-in for the team.
+          {backend === "database"
+            ? "The app is connected to the shared Supabase database — every edit (clients, campaigns, dates, emails, series) is saved there for the whole team."
+            : "In this prototype phase, your edits (clients, campaigns, dates, emails, series) are saved in this browser only. Once the shared database is connected, everything is stored there for the whole team."}
         </p>
         <div className="mt-4">
+          {backend !== "database" && (
           <GhostButton
+            tip="Wipe your local edits and restore the demo data"
             onClick={() => {
               if (confirm("Reset all prototype data back to the demo state?")) {
                 dispatch({ type: "reset" });
@@ -212,6 +215,7 @@ export default function AppSettingsPage() {
           >
             Reset demo data
           </GhostButton>
+          )}
         </div>
       </section>
 
