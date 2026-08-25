@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import type { PoolClient } from "pg";
 import { dbConfigured, getPool } from "@/lib/server/db";
+import { actionAllowed, authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -497,6 +498,10 @@ export async function POST(req: Request) {
   if (!dbConfigured)
     return NextResponse.json({ error: "database not configured" }, { status: 503 });
 
+  const who = await verifyUser(req);
+  if (!who.ok)
+    return NextResponse.json({ error: "sign in first" }, { status: who.status });
+
   let action: any;
   try {
     action = (await req.json()).action;
@@ -505,6 +510,12 @@ export async function POST(req: Request) {
   }
   if (!action?.type)
     return NextResponse.json({ error: "missing action" }, { status: 400 });
+
+  if (authEnforced && who.userId) {
+    const profile = await getProfile(getPool(), who.userId);
+    if (!(await actionAllowed(getPool(), profile, action)))
+      return NextResponse.json({ error: "not allowed" }, { status: 403 });
+  }
 
   const client = await getPool().connect();
   try {

@@ -33,6 +33,7 @@ import type {
   SessionKey,
   StepContent,
 } from "./types";
+import { authHeaders } from "./supabase-browser";
 
 const STORAGE_KEY = "intendrix-prototype";
 /** bump when the seed shape changes so stale storage is discarded */
@@ -882,7 +883,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       setBackend("browser");
     };
-    fetch("/api/state")
+    authHeaders()
+      .then((headers) => fetch("/api/state", { headers }))
       .then((r) => r.json())
       .then((res) => {
         if (cancelled) return;
@@ -931,11 +933,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         v === undefined ? null : v
       );
       queue.current = queue.current.then(() =>
-        fetch("/api/action", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body,
-        })
+        authHeaders()
+          .then((auth) =>
+            fetch("/api/action", {
+              method: "POST",
+              headers: { "content-type": "application/json", ...auth },
+              body,
+            })
+          )
           .then((r) => {
             if (!r.ok) throw new Error(String(r.status));
           })

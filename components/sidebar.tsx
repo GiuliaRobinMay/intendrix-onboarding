@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/state";
+import { authConfigured, getSupabase } from "@/lib/supabase-browser";
 import {
   LayoutDashboard,
+  LogOut,
   Users,
   Megaphone,
   CalendarDays,
@@ -94,6 +96,27 @@ export function Sidebar() {
 
   const [collapsed, setCollapsed] = useState(false);
   const [light, setLight] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  useEffect(() => {
+    if (!authConfigured) return;
+    const supabase = getSupabase();
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      if (u)
+        setUser({
+          name: (u.user_metadata?.full_name as string) || u.email || "Signed in",
+          email: u.email ?? "",
+        });
+    });
+  }, []);
+  const initials = user
+    ? user.name
+        .split(/[\s@.]+/)
+        .filter(Boolean)
+        .map((w) => w[0]!.toUpperCase())
+        .slice(0, 2)
+        .join("")
+    : "GM";
   useEffect(() => {
     try {
       setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
@@ -133,23 +156,31 @@ export function Sidebar() {
     >
       {/* profile management at the top */}
       <button
-        data-tip={collapsed ? "Giulia May · Intendrix" : "Your account — profile management arrives with sign-in"}
+        data-tip={
+          collapsed
+            ? user
+              ? user.email
+              : "Giulia May · Intendrix"
+            : user
+              ? `Signed in as ${user.email}`
+              : "Your account — profile management arrives with sign-in"
+        }
         data-tip-pos="right"
         className={`flex w-full cursor-pointer items-center gap-2.5 rounded-md py-2 text-left transition-colors hover:bg-white/4 ${
           collapsed ? "justify-center px-0" : "px-2"
         }`}
       >
         <span className="brand-gradient flex size-7 shrink-0 items-center justify-center rounded-md text-[10px] font-bold">
-          GM
+          {initials}
         </span>
         {!collapsed && (
           <>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[13px] font-semibold leading-tight">
-                Giulia May
+                {user ? user.name : "Giulia May"}
               </span>
               <span className="block truncate text-[11px] leading-tight text-mist">
-                Intendrix
+                {user ? user.email : "Intendrix"}
               </span>
             </span>
             <ChevronsUpDown size={13} className="shrink-0 text-mist" />
@@ -208,6 +239,19 @@ export function Sidebar() {
           )}
           {!collapsed && (light ? "Dark mode" : "Light mode")}
         </button>
+        {user && (
+          <button
+            onClick={() => getSupabase().auth.signOut()}
+            data-tip="Sign out of the portal"
+            data-tip-pos="right"
+            className={`flex cursor-pointer items-center gap-2.5 rounded-md py-1.5 text-[13px] font-medium text-mist transition-colors hover:bg-white/4 hover:text-paper ${
+              collapsed ? "justify-center px-0" : "px-2.5"
+            }`}
+          >
+            <LogOut size={15} strokeWidth={2} className="shrink-0" />
+            {!collapsed && "Sign out"}
+          </button>
+        )}
         <button
           onClick={toggle}
           data-tip={collapsed ? "Expand the sidebar" : "Shrink the sidebar to icons only"}

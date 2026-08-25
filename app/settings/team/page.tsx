@@ -6,6 +6,7 @@ import { Chip, GhostButton, GradientButton } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { team } from "@/lib/data";
 import { useData } from "@/lib/state";
+import { authHeaders } from "@/lib/supabase-browser";
 import type { AppRole } from "@/lib/types";
 
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -18,7 +19,13 @@ const ROLE_TIP: Record<AppRole, string> = {
   client_admin: "Sees only their own company and its campaigns",
 };
 
-function InviteForm({ onClose }: { onClose: () => void }) {
+function InviteForm({
+  onClose,
+  onSent,
+}: {
+  onClose: () => void;
+  onSent: (notice: string) => void;
+}) {
   const { clients, dispatch } = useData();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("phoenix_admin");
@@ -88,16 +95,33 @@ function InviteForm({ onClose }: { onClose: () => void }) {
       <div className="mt-4 flex gap-2">
         <GradientButton
           tip={valid ? undefined : "Enter an email address first"}
-          onClick={() => {
+          onClick={async () => {
             if (!valid) return;
+            const addr = email.trim();
             dispatch({
               type: "addInvitation",
-              email: email.trim(),
+              email: addr,
               role,
               clientId: role === "client_admin" ? clientId : undefined,
             });
             setEmail("");
             onClose();
+            try {
+              const auth = await authHeaders();
+              const res = await fetch("/api/invite", {
+                method: "POST",
+                headers: { "content-type": "application/json", ...auth },
+                body: JSON.stringify({ email: addr }),
+              });
+              const out = await res.json();
+              onSent(
+                out.sent
+                  ? `Invitation email sent to ${addr}.`
+                  : `Invitation recorded — no email went out (${out.reason ?? "sending unavailable"}).`
+              );
+            } catch {
+              onSent("Invitation recorded — the email could not be sent.");
+            }
           }}
         >
           Send invitation
@@ -111,6 +135,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
 export default function TeamSettingsPage() {
   const { clients, invitations, dispatch } = useData();
   const [inviting, setInviting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <div className="grid gap-6 xl:grid-cols-3">
@@ -146,7 +171,14 @@ export default function TeamSettingsPage() {
             ))}
           </ul>
 
-          {inviting && <InviteForm onClose={() => setInviting(false)} />}
+          {inviting && (
+            <InviteForm onClose={() => setInviting(false)} onSent={setNotice} />
+          )}
+          {notice && (
+            <p className="mt-3 rounded-md border border-white/10 bg-white/3 px-3 py-2 text-xs text-mist">
+              {notice}
+            </p>
+          )}
         </section>
 
         <section className="card p-5">

@@ -112,10 +112,21 @@ DATABASE_URL=   # the Supabase connection string (Transaction pooler)
   in the browser); with it, everyone shares the database. The sidebar's
   bottom line shows which mode is active.
 
-Sign-in (phase 3) additionally needs:
+Sign-in switches on with three more variables (all under *Project
+Settings → API* in Supabase):
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=   # server-side only
+NEXT_PUBLIC_SUPABASE_URL=      # the Project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY= # the anon / publishable key
+SUPABASE_SERVICE_ROLE_KEY=     # secret key — sends the invite emails
 ```
+
+With them set, nobody sees the portal without signing in: the app shows a
+login screen, "Invite user" on the Team page sends the real Supabase
+invitation email, the invited person sets their own password on arrival,
+and the data API only answers signed-in users (client admins are scoped
+to their own company server-side, on top of the RLS in 0002).
+
+One Supabase setting must match: *Authentication → URL Configuration →
+Site URL* has to be the app's address (e.g. the Vercel URL), otherwise
+invitation links point to the wrong place.

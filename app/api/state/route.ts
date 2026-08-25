@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
+import { getProfile, verifyUser } from "@/lib/server/auth";
 import type {
   Campaign,
   CampaignTemplate,
@@ -27,10 +28,24 @@ const TRIGGER_LABELS: Record<SessionKey, string> = {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!dbConfigured) return NextResponse.json({ configured: false });
 
+  const who = await verifyUser(req);
+  if (!who.ok)
+    return NextResponse.json(
+      { configured: true, error: "sign in first" },
+      { status: who.status }
+    );
+
   const pool = getPool();
+  // a client admin sees only their own company — and no invitations
+  const scope = who.userId ? await getProfile(pool, who.userId) : null;
+  if (scope && scope.role === null && who.userId)
+    return NextResponse.json(
+      { configured: true, error: "no access — ask for an invitation" },
+      { status: 403 }
+    );
   const q = async (text: string) => (await pool.query(text)).rows;
 
   try {
@@ -236,15 +251,21 @@ export async function GET() {
       ...(i.client_id ? { clientId: i.client_id } : {}),
     }));
 
-    return NextResponse.json({
-      configured: true,
-      db: {
-        clients: clientList,
-        invitations: invitationList,
-        campaignTemplates,
-        templates,
-      },
-    });
+    const scoped =
+      scope?.role === "client_admin" && scope.clientId
+        ? {
+            clients: clientList.filter((c) => c.id === scope.clientId),
+            invitations: [],
+            campaignTemplates,
+            templates,
+          }
+        : {
+            clients: clientList,
+            invitations: invitationList,
+            campaignTemplates,
+            templates,
+          };
+    return NextResponse.json({ configured: true, db: scoped });
   } catch (err) {
     console.error("GET /api/state failed:", err);
     return NextResponse.json(

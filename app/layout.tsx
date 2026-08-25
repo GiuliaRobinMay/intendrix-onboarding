@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
 
 export const metadata: Metadata = {
@@ -35,16 +36,18 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen text-paper antialiased">
         <script dangerouslySetInnerHTML={{ __html: bootScript }} />
-        <DataProvider>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="min-w-0 flex-1">
-              <div className="mx-auto max-w-350 px-6 py-6 lg:px-8">
-                {children}
-              </div>
-            </main>
-          </div>
-        </DataProvider>
+        <AuthGate>
+          <DataProvider>
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <main className="min-w-0 flex-1">
+                <div className="mx-auto max-w-350 px-6 py-6 lg:px-8">
+                  {children}
+                </div>
+              </main>
+            </div>
+          </DataProvider>
+        </AuthGate>
       </body>
     </html>
   );
