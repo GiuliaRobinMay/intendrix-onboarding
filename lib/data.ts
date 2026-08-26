@@ -891,8 +891,8 @@ export const clients: Client[] = [
 ];
 
 export const team: StaffMember[] = [
-  { id: "brad", name: "Brad Zimmerman", role: "Phoenix Coach · Owner", initials: "BZ", email: "brad@intendrix.ai" },
-  { id: "kevin", name: "Kevin", role: "Phoenix Coach", initials: "KV", email: "kevin@intendrix.ai" },
-  { id: "amber", name: "Amber", role: "Program Coordinator", initials: "AM", email: "amber@intendrix.ai" },
-  { id: "giulia", name: "Giulia May", role: "Community & Platform", initials: "GM", email: "giulia@intendrix.ai" },
+  { id: "brad", name: "Brad Zimmerman", role: "Phoenix Coach · Owner", initials: "BZ", email: "brad@phoenixperform.com" },
+  { id: "kevin", name: "Kevin", role: "Phoenix Coach", initials: "KV", email: "kevin@phoenixperform.com" },
+  { id: "amber", name: "Amber", role: "Program Coordinator", initials: "AM", email: "amber@phoenixperform.com" },
+  { id: "giulia", name: "Giulia May", role: "Community & Platform", initials: "GM", email: "giulia@phoenixperform.com" },
 ];

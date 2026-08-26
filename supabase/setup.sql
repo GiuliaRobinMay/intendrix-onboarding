@@ -476,10 +476,10 @@ end $$;
 -- Run AFTER 0001_initial_schema.sql. Idempotent via on conflict do nothing.
 
 -- staff
-insert into staff (id, name, role_title, initials, email) values ('brad', 'Brad Zimmerman', 'Phoenix Coach · Owner', 'BZ', 'brad@intendrix.ai') on conflict (id) do nothing;
-insert into staff (id, name, role_title, initials, email) values ('kevin', 'Kevin', 'Phoenix Coach', 'KV', 'kevin@intendrix.ai') on conflict (id) do nothing;
-insert into staff (id, name, role_title, initials, email) values ('amber', 'Amber', 'Program Coordinator', 'AM', 'amber@intendrix.ai') on conflict (id) do nothing;
-insert into staff (id, name, role_title, initials, email) values ('giulia', 'Giulia May', 'Community & Platform', 'GM', 'giulia@intendrix.ai') on conflict (id) do nothing;
+insert into staff (id, name, role_title, initials, email) values ('brad', 'Brad Zimmerman', 'Phoenix Coach · Owner', 'BZ', 'brad@phoenixperform.com') on conflict (id) do nothing;
+insert into staff (id, name, role_title, initials, email) values ('kevin', 'Kevin', 'Phoenix Coach', 'KV', 'kevin@phoenixperform.com') on conflict (id) do nothing;
+insert into staff (id, name, role_title, initials, email) values ('amber', 'Amber', 'Program Coordinator', 'AM', 'amber@phoenixperform.com') on conflict (id) do nothing;
+insert into staff (id, name, role_title, initials, email) values ('giulia', 'Giulia May', 'Community & Platform', 'GM', 'giulia@phoenixperform.com') on conflict (id) do nothing;
 
 -- campaign blueprints
 insert into campaign_templates (id, code, name, description) values ('tle-e', 'TLE-E', 'TLE for Executives', 'The Transformational Leadership Experience for an executive team: five sessions over 26 weeks, each followed by its own series of Intendrix lessons.') on conflict (id) do nothing;
