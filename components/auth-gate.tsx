@@ -50,12 +50,11 @@ function LoginScreen() {
       });
       const out = await res.json();
       if (out.sent) setSent(email.trim());
+      else if (out.reason === "no invitation for this address")
+        setError("No invitation found for that address — ask a colleague to invite you.");
       else
-        setError(
-          out.reason === "no invitation for this address"
-            ? "No invitation found for that address — ask a colleague to invite you."
-            : "Could not send the email. Try again in a moment."
-        );
+        // show what actually went wrong; guessing costs more time than it saves
+        setError(`Could not send the email — ${out.reason ?? "unknown reason"}`);
     } catch {
       setError("Could not reach the server. Check your connection.");
     }
