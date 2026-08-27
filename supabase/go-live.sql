@@ -45,8 +45,11 @@ on conflict (id) do update
 -- the Supabase dashboard (Authentication → Users → Add user → Send
 -- invitation). The role below is what they get when they accept.
 
-insert into invitations (email, role)
-select 'giulia.gaianet@gmail.com', 'phoenix_admin'
+-- staff_id links the login to the team member, so the person who signs
+-- in and the person you assign to campaigns are one and the same.
+
+insert into invitations (email, role, staff_id)
+select 'giulia.gaianet@gmail.com', 'phoenix_admin', 'giulia'
 where not exists (
   select 1 from invitations
    where lower(email) = lower('giulia.gaianet@gmail.com')
