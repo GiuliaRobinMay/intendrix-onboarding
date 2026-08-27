@@ -14,15 +14,6 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(req: Request) {
-  const who = await verifyUser(req);
-  if (!who.ok)
-    return NextResponse.json({ error: "sign in first" }, { status: who.status });
-  if (authEnforced && dbConfigured && who.userId) {
-    const profile = await getProfile(getPool(), who.userId);
-    if (profile.role !== "phoenix_admin")
-      return NextResponse.json({ error: "not allowed" }, { status: 403 });
-  }
-
   let email: string;
   try {
     email = (await req.json()).email;
@@ -31,6 +22,37 @@ export async function POST(req: Request) {
   }
   if (!email || !email.includes("@"))
     return NextResponse.json({ error: "invalid email" }, { status: 400 });
+
+  // Two ways to be allowed here:
+  //  * a signed-in Phoenix admin inviting anyone (the normal flow), or
+  //  * anyone activating an invitation that already exists for exactly
+  //    this address — the email only ever goes to the invited inbox, so
+  //    this is the same shape as "forgot password" and it means the
+  //    very first account never needs the Supabase dashboard.
+  const who = await verifyUser(req);
+  let allowed = false;
+
+  if (who.ok && who.userId && dbConfigured) {
+    const profile = await getProfile(getPool(), who.userId);
+    allowed = profile.role === "phoenix_admin";
+  } else if (who.ok && !authEnforced) {
+    allowed = true; // open mode: no sign-in configured yet
+  }
+
+  if (!allowed && dbConfigured) {
+    const { rows } = await getPool().query(
+      `select 1 from invitations
+        where lower(email) = lower($1) and accepted_at is null limit 1`,
+      [email]
+    );
+    allowed = rows.length > 0;
+  }
+
+  if (!allowed)
+    return NextResponse.json(
+      { sent: false, reason: "no invitation for this address" },
+      { status: 403 }
+    );
 
   if (!url || !serviceKey) {
     return NextResponse.json({ sent: false, reason: "email sending not configured" });
@@ -45,14 +67,20 @@ export async function POST(req: Request) {
       redirectTo: origin,
     });
     if (error) {
-      // already registered → they can just sign in; anything else is real
-      const benign = /already/i.test(error.message);
-      return NextResponse.json(
-        benign
-          ? { sent: false, reason: "this person already has an account" }
-          : { sent: false, reason: error.message },
-        { status: benign ? 200 : 502 }
-      );
+      // The account already exists (e.g. activating a second time). Send a
+      // set-your-password email instead, which lands on the same screen.
+      if (/already/i.test(error.message)) {
+        const anon = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "");
+        const { error: resetError } = await anon.auth.resetPasswordForEmail(email, {
+          redirectTo: origin,
+        });
+        return NextResponse.json(
+          resetError
+            ? { sent: false, reason: "this address already has an account" }
+            : { sent: true, note: "password-set email sent" }
+        );
+      }
+      return NextResponse.json({ sent: false, reason: error.message }, { status: 502 });
     }
     return NextResponse.json({ sent: true });
   } catch {

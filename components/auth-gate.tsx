@@ -33,6 +33,102 @@ function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
+
+  // First time in: someone who has been invited asks for their
+  // set-your-password email themselves. No dashboard, no admin needed.
+  const activate = async () => {
+    if (!email.includes("@") || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const out = await res.json();
+      if (out.sent) setSent(email.trim());
+      else
+        setError(
+          out.reason === "no invitation for this address"
+            ? "No invitation found for that address — ask a colleague to invite you."
+            : "Could not send the email. Try again in a moment."
+        );
+    } catch {
+      setError("Could not reach the server. Check your connection.");
+    }
+    setBusy(false);
+  };
+
+  if (sent)
+    return (
+      <Shell>
+        <h1 className="mt-6 text-base font-bold">Check your email</h1>
+        <p className="mt-1 text-xs leading-relaxed text-mist">
+          We sent a link to <span className="font-semibold text-paper">{sent}</span>.
+          Open it to choose your password — then you&rsquo;re in.
+        </p>
+        <button
+          onClick={() => {
+            setSent(null);
+            setActivating(false);
+          }}
+          className="mt-5 cursor-pointer text-xs font-semibold text-mist underline transition-colors hover:text-paper"
+        >
+          Back to sign in
+        </button>
+      </Shell>
+    );
+
+  if (activating)
+    return (
+      <Shell>
+        <h1 className="mt-6 text-base font-bold">First time here</h1>
+        <p className="mt-1 text-xs leading-relaxed text-mist">
+          Enter the address you were invited on and we&rsquo;ll email you a link
+          to choose your password.
+        </p>
+        <form
+          className="mt-5 flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            activate();
+          }}
+        >
+          <label className="block">
+            <span className="text-[11px] font-medium text-mist">Email address</span>
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              className={inputCls}
+            />
+          </label>
+          {error && <p className="text-xs font-semibold text-[#ff7a55]">{error}</p>}
+          <button
+            type="submit"
+            disabled={busy}
+            className="brand-gradient mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-2 text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+          >
+            <KeyRound size={14} /> {busy ? "Sending…" : "Email me the link"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActivating(false);
+              setError(null);
+            }}
+            className="cursor-pointer text-xs font-semibold text-mist underline transition-colors hover:text-paper"
+          >
+            Back to sign in
+          </button>
+        </form>
+      </Shell>
+    );
 
   const signIn = async () => {
     if (!email || !password || busy) return;
@@ -96,6 +192,16 @@ function LoginScreen() {
           className="brand-gradient mt-1 flex cursor-pointer items-center justify-center gap-2 rounded-md px-3 py-2 text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
         >
           <LogIn size={14} /> {busy ? "Signing in…" : "Sign in"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActivating(true);
+            setError(null);
+          }}
+          className="cursor-pointer text-xs font-semibold text-mist underline transition-colors hover:text-paper"
+        >
+          First time here, or forgotten your password?
         </button>
       </form>
     </Shell>
