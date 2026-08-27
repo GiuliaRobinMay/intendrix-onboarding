@@ -305,11 +305,41 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       ]);
       return;
 
+    // ——— the Phoenix team ———
+    case "addStaff": {
+      const initials = String(a.name)
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w: string) => w[0].toUpperCase())
+        .slice(0, 2)
+        .join("");
+      await tx.query(
+        `insert into staff (id, name, role_title, initials, email)
+         values ($1, $2, $3, $4, $5)
+         on conflict (id) do nothing`,
+        [a.id, a.name, a.role ?? "", initials || "?", a.email]
+      );
+      return;
+    }
+    case "updateStaff":
+      await patchRow(tx, "staff", a.staffId, a.patch, {
+        name: "name",
+        role: "role_title",
+        email: "email",
+      });
+      return;
+    case "removeStaff":
+      // client defaults release automatically (on delete set null);
+      // campaign assignments cascade
+      await tx.query(`delete from staff where id = $1`, [a.staffId]);
+      return;
+
     // ——— invitations ———
     case "addInvitation":
       await tx.query(
-        `insert into invitations (id, email, role, client_id) values ($1, $2, $3, $4)`,
-        [a.id, a.email, a.role, a.clientId ?? null]
+        `insert into invitations (id, email, role, client_id, staff_id)
+         values ($1, $2, $3, $4, $5)`,
+        [a.id, a.email, a.role, a.clientId ?? null, a.staffId ?? null]
       );
       return;
     case "removeInvitation":

@@ -7,7 +7,6 @@ import { ChevronRight, Megaphone, Search, Users, X } from "lucide-react";
 import { PageHeader, StatusChip, GradientButton } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
-import { team } from "@/lib/data";
 import { campaignStatus, findStaff } from "@/lib/store";
 
 function NewClientForm({ onClose }: { onClose: () => void }) {
@@ -49,7 +48,8 @@ function NewClientForm({ onClose }: { onClose: () => void }) {
 }
 
 function ResponsibleName({ id }: { id?: string }) {
-  const person = findStaff(team, id);
+  const { staff } = useData();
+  const person = findStaff(staff, id);
   if (!person)
     return <p className="text-[11px] italic text-mist/50">Unassigned</p>;
   return (
@@ -60,7 +60,7 @@ function ResponsibleName({ id }: { id?: string }) {
 }
 
 function ClientsContent() {
-  const { clients, templates } = useData();
+  const { clients, templates, staff } = useData();
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(searchParams.get("new") === "1");
   const [responsible, setResponsible] = useState("all");
@@ -140,7 +140,7 @@ function ClientsContent() {
               className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="all">Anyone</option>
-              {team.map((t) => (
+              {staff.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>

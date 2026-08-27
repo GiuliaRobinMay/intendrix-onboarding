@@ -100,7 +100,9 @@ export interface LoadedSeries {
   sessionId: string | null;
 }
 
-/** Someone on the Intendrix team. */
+/** Someone on the Phoenix team. This is one list: the people who can
+ *  sign in AND the people who can be assigned to clients and campaigns.
+ *  Inviting someone to the app adds them here. */
 export interface StaffMember {
   id: string;
   name: string;
@@ -108,6 +110,10 @@ export interface StaffMember {
   initials: string;
   /** the unique sender address their communications go out from */
   email: string;
+  /** sign-in status — derived, not stored:
+   *  active = has an account, invited = invitation sent and pending,
+   *  none = in the team list but never invited */
+  access?: "active" | "invited" | "none";
 }
 
 /**
@@ -197,6 +203,9 @@ export interface Invitation {
   role: AppRole;
   /** required for client_admin: the one company they may see */
   clientId?: string;
+  /** Phoenix invites point at the team member they belong to, so the
+   *  account and the assignable person are one and the same */
+  staffId?: string;
 }
 
 export interface ScheduledStep {

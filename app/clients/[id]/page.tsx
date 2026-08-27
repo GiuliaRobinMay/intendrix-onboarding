@@ -27,7 +27,6 @@ import {
 import { EditableText, Field } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
-import { team } from "@/lib/data";
 import { findTemplate, campaignCompletion, seriesProgress, fmtDate } from "@/lib/store";
 import type { Client, MemberRole } from "@/lib/types";
 
@@ -44,7 +43,7 @@ const selectCls =
 
 /** Phoenix responsibles as a small name + role table, rows added with +. */
 function ResponsiblesCard({ client }: { client: Client }) {
-  const { dispatch } = useData();
+  const { staff: team, dispatch } = useData();
   const [adding, setAdding] = useState(false);
   const [staffId, setStaffId] = useState(team[0]?.id ?? "");
   const [role, setRole] = useState<RoleField>("phoenixLeaderId");

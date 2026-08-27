@@ -17,6 +17,7 @@ import {
   campaignTemplates as seedCampaignTemplates,
   clients as seedClients,
   seriesTemplates as seedTemplates,
+  team as seedStaff,
 } from "./data";
 import type {
   Campaign,
@@ -31,6 +32,7 @@ import type {
   SeriesStep,
   SeriesTemplate,
   SessionKey,
+  StaffMember,
   StepContent,
 } from "./types";
 import { authHeaders } from "./supabase-browser";
@@ -41,6 +43,8 @@ const SEED_VERSION = 8;
 
 interface DB {
   seedVersion: number;
+  /** the Phoenix team: one list for sign-in and for assignments */
+  staff: StaffMember[];
   clients: Client[];
   invitations: Invitation[];
   /** campaign blueprints (Settings → Campaigns) */
@@ -51,6 +55,7 @@ interface DB {
 
 const seed = (): DB => ({
   seedVersion: SEED_VERSION,
+  staff: seedStaff,
   clients: seedClients,
   invitations: [],
   campaignTemplates: seedCampaignTemplates,
@@ -288,8 +293,30 @@ export type Action =
       campaignId: string;
       assignmentId: string;
     }
+  // the Phoenix team — the same people who sign in
+  | {
+      type: "addStaff";
+      id?: string;
+      name: string;
+      role: string;
+      email: string;
+    }
+  | {
+      type: "updateStaff";
+      staffId: string;
+      patch: Partial<Pick<StaffMember, "name" | "role" | "email">>;
+    }
+  | { type: "removeStaff"; staffId: string }
   // invitations (mock of the Supabase invite flow)
-  | { type: "addInvitation"; id?: string; email: string; role: AppRole; clientId?: string }
+  | {
+      type: "addInvitation";
+      id?: string;
+      email: string;
+      role: AppRole;
+      clientId?: string;
+      /** the team member this invitation belongs to (Phoenix invites) */
+      staffId?: string;
+    }
   | { type: "removeInvitation"; invitationId: string }
   // campaign blueprints
   | { type: "addCampaignTemplate"; id?: string; name: string; code: string; description: string }
@@ -499,6 +526,59 @@ function reducer(db: DB, action: Action): DB {
         return { ...c, sessions };
       });
 
+    // ——— the Phoenix team ——————————————————————————————————
+
+    case "addStaff": {
+      const initials = action.name
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w) => w[0]!.toUpperCase())
+        .slice(0, 2)
+        .join("");
+      return {
+        ...db,
+        staff: [
+          ...db.staff,
+          {
+            id: action.id ?? uid("staff"),
+            name: action.name,
+            role: action.role,
+            email: action.email,
+            initials: initials || "?",
+            access: "none",
+          },
+        ],
+      };
+    }
+
+    case "updateStaff":
+      return {
+        ...db,
+        staff: db.staff.map((m) =>
+          m.id === action.staffId ? { ...m, ...action.patch } : m
+        ),
+      };
+
+    case "removeStaff":
+      return {
+        ...db,
+        staff: db.staff.filter((m) => m.id !== action.staffId),
+        // and release them from every client default
+        clients: db.clients.map((c) => ({
+          ...c,
+          phoenixLeaderId:
+            c.phoenixLeaderId === action.staffId ? undefined : c.phoenixLeaderId,
+          phoenixCoachId:
+            c.phoenixCoachId === action.staffId ? undefined : c.phoenixCoachId,
+          projectManagerId:
+            c.projectManagerId === action.staffId ? undefined : c.projectManagerId,
+          campaigns: c.campaigns.map((cp) => ({
+            ...cp,
+            phoenixTeam: cp.phoenixTeam.filter((a) => a.staffId !== action.staffId),
+          })),
+        })),
+      };
+
     // ——— invitations ———————————————————————————————————————
 
     case "addInvitation":
@@ -511,8 +591,15 @@ function reducer(db: DB, action: Action): DB {
             email: action.email,
             role: action.role,
             clientId: action.clientId,
+            staffId: action.staffId,
           },
         ],
+        // the team list shows them as invited straight away
+        staff: action.staffId
+          ? db.staff.map((m) =>
+              m.id === action.staffId ? { ...m, access: "invited" as const } : m
+            )
+          : db.staff,
       };
 
     case "removeInvitation":
@@ -782,6 +869,8 @@ function reducer(db: DB, action: Action): DB {
 export type Backend = "loading" | "database" | "browser";
 
 interface DataContextValue {
+  /** the Phoenix team — assignable people and sign-in accounts in one list */
+  staff: StaffMember[];
   clients: Client[];
   invitations: Invitation[];
   campaignTemplates: CampaignTemplate[];
@@ -820,6 +909,8 @@ function prepareAction(action: Action, db: DB): Action {
       return { ...action, id: action.id ?? uid("ca") };
     case "addInvitation":
       return { ...action, id: action.id ?? uid("inv") };
+    case "addStaff":
+      return { ...action, id: action.id ?? uid("staff") };
     case "addStep":
       return { ...action, id: action.id ?? uid("step") };
     case "addSeries":
@@ -952,6 +1043,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   return (
     <DataContext.Provider
       value={{
+        staff: db.staff,
         clients: db.clients,
         invitations: db.invitations,
         campaignTemplates: db.campaignTemplates,

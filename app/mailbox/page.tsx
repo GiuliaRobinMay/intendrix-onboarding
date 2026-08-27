@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
 import { useData } from "@/lib/state";
-import { team } from "@/lib/data";
 import {
   campaignStatus,
   effectiveRole,
@@ -224,7 +223,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
 }
 
 export default function MailboxPage() {
-  const { clients, templates } = useData();
+  const { clients, templates, staff } = useData();
   const today = new Date();
   const todayIso = iso(today);
 
@@ -238,9 +237,9 @@ export default function MailboxPage() {
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const items = useMemo(
-    () => mailboxItems(clients, templates, team, today),
+    () => mailboxItems(clients, templates, staff, today),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [clients, templates]
+    [clients, templates, staff]
   );
 
   // Monday..Sunday of the current week
@@ -263,8 +262,8 @@ export default function MailboxPage() {
     if (campaignFilter !== "all" && i.campaign.id !== campaignFilter) return false;
     if (
       responsible !== "all" &&
-      effectiveRole(i.client, i.campaign, "phoenixLeaderId", team)?.id !== responsible &&
-      effectiveRole(i.client, i.campaign, "phoenixCoachId", team)?.id !== responsible &&
+      effectiveRole(i.client, i.campaign, "phoenixLeaderId", staff)?.id !== responsible &&
+      effectiveRole(i.client, i.campaign, "phoenixCoachId", staff)?.id !== responsible &&
       i.sender?.id !== responsible
     )
       return false;
@@ -449,7 +448,7 @@ export default function MailboxPage() {
               className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="all">Anyone</option>
-              {team.map((t) => (
+              {staff.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>

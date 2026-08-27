@@ -17,7 +17,6 @@ import {
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { useData } from "@/lib/state";
-import { team } from "@/lib/data";
 import {
   computeSchedule,
   findCampaign,
@@ -100,7 +99,7 @@ function InlineSelect({
 
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { clients, templates, dispatch } = useData();
+  const { clients, templates, staff: team, dispatch } = useData();
   const [pickingModule, setPickingModule] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);

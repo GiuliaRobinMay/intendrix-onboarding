@@ -13,6 +13,7 @@ import type {
   Invitation,
   SeriesTemplate,
   SessionKey,
+  StaffMember,
   StepContent,
 } from "@/lib/types";
 
@@ -50,6 +51,7 @@ export async function GET(req: Request) {
 
   try {
     const [
+      staffRows,
       clients,
       members,
       campaigns,
@@ -64,6 +66,17 @@ export async function GET(req: Request) {
       contents,
       links,
     ] = await Promise.all([
+      // the team list and each person's sign-in status, in one query
+      q(`select s.id, s.name, s.role_title, s.initials, s.email,
+                case
+                  when exists (select 1 from profiles p where p.staff_id = s.id)
+                    then 'active'
+                  when exists (select 1 from invitations i
+                                where i.staff_id = s.id and i.accepted_at is null)
+                    then 'invited'
+                  else 'none'
+                end as access
+           from staff s order by s.created_at, s.id`),
       q(`select id, name, short_name, location, sector, status,
                 phoenix_leader_id, phoenix_coach_id, project_manager_id,
                 space_url, invite_url
@@ -244,6 +257,15 @@ export async function GET(req: Request) {
       campaigns: campaignsByClient.get(c.id) ?? [],
     }));
 
+    const staffList: StaffMember[] = staffRows.map((s: any) => ({
+      id: s.id,
+      name: s.name,
+      role: s.role_title,
+      initials: s.initials,
+      email: s.email,
+      access: s.access,
+    }));
+
     const invitationList: Invitation[] = invitations.map((i: any) => ({
       id: i.id,
       email: i.email,
@@ -254,12 +276,14 @@ export async function GET(req: Request) {
     const scoped =
       scope?.role === "client_admin" && scope.clientId
         ? {
+            staff: staffList,
             clients: clientList.filter((c) => c.id === scope.clientId),
             invitations: [],
             campaignTemplates,
             templates,
           }
         : {
+            staff: staffList,
             clients: clientList,
             invitations: invitationList,
             campaignTemplates,

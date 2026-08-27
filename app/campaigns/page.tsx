@@ -6,7 +6,6 @@ import { CalendarDays, ChevronRight, Layers, Search, Users } from "lucide-react"
 import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
-import { team } from "@/lib/data";
 import {
   campaignCompletion,
   campaignStatus,
@@ -46,7 +45,8 @@ function StatusPill({ status }: { status: CampaignStatus }) {
 }
 
 function StaffTag({ id, fallback }: { id?: string; fallback: string }) {
-  const person = findStaff(team, id);
+  const { staff } = useData();
+  const person = findStaff(staff, id);
   if (!person) {
     return <span className="text-[11px] italic text-mist/50">{fallback}</span>;
   }
@@ -93,7 +93,7 @@ function FilterSelect({
 }
 
 export default function CampaignsPage() {
-  const { clients, templates } = useData();
+  const { clients, templates, staff } = useData();
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [status, setStatus] = useState<"all" | CampaignStatus>("all");
   const [leaderFilter, setLeaderFilter] = useState("all");
@@ -129,12 +129,12 @@ export default function CampaignsPage() {
     if (status !== "all" && r.status !== status) return false;
     if (
       leaderFilter !== "all" &&
-      effectiveRole(r.client, r.campaign, "phoenixLeaderId", team)?.id !== leaderFilter
+      effectiveRole(r.client, r.campaign, "phoenixLeaderId", staff)?.id !== leaderFilter
     )
       return false;
     if (
       coachFilter !== "all" &&
-      effectiveRole(r.client, r.campaign, "phoenixCoachId", team)?.id !== coachFilter
+      effectiveRole(r.client, r.campaign, "phoenixCoachId", staff)?.id !== coachFilter
     )
       return false;
     if (query.trim()) {
@@ -147,7 +147,7 @@ export default function CampaignsPage() {
 
   const staffOptions = [
     { value: "all", label: "Anyone" },
-    ...team.map((t) => ({ value: t.id, label: t.name })),
+    ...staff.map((t) => ({ value: t.id, label: t.name })),
   ];
 
   const clientOptions = [
@@ -320,13 +320,13 @@ export default function CampaignsPage() {
 
                   <div className="min-w-0">
                     <StaffTag
-                      id={effectiveRole(client, campaign, "phoenixLeaderId", team)?.id}
+                      id={effectiveRole(client, campaign, "phoenixLeaderId", staff)?.id}
                       fallback="Unassigned"
                     />
                   </div>
                   <div className="min-w-0">
                     <StaffTag
-                      id={effectiveRole(client, campaign, "phoenixCoachId", team)?.id}
+                      id={effectiveRole(client, campaign, "phoenixCoachId", staff)?.id}
                       fallback="Unassigned"
                     />
                   </div>
