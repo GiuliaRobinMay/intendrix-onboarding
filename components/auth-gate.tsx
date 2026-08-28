@@ -142,7 +142,8 @@ function LoginScreen() {
       setError(
         error.message === "Invalid login credentials"
           ? "That email and password don't match."
-          : "Could not sign in — check your connection and try again."
+          : // anything else: show it, so a real problem can be diagnosed
+            `Could not sign in — ${error.message}`
       );
       setBusy(false);
     }
