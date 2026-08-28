@@ -16,8 +16,14 @@ can start.
    Verified end-to-end against Postgres 16; the seed is idempotent, so
    re-running is safe.
 
-**Option B — file by file:** run `migrations/0001_initial_schema.sql`,
-then `migrations/0002_auth_roles_invitations.sql`, then `seed.sql`.
+**Already running an older version?** Paste **`update.sql`** instead. It
+adds only what is missing since the first install (the per-campaign sender
+and the session day numbers), touches no data, and is safe to re-run.
+`setup.sql` already contains everything in it, so a fresh project never
+needs it.
+
+**Option B — file by file:** run each file in `migrations/` in number
+order, then `seed.sql`.
 
 **Option C — Supabase CLI:**
 

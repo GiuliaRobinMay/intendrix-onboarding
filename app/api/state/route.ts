@@ -89,7 +89,7 @@ export async function GET(req: Request) {
                 end_date::text as end_date
            from campaigns order by created_at, id`),
       q(`select id, campaign_id, name, session_date::text as session_date,
-                mode, kind
+                mode, kind, offset_days
            from campaign_sessions order by campaign_id, sort_order, created_at`),
       q(`select campaign_id, series_template_id, trigger_session_id
            from campaign_series order by campaign_id, sort_order, created_at`),
@@ -181,6 +181,7 @@ export async function GET(req: Request) {
         id: s.id,
         name: s.name,
         date: s.session_date,
+        offsetDays: s.offset_days,
         mode: s.mode,
         ...(s.kind ? { kind: s.kind } : {}),
       });

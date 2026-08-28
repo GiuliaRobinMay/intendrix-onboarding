@@ -87,6 +87,9 @@ export interface CampaignSession {
   name: string;
   /** ISO date, or null = not yet planned (bound series stay unscheduled) */
   date: string | null;
+  /** days after the campaign's start date on which this session falls.
+   *  Filling the start date can then date the whole campaign at once. */
+  offsetDays?: number | null;
   mode: "virtual" | "in-person";
   /** standard kind for auto-binding series templates; custom sessions omit it */
   kind?: SessionKey;

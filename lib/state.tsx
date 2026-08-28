@@ -89,6 +89,22 @@ function uid(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** ISO date arithmetic on the calendar parts only — going through a local
+ *  Date would move dates across a timezone boundary. */
+function shiftIso(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** Whole days from one ISO date to another; negative when `to` is earlier. */
+export function daysBetweenIso(from: string, to: string): number {
+  const at = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((at(to) - at(from)) / 86400000);
+}
+
 /** Pre-generated ids for a blueprint duplication, so the browser and
  *  the database create exactly the same copy. */
 export interface DuplicatePlan {
@@ -177,7 +193,22 @@ export type Action =
       clientId: string;
       campaignId: string;
       sessionId: string;
-      patch: Partial<Pick<CampaignSession, "name" | "date" | "mode">>;
+      patch: Partial<Pick<CampaignSession, "name" | "date" | "mode" | "offsetDays">>;
+    }
+  /** Date every session that carries a day number, from the campaign's
+   *  start date. Sessions without one keep whatever date they have. */
+  | { type: "fillSessionDates"; clientId: string; campaignId: string }
+  /** The reverse: read the day numbers back off the dates already
+   *  entered, so this campaign's rhythm is recorded. */
+  | { type: "captureSessionOffsets"; clientId: string; campaignId: string }
+  /** Move every dated session AFTER this one by the same number of days,
+   *  so rescheduling one meetup carries the rest of the campaign with it. */
+  | {
+      type: "shiftSessionsAfter";
+      clientId: string;
+      campaignId: string;
+      sessionId: string;
+      days: number;
     }
   | {
       type: "moveSession";
@@ -504,6 +535,53 @@ function reducer(db: DB, action: Action): DB {
           s.id === action.sessionId ? { ...s, ...action.patch } : s
         ),
       }));
+
+    case "fillSessionDates":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        if (!c.startDate) return c;
+        return {
+          ...c,
+          sessions: c.sessions.map((s) =>
+            typeof s.offsetDays === "number"
+              ? { ...s, date: shiftIso(c.startDate!, s.offsetDays) }
+              : s
+          ),
+        };
+      });
+
+    case "captureSessionOffsets":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        if (!c.startDate) return c;
+        return {
+          ...c,
+          sessions: c.sessions.map((s) =>
+            s.date
+              ? { ...s, offsetDays: daysBetweenIso(c.startDate!, s.date) }
+              : s
+          ),
+        };
+      });
+
+    case "shiftSessionsAfter":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        const at = c.sessions.findIndex((s) => s.id === action.sessionId);
+        if (at < 0 || action.days === 0) return c;
+        return {
+          ...c,
+          sessions: c.sessions.map((s, i) =>
+            i > at && s.date
+              ? {
+                  ...s,
+                  date: shiftIso(s.date, action.days),
+                  offsetDays:
+                    typeof s.offsetDays === "number"
+                      ? s.offsetDays + action.days
+                      : s.offsetDays,
+                }
+              : s
+          ),
+        };
+      });
 
     case "moveSession":
       return mapCampaign(db, action.clientId, action.campaignId, (c) => ({

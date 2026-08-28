@@ -222,8 +222,47 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       await patchRow(tx, "campaign_sessions", a.sessionId, a.patch, {
         name: "name",
         date: "session_date",
+        offsetDays: "offset_days",
         mode: "mode",
       });
+      return;
+    case "fillSessionDates":
+      await tx.query(
+        `update campaign_sessions s
+            set session_date = c.start_date + s.offset_days
+           from campaigns c
+          where s.campaign_id = c.id
+            and c.id = $1
+            and c.start_date is not null
+            and s.offset_days is not null`,
+        [a.campaignId]
+      );
+      return;
+    case "captureSessionOffsets":
+      await tx.query(
+        `update campaign_sessions s
+            set offset_days = s.session_date - c.start_date
+           from campaigns c
+          where s.campaign_id = c.id
+            and c.id = $1
+            and c.start_date is not null
+            and s.session_date is not null`,
+        [a.campaignId]
+      );
+      return;
+    case "shiftSessionsAfter":
+      // "after" follows the same order the app shows: sort_order, then
+      // created_at for rows that share one
+      await tx.query(
+        `update campaign_sessions
+            set session_date = session_date + $2::int,
+                offset_days  = offset_days + $2::int
+          where campaign_id = $1
+            and session_date is not null
+            and (sort_order, created_at) >
+                (select sort_order, created_at from campaign_sessions where id = $3)`,
+        [a.campaignId, a.days, a.sessionId]
+      );
       return;
     case "moveSession":
       await reorder(

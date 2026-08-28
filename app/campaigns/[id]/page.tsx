@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
-import { useData } from "@/lib/state";
+import { daysBetweenIso, useData } from "@/lib/state";
 import {
   computeSchedule,
   emailSenderFor,
@@ -34,6 +34,7 @@ import {
   fmtWeekday,
 } from "@/lib/store";
 import type {
+  CampaignSession,
   CampaignStatus,
   ClientAssignmentRole,
   PhoenixAssignmentRole,
@@ -109,6 +110,13 @@ export default function CampaignDetailPage() {
   const [seriesDragId, setSeriesDragId] = useState<string | null>(null);
   const [seriesOverIndex, setSeriesOverIndex] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // set after a session is rescheduled, offering to carry the rest along
+  const [shift, setShift] = useState<{
+    sessionId: string;
+    name: string;
+    days: number;
+    count: number;
+  } | null>(null);
   const today = new Date();
 
   const found = findCampaign(clients, id);
@@ -152,6 +160,39 @@ export default function CampaignDetailPage() {
     { value: "", label: "— unassigned —" },
     ...team.map((t) => ({ value: t.id, label: t.name })),
   ];
+
+  const datedSessionCount = campaign.sessions.filter((s) => s.date).length;
+  const patternedCount = campaign.sessions.filter(
+    (s) => typeof s.offsetDays === "number"
+  ).length;
+
+  /** Every date input for a session goes through here, wherever it sits on
+   *  the page, so rescheduling always offers to move the rest with it. */
+  const setSessionDate = (session: CampaignSession, next: string) => {
+    const value = next || null;
+    // a session that already carries a day number keeps it truthful, so
+    // filling the dates again lands on the same day
+    const keepsPattern =
+      typeof session.offsetDays === "number" && campaign.startDate && value;
+    dispatch({
+      type: "updateSession",
+      clientId: client.id,
+      campaignId: campaign.id,
+      sessionId: session.id,
+      patch: keepsPattern
+        ? { date: value, offsetDays: daysBetweenIso(campaign.startDate!, value!) }
+        : { date: value },
+    });
+    const index = campaign.sessions.findIndex((s) => s.id === session.id);
+    const later = campaign.sessions.slice(index + 1).filter((s) => s.date).length;
+    const days =
+      session.date && value ? daysBetweenIso(session.date, value) : 0;
+    setShift(
+      days !== 0 && later > 0
+        ? { sessionId: session.id, name: session.name, days, count: later }
+        : null
+    );
+  };
 
   const endDrag = () => {
     setDragId(null);
@@ -644,10 +685,63 @@ export default function CampaignDetailPage() {
               </span>
             </h2>
           </div>
-          <p className="mb-5 text-xs text-mist">
+          <p className="mb-4 text-xs text-mist">
             The live and online meetings in this campaign. Drag a card to reorder —
             the numbering follows. A session&rsquo;s date triggers the series bound to it.
           </p>
+
+          {/* Day numbers — the campaign's rhythm, so a start date dates it all */}
+          <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-white/8 px-3 py-2.5">
+            <p className="min-w-0 flex-1 text-xs text-mist">
+              <span className="font-semibold text-paper">Day numbers.</span>{" "}
+              Each session can carry the number of days after the campaign
+              start on which it falls. Fill those in once and the next start
+              date dates the whole campaign in one click.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                data-tip={
+                  !campaign.startDate
+                    ? "Set the campaign start date first (top of this page)"
+                    : patternedCount === 0
+                      ? "No session has a day number yet — enter them on the cards, or save the current dates as the pattern"
+                      : `Date the ${patternedCount} session${patternedCount === 1 ? "" : "s"} that carry a day number`
+                }
+                disabled={!campaign.startDate || patternedCount === 0}
+                onClick={() => {
+                  setShift(null);
+                  dispatch({
+                    type: "fillSessionDates",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                  });
+                }}
+                className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {campaign.startDate
+                  ? `Fill the dates from ${fmtDateShort(new Date(`${campaign.startDate}T00:00:00`))}`
+                  : "Fill the dates from the start"}
+              </button>
+              <button
+                data-tip={
+                  !campaign.startDate
+                    ? "Set the campaign start date first (top of this page)"
+                    : "Record how many days after the start each dated session falls, so the same rhythm can be reused"
+                }
+                disabled={!campaign.startDate || datedSessionCount === 0}
+                onClick={() =>
+                  dispatch({
+                    type: "captureSessionOffsets",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                  })
+                }
+                className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Save these dates as the pattern
+              </button>
+            </div>
+          </div>
 
           <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {campaign.sessions.map((session, i) => {
@@ -764,19 +858,44 @@ export default function CampaignDetailPage() {
                   </button>
 
                   <div className="mt-auto pt-2">
+                    <label className="mb-1 flex items-center gap-1.5">
+                      <span
+                        data-tip="Days after the campaign start date. Leave empty if this session has no fixed place in the rhythm."
+                        className="text-[10px] font-medium text-mist"
+                      >
+                        Day
+                      </span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="—"
+                        value={
+                          typeof session.offsetDays === "number"
+                            ? session.offsetDays
+                            : ""
+                        }
+                        onChange={(e) =>
+                          dispatch({
+                            type: "updateSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                            patch: {
+                              offsetDays:
+                                e.target.value === ""
+                                  ? null
+                                  : Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full min-w-0 rounded-md border border-white/10 bg-navy/60 px-1.5 py-0.5 text-center text-[10px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                      />
+                    </label>
                     <input
                       type="date"
                       title="The session's date — entering it schedules every series bound to this session"
                       value={session.date ?? ""}
-                      onChange={(e) =>
-                        dispatch({
-                          type: "updateSession",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          sessionId: session.id,
-                          patch: { date: e.target.value || null },
-                        })
-                      }
+                      onChange={(e) => setSessionDate(session, e.target.value)}
                       className={`w-full cursor-pointer rounded-md border px-1 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
                         date
                           ? past
@@ -1048,15 +1167,7 @@ export default function CampaignDetailPage() {
                               title="Reschedule this session — every send below moves with it"
                               onClick={(e) => e.stopPropagation()}
                               onMouseDown={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                dispatch({
-                                  type: "updateSession",
-                                  clientId: client.id,
-                                  campaignId: campaign.id,
-                                  sessionId: session.id,
-                                  patch: { date: e.target.value || null },
-                                })
-                              }
+                              onChange={(e) => setSessionDate(session, e.target.value)}
                               className="shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
                             />
                           </li>
@@ -1123,6 +1234,47 @@ export default function CampaignDetailPage() {
           </div>
         </section>
       </div>
+
+      {/* Recalculate: one session moved, offer to carry the rest along.
+          Fixed to the bottom because the date can be changed from either
+          the session cards or the series overview. */}
+      {shift && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-6">
+          <div className="card pointer-events-auto flex max-w-2xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 shadow-2xl shadow-black/40">
+            <p className="min-w-0 flex-1 text-xs">
+              <span className="font-semibold">{shift.name}</span> moved{" "}
+              {Math.abs(shift.days)} day{Math.abs(shift.days) === 1 ? "" : "s"}{" "}
+              {shift.days > 0 ? "later" : "earlier"}. Move the {shift.count}{" "}
+              session{shift.count === 1 ? "" : "s"} after it as well?
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button
+                data-tip="Every later session, and every send that hangs off it, moves by the same number of days"
+                data-tip-pos="top"
+                onClick={() => {
+                  dispatch({
+                    type: "shiftSessionsAfter",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                    sessionId: shift.sessionId,
+                    days: shift.days,
+                  });
+                  setShift(null);
+                }}
+                className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90"
+              >
+                Move them too
+              </button>
+              <button
+                onClick={() => setShift(null)}
+                className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+              >
+                Leave them
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
