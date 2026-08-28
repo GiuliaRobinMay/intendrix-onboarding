@@ -278,6 +278,53 @@ export interface MailboxItem {
   sender?: StaffMember;
 }
 
+/** The address every email leaves from when the sender is not Phoenix
+ *  staff. Kept on the verified sending domain — a message claiming to be
+ *  from the client's own domain fails their anti-spoofing checks. */
+export const FALLBACK_SENDING_ADDRESS = "intendrix@phoenixperform.com";
+
+export interface EmailSender {
+  /** what recipients see as the sender name */
+  name: string;
+  /** the actual from-address — always on the sending domain */
+  address: string;
+  /** where replies go; differs from the address for client senders */
+  replyTo: string;
+  /** true when this is the client's own champion rather than Phoenix */
+  isClientMember: boolean;
+  role: string;
+}
+
+/** Who a campaign's emails go out as. A nominated client member wins;
+ *  otherwise the Phoenix chain (Coach → Leader → Project Manager). */
+export function emailSenderFor(
+  client: Client,
+  campaign: Campaign,
+  staff: StaffMember[],
+  fallbackAddress: string = FALLBACK_SENDING_ADDRESS
+): EmailSender | undefined {
+  if (campaign.senderMemberId) {
+    const member = client.members.find((m) => m.id === campaign.senderMemberId);
+    if (member)
+      return {
+        name: member.name,
+        address: fallbackAddress,
+        replyTo: member.email || fallbackAddress,
+        isClientMember: true,
+        role: member.title || "Client Transformational Champion",
+      };
+  }
+  const person = senderFor(client, campaign, staff);
+  if (!person) return undefined;
+  return {
+    name: person.name,
+    address: person.email,
+    replyTo: person.email,
+    isClientMember: false,
+    role: person.role,
+  };
+}
+
 export function senderFor(
   client: Client,
   campaign: Campaign,

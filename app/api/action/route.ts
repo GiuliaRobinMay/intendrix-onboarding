@@ -199,6 +199,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         code: "code",
         timezone: "timezone",
         statusOverride: "status_override",
+        senderMemberId: "sender_member_id",
         startDate: "start_date",
         endDate: "end_date",
       });

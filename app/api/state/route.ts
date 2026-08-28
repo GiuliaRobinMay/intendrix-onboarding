@@ -84,7 +84,8 @@ export async function GET(req: Request) {
       q(`select id, client_id, name, email, role, title
            from members order by created_at, id`),
       q(`select id, client_id, template_id, code, name, timezone,
-                status_override, start_date::text as start_date,
+                status_override, sender_member_id,
+                start_date::text as start_date,
                 end_date::text as end_date
            from campaigns order by created_at, id`),
       q(`select id, campaign_id, name, session_date::text as session_date,
@@ -218,6 +219,7 @@ export async function GET(req: Request) {
         phoenixTeam: pByCampaign.get(c.id) ?? [],
         clientTeam: cByCampaign.get(c.id) ?? [],
         ...(c.status_override ? { statusOverride: c.status_override } : {}),
+        senderMemberId: c.sender_member_id,
         startDate: c.start_date,
         endDate: c.end_date,
         sessions: sessionsByCampaign.get(c.id) ?? [],

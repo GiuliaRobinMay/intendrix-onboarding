@@ -163,6 +163,11 @@ export interface Campaign {
   /** manual status; when absent the status is derived from the schedule.
    *  "paused" holds all sends until the campaign is reopened. */
   statusOverride?: CampaignStatus;
+  /** When set, this client member is the sender instead of the Phoenix
+   *  coach — e.g. the Transformational Champion on a second-level
+   *  programme. Their name is what recipients see; the address stays on
+   *  the sending domain, with their own address as reply-to. */
+  senderMemberId?: string | null;
   /** campaign runs from/to — shown as milestones in the Calendar */
   startDate?: string | null;
   endDate?: string | null;

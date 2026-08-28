@@ -163,6 +163,7 @@ export type Action =
           | "code"
           | "timezone"
           | "statusOverride"
+          | "senderMemberId"
           | "startDate"
           | "endDate"
         >
