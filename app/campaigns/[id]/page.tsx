@@ -9,6 +9,8 @@ import {
   ChevronDown,
   GripVertical,
   Layers,
+  LayoutGrid,
+  List,
   Mail,
   MapPin,
   Plus,
@@ -48,6 +50,14 @@ const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: stri
 };
 
 const STATUS_ORDER: CampaignStatus[] = ["upcoming", "active", "paused", "closed"];
+
+/** Where a session sits in time. One colour each, nothing else. */
+const SESSION_STATE = {
+  past: { color: "#7c7e8c", label: "Done", tip: "Already happened" },
+  next: { color: "#4ade80", label: "Next", tip: "The next session — this is what's coming up" },
+  later: { color: "#6ea8ff", label: "Ahead", tip: "Still ahead, after the next one" },
+  undated: { color: "#aeb0b2", label: "No date", tip: "No date yet — its series can't be scheduled" },
+} as const;
 
 const STATUS_TIP: Record<CampaignStatus, string> = {
   upcoming: "Hasn't started yet — the first sends are still ahead",
@@ -110,6 +120,9 @@ export default function CampaignDetailPage() {
   const [seriesDragId, setSeriesDragId] = useState<string | null>(null);
   const [seriesOverIndex, setSeriesOverIndex] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [addingMember, setAddingMember] = useState(false);
+  const [newMember, setNewMember] = useState({ name: "", title: "", email: "" });
+  const [sessionView, setSessionView] = useState<"gallery" | "list">("gallery");
   // set after a session is rescheduled, offering to carry the rest along
   const [shift, setShift] = useState<{
     sessionId: string;
@@ -162,6 +175,19 @@ export default function CampaignDetailPage() {
   ];
 
   const datedSessionCount = campaign.sessions.filter((s) => s.date).length;
+  // the soonest session still ahead — the one the team is working towards
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const nextSessionId =
+    campaign.sessions
+      .filter((s) => s.date && s.date >= todayIso)
+      .sort((a, b) => (a.date! < b.date! ? -1 : 1))[0]?.id ?? null;
+
+  /** Where a session stands, which is all the colour on the card means. */
+  const sessionState = (s: CampaignSession): keyof typeof SESSION_STATE => {
+    if (!s.date) return "undated";
+    if (s.id === nextSessionId) return "next";
+    return s.date < todayIso ? "past" : "later";
+  };
   const patternedCount = campaign.sessions.filter(
     (s) => typeof s.offsetDays === "number"
   ).length;
@@ -198,6 +224,35 @@ export default function CampaignDetailPage() {
     setDragId(null);
     setOverIndex(null);
   };
+
+  /** Reorder-by-drag, shared by the card view and the list view. */
+  const dragProps = (sessionId: string, index: number) => ({
+    onDragStart: (e: React.DragEvent) => {
+      setDragId(sessionId);
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", sessionId);
+    },
+    onDragEnd: endDrag,
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      if (overIndex !== index) setOverIndex(index);
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      const moved = e.dataTransfer.getData("text/plain") || dragId;
+      if (moved) {
+        dispatch({
+          type: "moveSessionTo",
+          clientId: client.id,
+          campaignId: campaign.id,
+          sessionId: moved,
+          toIndex: index,
+        });
+      }
+      endDrag();
+    },
+  });
 
   const endSeriesDrag = () => {
     setSeriesDragId(null);
@@ -506,11 +561,16 @@ export default function CampaignDetailPage() {
             <button
               data-tip={
                 client.members.length === 0
-                  ? "Add members on the client page first"
+                  ? "Add the first person at this client"
                   : "Add a client member to this campaign"
               }
               onClick={() => {
-                if (client.members.length === 0) return;
+                // no members yet? then the person has to be created first,
+                // right here — sending you to another page loses your place
+                if (client.members.length === 0) {
+                  setAddingMember(true);
+                  return;
+                }
                 dispatch({
                   type: "addClientAssignment",
                   clientId: client.id,
@@ -592,12 +652,96 @@ export default function CampaignDetailPage() {
                 </div>
               );
             })}
-            {campaign.clientTeam.length === 0 && (
+            {campaign.clientTeam.length === 0 && !addingMember && (
               <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
-                {client.members.length === 0
-                  ? "This client has no members yet — add them on the client page first."
-                  : "No one assigned yet — add the Client Transformational Champion."}
+                No one assigned yet — add the Client Transformational Champion
+                with the + above.
               </p>
+            )}
+
+            {/* Create a person at the client and put them on this campaign in
+                one step — no detour to the client page. */}
+            {addingMember && (
+              <div className="rounded-md border border-white/10 bg-white/3 p-3">
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <input
+                    autoFocus
+                    value={newMember.name}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, name: e.target.value })
+                    }
+                    placeholder="Full name"
+                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                  />
+                  <input
+                    value={newMember.title}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, title: e.target.value })
+                    }
+                    placeholder="Job title"
+                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                  />
+                  <input
+                    type="email"
+                    value={newMember.email}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, email: e.target.value })
+                    }
+                    placeholder="name@company.com"
+                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                  />
+                </div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  <button
+                    disabled={!newMember.name.trim()}
+                    data-tip="Adds them to this client and puts them on this campaign as Transformational Champion"
+                    onClick={() => {
+                      const name = newMember.name.trim();
+                      if (!name) return;
+                      const memberId = `member-${Math.random().toString(36).slice(2, 9)}`;
+                      dispatch({
+                        type: "addMember",
+                        id: memberId,
+                        clientId: client.id,
+                        name,
+                        title: newMember.title.trim(),
+                        email: newMember.email.trim(),
+                        role: "leader",
+                      });
+                      dispatch({
+                        type: "addClientAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        memberId,
+                        role: "champion",
+                      });
+                      setNewMember({ name: "", title: "", email: "" });
+                      setAddingMember(false);
+                    }}
+                    className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Add and assign
+                  </button>
+                  <button
+                    onClick={() => setAddingMember(false)}
+                    className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                  >
+                    Cancel
+                  </button>
+                  <span className="text-[11px] text-mist">
+                    They join {client.name}&rsquo;s members list too.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {client.members.length > 0 && !addingMember && (
+              <button
+                onClick={() => setAddingMember(true)}
+                className="w-fit cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
+              >
+                Someone not on the list yet? Add them here
+              </button>
             )}
           </div>
         </section>
@@ -672,22 +816,90 @@ export default function CampaignDetailPage() {
             so replies have somewhere to go.
           </p>
         )}
+
+        {/* Watching from the outside: one copy per lesson, not per member */}
+        <label className="mt-5 block border-t border-white/8 pt-4">
+          <span className="text-[11px] font-medium text-mist">
+            Send a copy of everything to
+          </span>
+          <input
+            type="text"
+            defaultValue={campaign.shadowEmails ?? ""}
+            placeholder="amber@phoenixperform.com, someone@else.com"
+            data-tip="One copy of each lesson, once — not one per member. They stay off the members list."
+            onBlur={(e) => {
+              const next = e.target.value.trim();
+              if (next === (campaign.shadowEmails ?? "").trim()) return;
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: { shadowEmails: next || null },
+              });
+            }}
+            className="mt-1 w-full max-w-xl rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+          />
+          <span className="mt-1.5 block text-[11px] text-mist">
+            Comma-separated. They see every lesson exactly once as it goes out,
+            with the client&rsquo;s name in the subject — no personalisation, and
+            they never appear in the members list.
+          </span>
+        </label>
       </section>
 
       <div className="flex flex-col gap-6">
         {/* Sessions — square, draggable cards */}
         <section className="card p-5">
-          <div className="mb-1 flex items-center justify-between">
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <CalendarDays size={17} className="text-mist" /> Sessions
               <span className="text-sm font-medium text-mist">
                 ({campaign.sessions.length})
               </span>
             </h2>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {/* what the colours mean */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {(["past", "next", "later", "undated"] as const).map((k) => (
+                  <span
+                    key={k}
+                    data-tip={SESSION_STATE[k].tip}
+                    className="flex items-center gap-1.5 text-[11px] text-mist"
+                  >
+                    <span
+                      className="size-2 rounded-full"
+                      style={{ backgroundColor: SESSION_STATE[k].color }}
+                    />
+                    {SESSION_STATE[k].label}
+                  </span>
+                ))}
+              </div>
+              <div className="flex divide-x divide-white/8 rounded-md border border-white/10">
+                {(
+                  [
+                    { key: "gallery", label: "Cards", Icon: LayoutGrid, tip: "Cards — good for moving sessions around" },
+                    { key: "list", label: "List", Icon: List, tip: "List — good for checking the order and the dates" },
+                  ] as const
+                ).map(({ key, label, Icon, tip }) => (
+                  <button
+                    key={key}
+                    data-tip={tip}
+                    onClick={() => setSessionView(key)}
+                    className={`flex cursor-pointer items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[5px] last:rounded-r-[5px] ${
+                      sessionView === key
+                        ? "bg-white/8 text-paper"
+                        : "text-mist hover:text-paper"
+                    }`}
+                  >
+                    <Icon size={12} /> {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <p className="mb-4 text-xs text-mist">
-            The live and online meetings in this campaign. Drag a card to reorder —
-            the numbering follows. A session&rsquo;s date triggers the series bound to it.
+            The live and online meetings in this campaign. Drag to reorder — the
+            numbering follows. A session&rsquo;s date triggers the series bound to it.
           </p>
 
           {/* Day numbers — the campaign's rhythm, so a start date dates it all */}
@@ -743,61 +955,279 @@ export default function CampaignDetailPage() {
             </div>
           </div>
 
-          <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {campaign.sessions.map((session, i) => {
-              const date = session.date ? new Date(`${session.date}T00:00:00`) : null;
-              const past = date !== null && date < today;
-              const boundCount = campaign.series.filter(
-                (s) => s.sessionId === session.id
-              ).length;
-              const dragging = dragId === session.id;
-              const isOver = overIndex === i && dragId !== null && !dragging;
+          {sessionView === "gallery" ? (
+            <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {campaign.sessions.map((session, i) => {
+                const state = sessionState(session);
+                const tone = SESSION_STATE[state];
+                const boundCount = campaign.series.filter(
+                  (s) => s.sessionId === session.id
+                ).length;
+                const dragging = dragId === session.id;
+                const isOver = overIndex === i && dragId !== null && !dragging;
 
-              return (
-                <li
-                  key={session.id}
-                  draggable
-                  onDragStart={(e) => {
-                    setDragId(session.id);
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", session.id);
-                  }}
-                  onDragEnd={endDrag}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                    if (overIndex !== i) setOverIndex(i);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const moved = e.dataTransfer.getData("text/plain") || dragId;
-                    if (moved) {
-                      dispatch({
-                        type: "moveSessionTo",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        sessionId: moved,
-                        toIndex: i,
-                      });
-                    }
-                    endDrag();
-                  }}
-                  className={`card group relative flex min-h-52 cursor-grab flex-col p-3.5 transition-all active:cursor-grabbing ${
-                    dragging
-                      ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20"
-                      : ""
-                  } ${isOver ? "ring-2 ring-[#ff7a55]" : ""}`}
+                return (
+                  <li
+                    key={session.id}
+                    draggable
+                    {...dragProps(session.id, i)}
+                    style={{ "--chip-c": tone.color } as CSSProperties}
+                    className={`session-card group relative flex min-h-32 cursor-grab flex-col p-2.5 transition-all active:cursor-grabbing ${
+                      state === "past" ? "opacity-60" : ""
+                    } ${dragging ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20" : ""} ${
+                      isOver ? "ring-2 ring-[#ff7a55]" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        data-tip={`${tone.tip}. ${
+                          boundCount === 0
+                            ? "No series hangs off it."
+                            : `Triggers ${boundCount} series.`
+                        }`}
+                        className="flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-navy"
+                        style={{ backgroundColor: tone.color }}
+                      >
+                        {i + 1}
+                      </span>
+                      <button
+                        onClick={() =>
+                          dispatch({
+                            type: "updateSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                            patch: {
+                              mode: session.mode === "virtual" ? "in-person" : "virtual",
+                            },
+                          })
+                        }
+                        data-tip="Click to switch between virtual and in person"
+                        className="cursor-pointer text-mist transition-colors hover:text-paper"
+                      >
+                        {session.mode === "virtual" ? (
+                          <Video size={11} />
+                        ) : (
+                          <MapPin size={11} />
+                        )}
+                      </button>
+                      <span className="ml-auto flex items-center gap-0.5">
+                        <span data-tip="Drag the card to another position to reorder">
+                          <GripVertical
+                            size={11}
+                            className="text-mist/40 group-hover:text-mist"
+                          />
+                        </span>
+                        <button
+                          data-tip="Delete this session — series bound to it fall back to unbound"
+                          onClick={() =>
+                            dispatch({
+                              type: "removeSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                            })
+                          }
+                          className="hidden cursor-pointer rounded p-0.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </span>
+                    </div>
+
+                    <EditableText
+                      multiline
+                      value={session.name}
+                      onCommit={(v) =>
+                        dispatch({
+                          type: "updateSession",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          sessionId: session.id,
+                          patch: { name: v },
+                        })
+                      }
+                      className="mt-1 text-[11px] font-semibold leading-snug"
+                    />
+
+                    <div className="mt-auto flex items-center gap-1 pt-2">
+                      <input
+                        type="date"
+                        title="The session's date — entering it schedules every series bound to this session"
+                        value={session.date ?? ""}
+                        onChange={(e) => setSessionDate(session, e.target.value)}
+                        className={`min-w-0 flex-1 cursor-pointer rounded border px-1 py-0.5 text-center text-[10px] font-bold tabular-nums focus:outline-none ${
+                          session.date
+                            ? "border-transparent text-paper"
+                            : "border-dashed border-white/15 text-mist/70"
+                        }`}
+                        style={
+                          session.date
+                            ? { backgroundColor: `${tone.color}22` }
+                            : undefined
+                        }
+                      />
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="d"
+                        data-tip="Day number: days after the campaign start"
+                        value={
+                          typeof session.offsetDays === "number" ? session.offsetDays : ""
+                        }
+                        onChange={(e) =>
+                          dispatch({
+                            type: "updateSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                            patch: {
+                              offsetDays:
+                                e.target.value === "" ? null : Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="num-plain w-10 shrink-0 rounded border border-white/10 bg-navy/60 px-1 py-0.5 text-center text-[10px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+
+              {/* ghost card — add a session */}
+              <li>
+                <button
+                  onClick={() =>
+                    dispatch({
+                      type: "addSession",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                    })
+                  }
+                  className="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
                 >
-                  <div className="flex items-start justify-between">
-                    <p className="text-[11px] font-medium text-mist">
-                      Session {i + 1}
-                    </p>
-                    <div className="flex items-center gap-0.5">
-                      <span data-tip="Drag the card to another position to reorder">
-                        <GripVertical
-                          size={12}
-                          className="text-mist/40 group-hover:text-mist"
-                        />
+                  <Plus size={16} />
+                  <span className="text-[11px] font-semibold">New session</span>
+                </button>
+              </li>
+            </ol>
+          ) : (
+            /* List view — the order and the dates, one line each */
+            <div>
+              <div className="hidden grid-cols-[2rem_minmax(0,1fr)_5rem_9rem_4rem_6rem_2rem] items-center gap-3 border-b border-white/8 pb-1.5 text-[11px] font-medium text-mist lg:grid">
+                <span>#</span>
+                <span>Session</span>
+                <span>Where</span>
+                <span>Date</span>
+                <span>Day</span>
+                <span>Series</span>
+                <span />
+              </div>
+              <ol className="flex flex-col">
+                {campaign.sessions.map((session, i) => {
+                  const state = sessionState(session);
+                  const tone = SESSION_STATE[state];
+                  const boundCount = campaign.series.filter(
+                    (s) => s.sessionId === session.id
+                  ).length;
+                  const dragging = dragId === session.id;
+                  const isOver = overIndex === i && dragId !== null && !dragging;
+
+                  return (
+                    <li
+                      key={session.id}
+                      draggable
+                      {...dragProps(session.id, i)}
+                      className={`group grid cursor-grab grid-cols-1 items-center gap-2 border-b border-white/6 py-2 last:border-b-0 active:cursor-grabbing lg:grid-cols-[2rem_minmax(0,1fr)_5rem_9rem_4rem_6rem_2rem] lg:gap-3 ${
+                        state === "past" ? "opacity-60" : ""
+                      } ${dragging ? "opacity-50" : ""} ${
+                        isOver ? "ring-1 ring-[#ff7a55]" : ""
+                      }`}
+                    >
+                      <span
+                        data-tip={tone.tip}
+                        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-navy"
+                        style={{ backgroundColor: tone.color }}
+                      >
+                        {i + 1}
+                      </span>
+                      <EditableText
+                        value={session.name}
+                        onCommit={(v) =>
+                          dispatch({
+                            type: "updateSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                            patch: { name: v },
+                          })
+                        }
+                        className="text-xs font-semibold"
+                      />
+                      <button
+                        onClick={() =>
+                          dispatch({
+                            type: "updateSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                            patch: {
+                              mode:
+                                session.mode === "virtual" ? "in-person" : "virtual",
+                            },
+                          })
+                        }
+                        data-tip="Click to switch between virtual and in person"
+                        className="flex w-fit cursor-pointer items-center gap-1 text-[11px] text-mist hover:text-paper"
+                      >
+                        {session.mode === "virtual" ? (
+                          <>
+                            <Video size={11} /> online
+                          </>
+                        ) : (
+                          <>
+                            <MapPin size={11} /> live
+                          </>
+                        )}
+                      </button>
+                      <input
+                        type="date"
+                        title="The session's date — entering it schedules every series bound to this session"
+                        value={session.date ?? ""}
+                        onChange={(e) => setSessionDate(session, e.target.value)}
+                        className={`cursor-pointer rounded border px-1.5 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
+                          session.date
+                            ? "border-transparent text-paper"
+                            : "border-dashed border-white/15 text-mist/70"
+                        }`}
+                        style={
+                          session.date ? { backgroundColor: `${tone.color}22` } : undefined
+                        }
+                      />
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="—"
+                        data-tip="Day number: days after the campaign start"
+                        value={
+                          typeof session.offsetDays === "number" ? session.offsetDays : ""
+                        }
+                        onChange={(e) =>
+                          dispatch({
+                            type: "updateSession",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            sessionId: session.id,
+                            patch: {
+                              offsetDays:
+                                e.target.value === "" ? null : Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="num-plain rounded border border-white/10 bg-navy/60 px-1 py-1 text-center text-[11px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
+                      />
+                      <span className="text-[11px] text-mist">
+                        {boundCount === 0 ? "—" : `${boundCount} series`}
                       </span>
                       <button
                         data-tip="Delete this session — series bound to it fall back to unbound"
@@ -809,111 +1239,14 @@ export default function CampaignDetailPage() {
                             sessionId: session.id,
                           })
                         }
-                        className="hidden cursor-pointer rounded p-0.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                        className="cursor-pointer justify-self-end rounded p-1 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={13} />
                       </button>
-                    </div>
-                  </div>
-
-                  <EditableText
-                    multiline
-                    value={session.name}
-                    onCommit={(v) =>
-                      dispatch({
-                        type: "updateSession",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        sessionId: session.id,
-                        patch: { name: v },
-                      })
-                    }
-                    className="mt-1 text-xs font-semibold leading-snug"
-                  />
-
-                  <button
-                    onClick={() =>
-                      dispatch({
-                        type: "updateSession",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        sessionId: session.id,
-                        patch: {
-                          mode: session.mode === "virtual" ? "in-person" : "virtual",
-                        },
-                      })
-                    }
-                    data-tip="Click to switch between virtual and in person"
-                    className="mt-1.5 flex w-fit cursor-pointer items-center gap-1 text-[10px] text-mist hover:text-paper"
-                  >
-                    {session.mode === "virtual" ? (
-                      <>
-                        <Video size={10} /> virtual
-                      </>
-                    ) : (
-                      <>
-                        <MapPin size={10} /> in person
-                      </>
-                    )}
-                  </button>
-
-                  <div className="mt-auto pt-2">
-                    <label className="mb-1 flex items-center gap-1.5">
-                      <span
-                        data-tip="Days after the campaign start date. Leave empty if this session has no fixed place in the rhythm."
-                        className="text-[10px] font-medium text-mist"
-                      >
-                        Day
-                      </span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="—"
-                        value={
-                          typeof session.offsetDays === "number"
-                            ? session.offsetDays
-                            : ""
-                        }
-                        onChange={(e) =>
-                          dispatch({
-                            type: "updateSession",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            sessionId: session.id,
-                            patch: {
-                              offsetDays:
-                                e.target.value === ""
-                                  ? null
-                                  : Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="w-full min-w-0 rounded-md border border-white/10 bg-navy/60 px-1.5 py-0.5 text-center text-[10px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
-                      />
-                    </label>
-                    <input
-                      type="date"
-                      title="The session's date — entering it schedules every series bound to this session"
-                      value={session.date ?? ""}
-                      onChange={(e) => setSessionDate(session, e.target.value)}
-                      className={`w-full cursor-pointer rounded-md border px-1 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
-                        date
-                          ? past
-                            ? "border-transparent bg-white/8 text-paper"
-                            : "brand-gradient-soft border-transparent text-paper"
-                          : "border-dashed border-white/15 text-mist/70"
-                      }`}
-                    />
-                    <p className="mt-1.5 truncate text-[10px] text-mist/70">
-                      {boundCount === 0 ? "no series" : `triggers ${boundCount} series`}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-
-            {/* ghost card — add a session */}
-            <li>
+                    </li>
+                  );
+                })}
+              </ol>
               <button
                 onClick={() =>
                   dispatch({
@@ -922,13 +1255,13 @@ export default function CampaignDetailPage() {
                     campaignId: campaign.id,
                   })
                 }
-                className="flex min-h-52 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
+                className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-white/12 py-2 text-[11px] font-semibold text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
               >
-                <Plus size={18} />
-                <span className="text-xs font-semibold">New session</span>
+                <Plus size={14} /> New session
               </button>
-            </li>
-          </ol>
+            </div>
+          )
+}
         </section>
 
         {/* Campaign series */}

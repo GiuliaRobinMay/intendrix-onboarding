@@ -80,6 +80,28 @@ html.light body {
   background-color: color-mix(in srgb, var(--color-white) 3%, var(--color-panel));
 }
 
+/* A bare number field. The browser's spinner arrows eat a third of the
+   width, which a two- or three-digit day number cannot spare. */
+.num-plain {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.num-plain::-webkit-outer-spin-button,
+.num-plain::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+/* A session card: a normal card wearing the colour of where it sits in
+   time. Set --chip-c on the element; the tint is deliberately faint, the
+   left edge carries the signal. */
+.session-card {
+  background-color: color-mix(in srgb, var(--chip-c) 5%, var(--color-panel));
+  border: 1px solid color-mix(in srgb, var(--chip-c) 22%, transparent);
+  border-left: 3px solid var(--chip-c);
+  border-radius: 8px;
+}
+
 /* Tinted chip — set --chip-c (a hex) on the element. On light the text
    darkens toward ink so pale tones stay readable. */
 .chip {

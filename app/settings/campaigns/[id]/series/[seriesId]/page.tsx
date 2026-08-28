@@ -19,6 +19,7 @@ import {
 import { Chip, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { useData, type Action } from "@/lib/state";
+import { MERGE_FIELDS } from "@/lib/merge";
 import type { SeriesStep, SeriesTemplate, StepContent } from "@/lib/types";
 
 function LessonLinkEditor({
@@ -91,6 +92,20 @@ function VariantEditor({
           className="text-xs leading-relaxed text-mist"
         />
       </div>
+      {/* the merge fields, so nobody has to remember the spelling */}
+      <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-mist/70">
+        <span>Write</span>
+        {MERGE_FIELDS.map((f) => (
+          <code
+            key={f.token}
+            data-tip={`Becomes ${f.means}`}
+            className="cursor-help rounded bg-white/6 px-1.5 py-0.5 font-mono text-[10px] text-mist"
+          >
+            {f.token}
+          </code>
+        ))}
+        <span>anywhere in the subject or the text.</span>
+      </p>
       <div className="mt-3 flex flex-col gap-1.5">
         <LessonLinkEditor content={content} onPatch={onPatch} />
         {content.extras?.map((x) =>

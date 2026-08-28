@@ -67,7 +67,7 @@ export async function GET(req: Request) {
       links,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
-      q(`select s.id, s.name, s.role_title, s.initials, s.email,
+      q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
                 case
                   when exists (select 1 from profiles p where p.staff_id = s.id)
                     then 'active'
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
       q(`select id, client_id, name, email, role, title
            from members order by created_at, id`),
       q(`select id, client_id, template_id, code, name, timezone,
-                status_override, sender_member_id,
+                status_override, sender_member_id, shadow_emails,
                 start_date::text as start_date,
                 end_date::text as end_date
            from campaigns order by created_at, id`),
@@ -97,7 +97,7 @@ export async function GET(req: Request) {
            from campaign_phoenix_assignments order by created_at, id`),
       q(`select id, campaign_id, member_id, role
            from campaign_client_assignments order by created_at, id`),
-      q(`select id, email, role, client_id
+      q(`select id, email, name, role, client_id
            from invitations where accepted_at is null order by created_at, id`),
       q(`select id, code, name, description
            from campaign_templates order by created_at, id`),
@@ -221,6 +221,7 @@ export async function GET(req: Request) {
         clientTeam: cByCampaign.get(c.id) ?? [],
         ...(c.status_override ? { statusOverride: c.status_override } : {}),
         senderMemberId: c.sender_member_id,
+        shadowEmails: c.shadow_emails,
         startDate: c.start_date,
         endDate: c.end_date,
         sessions: sessionsByCampaign.get(c.id) ?? [],
@@ -266,12 +267,14 @@ export async function GET(req: Request) {
       role: s.role_title,
       initials: s.initials,
       email: s.email,
+      signature: s.signature ?? "",
       access: s.access,
     }));
 
     const invitationList: Invitation[] = invitations.map((i: any) => ({
       id: i.id,
       email: i.email,
+      ...(i.name ? { name: i.name } : {}),
       role: i.role,
       ...(i.client_id ? { clientId: i.client_id } : {}),
     }));

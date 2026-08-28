@@ -200,6 +200,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         timezone: "timezone",
         statusOverride: "status_override",
         senderMemberId: "sender_member_id",
+        shadowEmails: "shadow_emails",
         startDate: "start_date",
         endDate: "end_date",
       });
@@ -366,6 +367,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         name: "name",
         role: "role_title",
         email: "email",
+        signature: "signature",
       });
       return;
     case "removeStaff":
@@ -377,10 +379,17 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
     // ——— invitations ———
     case "addInvitation":
       await tx.query(
-        `insert into invitations (id, email, role, client_id, staff_id)
-         values ($1, $2, $3, $4, $5)`,
-        [a.id, a.email, a.role, a.clientId ?? null, a.staffId ?? null]
+        `insert into invitations (id, email, name, role, client_id, staff_id)
+         values ($1, $2, $3, $4, $5, $6)`,
+        [a.id, a.email, a.name ?? null, a.role, a.clientId ?? null, a.staffId ?? null]
       );
+      return;
+    case "updateInvitation":
+      await patchRow(tx, "invitations", a.invitationId, a.patch, {
+        name: "name",
+        email: "email",
+        clientId: "client_id",
+      });
       return;
     case "removeInvitation":
       await tx.query(`delete from invitations where id = $1`, [a.invitationId]);

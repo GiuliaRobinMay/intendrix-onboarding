@@ -180,6 +180,7 @@ export type Action =
           | "timezone"
           | "statusOverride"
           | "senderMemberId"
+          | "shadowEmails"
           | "startDate"
           | "endDate"
         >
@@ -336,7 +337,7 @@ export type Action =
   | {
       type: "updateStaff";
       staffId: string;
-      patch: Partial<Pick<StaffMember, "name" | "role" | "email">>;
+      patch: Partial<Pick<StaffMember, "name" | "role" | "email" | "signature">>;
     }
   | { type: "removeStaff"; staffId: string }
   // invitations (mock of the Supabase invite flow)
@@ -344,10 +345,16 @@ export type Action =
       type: "addInvitation";
       id?: string;
       email: string;
+      name?: string;
       role: AppRole;
       clientId?: string;
       /** the team member this invitation belongs to (Phoenix invites) */
       staffId?: string;
+    }
+  | {
+      type: "updateInvitation";
+      invitationId: string;
+      patch: Partial<Pick<Invitation, "name" | "email" | "clientId">>;
     }
   | { type: "removeInvitation"; invitationId: string }
   // campaign blueprints
@@ -668,6 +675,7 @@ function reducer(db: DB, action: Action): DB {
           {
             id: action.id ?? uid("inv"),
             email: action.email,
+            name: action.name,
             role: action.role,
             clientId: action.clientId,
             staffId: action.staffId,
@@ -679,6 +687,14 @@ function reducer(db: DB, action: Action): DB {
               m.id === action.staffId ? { ...m, access: "invited" as const } : m
             )
           : db.staff,
+      };
+
+    case "updateInvitation":
+      return {
+        ...db,
+        invitations: db.invitations.map((i) =>
+          i.id === action.invitationId ? { ...i, ...action.patch } : i
+        ),
       };
 
     case "removeInvitation":

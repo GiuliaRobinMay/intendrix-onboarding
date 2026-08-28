@@ -16,8 +16,14 @@
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced } from "@/lib/server/auth";
-import { emailConfigured, renderLessonEmail, sendEmail } from "@/lib/server/email";
+import {
+  emailConfigured,
+  personalize,
+  renderLessonEmail,
+  sendEmail,
+} from "@/lib/server/email";
 import { FALLBACK_SENDING_ADDRESS as DEFAULT_SENDING_ADDRESS } from "@/lib/store";
+import { addWorkdays } from "@/lib/workdays";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -46,12 +52,6 @@ function nowInZone(tz: string): { date: string; time: string } {
     date: `${get("year")}-${get("month")}-${get("day")}`,
     time: `${get("hour")}:${get("minute")}`,
   };
-}
-
-function addDays(isoDate: string, days: number): string {
-  const [y, m, d] = isoDate.split("-").map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d + days));
-  return t.toISOString().slice(0, 10);
 }
 
 function daysBetween(fromIso: string, toIso: string): number {
@@ -89,10 +89,10 @@ export async function GET(req: Request) {
   const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged] =
     await Promise.all([
       q(`select id, client_id, code, name, timezone, status_override,
-                sender_member_id from campaigns`),
+                sender_member_id, shadow_emails from campaigns`),
       q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
       q(`select id, client_id, name, email, role, title from members`),
-      q(`select id, name, email from staff`),
+      q(`select id, name, email, role_title, signature from staff`),
       q(`select campaign_id, series_template_id, trigger_session_id
            from campaign_series order by campaign_id, sort_order, created_at`),
       q(`select id, session_date::text as session_date from campaign_sessions`),
@@ -102,7 +102,7 @@ export async function GET(req: Request) {
       q(`select id, step_id, variant, email_subject, email_body,
                 lesson_label, lesson_url, team_meeting from step_contents`),
       q(`select step_content_id, label, url from step_links order by sort_order`),
-      q(`select campaign_id, step_id, member_id from email_sends`),
+      q(`select campaign_id, step_id, member_id, shadow_to from email_sends`),
     ]);
 
   const clientById = new Map(clients.map((c: any) => [c.id, c]));
@@ -132,8 +132,11 @@ export async function GET(req: Request) {
     both[c.variant] = c;
     contentByStep.set(c.step_id, both);
   }
+  // one row per member per lesson, and one per shadow address per lesson
   const already = new Set(
-    logged.map((r: any) => `${r.campaign_id}|${r.step_id}|${r.member_id}`)
+    logged.map(
+      (r: any) => `${r.campaign_id}|${r.step_id}|${r.shadow_to ?? r.member_id}`
+    )
   );
   const assignments = await q(
     `select campaign_id, staff_id, role from campaign_phoenix_assignments
@@ -166,7 +169,13 @@ export async function GET(req: Request) {
   const fromFor = (
     campaign: any,
     responsible: any
-  ): { name: string; address: string; replyTo: string } | null => {
+  ): {
+    name: string;
+    address: string;
+    replyTo: string;
+    role: string | null;
+    signature: string | null;
+  } | null => {
     if (campaign.sender_member_id) {
       const member = memberById.get(campaign.sender_member_id);
       if (member)
@@ -174,6 +183,8 @@ export async function GET(req: Request) {
           name: member.name,
           address: FALLBACK_SENDING_ADDRESS,
           replyTo: member.email || responsible?.email || FALLBACK_SENDING_ADDRESS,
+          role: member.title ?? null,
+          signature: null, // a client's champion signs with name and title
         };
     }
     if (!responsible) return null;
@@ -181,8 +192,17 @@ export async function GET(req: Request) {
       name: responsible.name,
       address: responsible.email,
       replyTo: responsible.email,
+      role: responsible.role_title ?? null,
+      signature: responsible.signature ?? null,
     };
   };
+
+  /** The addresses watching this campaign without being on it. */
+  const shadowsOf = (campaign: any): string[] =>
+    String(campaign.shadow_emails ?? "")
+      .split(/[,\n;]/)
+      .map((s) => s.trim())
+      .filter((s) => s.includes("@"));
 
   let sent = 0;
   let failed = 0;
@@ -199,17 +219,18 @@ export async function GET(req: Request) {
     localDate: string,
     time: string,
     status: string,
-    error: string | null
+    error: string | null,
+    shadowTo: string | null = null
   ) => {
     await pool.query(
       `insert into email_sends
          (campaign_id, step_id, member_id, variant, sender_id, scheduled_for,
-          sent_at, status, error)
+          sent_at, status, error, shadow_to)
        values ($1, $2, $3, $4, $5,
                ($6 || ' ' || $7)::timestamp at time zone $8,
-               case when $9 = 'sent' then now() end, $9, $10)`,
+               case when $9 = 'sent' then now() end, $9, $10, $11)`,
       [campaign.id, stepId, memberId, variant, senderId, localDate, time,
-       campaign.timezone, status, error]
+       campaign.timezone, status, error, shadowTo ?? null]
     );
   };
 
@@ -228,10 +249,11 @@ export async function GET(req: Request) {
         ? sessionDate.get(ls.trigger_session_id)
         : null;
       if (!baseDate) continue;
-      let cumulative = 0;
+      // offsets count working days — the same rule the app shows
+      let cursor = baseDate as string;
       for (const step of stepsBySeries.get(ls.series_template_id) ?? []) {
-        cumulative += step.offset_days;
-        const localDate = addDays(baseDate, cumulative);
+        cursor = addWorkdays(cursor, step.offset_days);
+        const localDate = cursor;
         const time = step.send_time as string;
         const isDue =
           localDate < now.date || (localDate === now.date && time <= now.time);
@@ -282,8 +304,14 @@ export async function GET(req: Request) {
             failed++;
             continue;
           }
+          const merge = {
+            firstName: String(member.name ?? "").trim().split(/\s+/)[0],
+            name: member.name,
+            client: clientById.get(campaign.client_id)?.name,
+            sender: from.name,
+          };
           const html = renderLessonEmail({
-            body: content.email_body ?? "",
+            body: personalize(content.email_body ?? "", merge),
             lesson: content.lesson_label || content.lesson_url
               ? { label: content.lesson_label ?? "Open the lesson", url: content.lesson_url }
               : null,
@@ -293,17 +321,79 @@ export async function GET(req: Request) {
             })),
             teamMeeting: content.team_meeting,
             senderName: from.name,
+            senderRole: from.role,
+            signature: from.signature,
           });
           const result = await sendEmail({
             from: `${from.name} <${from.address}>`,
             to: member.email,
             replyTo: from.replyTo,
-            subject: content.email_subject || step.title,
+            subject: personalize(content.email_subject || step.title, merge),
             html,
           });
           await logRow(campaign, step.id, member.id, variant, sender?.id ?? null,
             localDate, time, result.ok ? "sent" : "failed",
             result.ok ? null : (result.error ?? "unknown error"));
+          if (result.ok) sent++;
+          else failed++;
+        }
+
+        // One copy of each lesson for whoever is watching this campaign
+        // from the outside — the coordinator, not a participant. Sent
+        // once per lesson, never once per member.
+        for (const address of shadowsOf(campaign)) {
+          if (already.has(`${campaign.id}|${step.id}|${address}`)) continue;
+          const content = both.participant ?? both.leader;
+          if (!content || stale || !from) continue;
+
+          if (dryRun) {
+            wouldSend.push({
+              campaign: campaign.code,
+              step: step.code,
+              from: `${from.name} <${from.address}>`,
+              replyTo: from.replyTo,
+              to: address,
+              variant: "copy",
+              date: localDate,
+              time,
+            });
+            continue;
+          }
+
+          already.add(`${campaign.id}|${step.id}|${address}`);
+          const html = renderLessonEmail({
+            body: personalize(content.email_body ?? "", {
+              firstName: "there",
+              client: clientById.get(campaign.client_id)?.name,
+              sender: from.name,
+            }),
+            lesson: content.lesson_label || content.lesson_url
+              ? { label: content.lesson_label ?? "Open the lesson", url: content.lesson_url }
+              : null,
+            extras: (linksByContent.get(content.id) ?? []).map((l: any) => ({
+              label: l.label,
+              url: l.url,
+            })),
+            teamMeeting: content.team_meeting,
+            senderName: from.name,
+            senderRole: from.role,
+            signature: from.signature,
+          });
+          const client = clientById.get(campaign.client_id);
+          const result = await sendEmail({
+            from: `${from.name} <${from.address}>`,
+            to: address,
+            replyTo: from.replyTo,
+            subject: `[${client?.name ?? campaign.code} · copy] ${
+              content.email_subject || step.title
+            }`,
+            html,
+          });
+          await logRow(campaign, step.id, null, "participant",
+            sender?.id ?? null, localDate, time,
+            result.ok ? "sent" : "failed",
+            result.ok ? null : (result.error ?? "unknown error"),
+            address);
           if (result.ok) sent++;
           else failed++;
         }

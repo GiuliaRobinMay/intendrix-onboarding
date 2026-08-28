@@ -113,6 +113,9 @@ export interface StaffMember {
   initials: string;
   /** the unique sender address their communications go out from */
   email: string;
+  /** how their lesson emails sign off, one line per line. Empty falls
+   *  back to their name and role. */
+  signature?: string;
   /** sign-in status — derived, not stored:
    *  active = has an account, invited = invitation sent and pending,
    *  none = in the team list but never invited */
@@ -171,6 +174,10 @@ export interface Campaign {
    *  programme. Their name is what recipients see; the address stays on
    *  the sending domain, with their own address as reply-to. */
   senderMemberId?: string | null;
+  /** addresses that receive one copy of every lesson this campaign sends
+   *  — the coordinator watching a live programme from the outside.
+   *  Comma-separated. They are never personalised or counted as members. */
+  shadowEmails?: string | null;
   /** campaign runs from/to — shown as milestones in the Calendar */
   startDate?: string | null;
   endDate?: string | null;
@@ -208,6 +215,8 @@ export type AppRole = "phoenix_admin" | "client_admin";
 export interface Invitation {
   id: string;
   email: string;
+  /** the person's name, so the list reads like the team list */
+  name?: string;
   role: AppRole;
   /** required for client_admin: the one company they may see */
   clientId?: string;

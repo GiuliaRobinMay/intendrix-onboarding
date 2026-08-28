@@ -47,11 +47,47 @@ comment on column campaign_sessions.offset_days is
   'Days after campaigns.start_date on which this session falls. Null = no pattern; the date is only ever entered by hand.';
 
 
+-- ——— personal sign-offs, shadow copies, invited names ————
+--
+-- A person's lessons can sign off with their own block; a campaign can
+-- copy every lesson to someone watching from the outside; and a client
+-- admin is stored as a name, not only an address.
+
+alter table staff
+  add column if not exists signature text;
+
+comment on column staff.signature is
+  'Sign-off block for this person''s lesson emails. Plain text, one line per line. Empty = name and role.';
+
+alter table campaigns
+  add column if not exists shadow_emails text;
+
+comment on column campaigns.shadow_emails is
+  'Comma- or newline-separated addresses that get one copy of every lesson this campaign sends. Not recipients — they are never personalised or counted as members.';
+
+alter table email_sends
+  add column if not exists shadow_to text;
+
+comment on column email_sends.shadow_to is
+  'Set when this row logs a shadow copy rather than a member send.';
+
+-- A client admin is a person, not an address. Their name belongs on the
+-- invitation so the list reads like the team list does.
+alter table invitations
+  add column if not exists name text;
+
+comment on column invitations.name is
+  'The invited person''s name, shown in the app before they have an account.';
+
+
 -- ——— check it landed ——————————————————————————————————————
--- Expect two rows.
+-- Expect six rows.
 
 select table_name, column_name
   from information_schema.columns
- where (table_name = 'campaigns'         and column_name = 'sender_member_id')
+ where (table_name = 'campaigns'         and column_name in ('sender_member_id', 'shadow_emails'))
     or (table_name = 'campaign_sessions' and column_name = 'offset_days')
- order by table_name;
+    or (table_name = 'staff'             and column_name = 'signature')
+    or (table_name = 'email_sends'       and column_name = 'shadow_to')
+    or (table_name = 'invitations'       and column_name = 'name')
+ order by table_name, column_name;

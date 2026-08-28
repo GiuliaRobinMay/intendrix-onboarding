@@ -11,6 +11,7 @@ import type {
   SeriesTemplate,
   StaffMember,
 } from "./types";
+import { addWorkdays } from "./workdays";
 
 export function findStaff(
   staff: StaffMember[],
@@ -133,14 +134,17 @@ export function computeSchedule(
   today: Date = new Date()
 ): ScheduledStep[] {
   const session = triggerSession(campaign, loaded);
-  let cursor = session?.date ? new Date(`${session.date}T00:00:00`) : null;
+  // step offsets count working days, so nothing ever lands on a weekend
+  // or a US public holiday
+  let cursor = session?.date ?? null;
   return series.steps.map((step) => {
     if (!cursor) {
       return { step, series, date: null, status: "unscheduled" as const };
     }
-    cursor = addDays(cursor, step.offsetDays);
-    const status = cursor < today ? ("sent" as const) : ("scheduled" as const);
-    return { step, series, date: cursor, status };
+    cursor = addWorkdays(cursor, step.offsetDays);
+    const date = new Date(`${cursor}T00:00:00`);
+    const status = date < today ? ("sent" as const) : ("scheduled" as const);
+    return { step, series, date, status };
   });
 }
 

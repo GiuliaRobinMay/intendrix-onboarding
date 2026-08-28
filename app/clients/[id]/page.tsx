@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import {
   PageHeader,
-  StatusChip,
   Chip,
   ProgressBar,
   GradientButton,
@@ -28,7 +27,7 @@ import { EditableText, Field } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
 import { findTemplate, campaignCompletion, seriesProgress, fmtDate } from "@/lib/store";
-import type { Client, MemberRole } from "@/lib/types";
+import type { Client, ClientStatus, MemberRole } from "@/lib/types";
 
 /** The three Phoenix roles at client level — one person each. */
 const ROLE_FIELDS = [
@@ -265,7 +264,22 @@ export default function ClientDetailPage() {
         subtitle={`${client.sector} · ${client.location}`}
         action={
           <div className="flex items-center gap-3">
-            <StatusChip status={client.status} />
+            <select
+              data-tip="Onboarding, active, or archived. Archived clients drop out of the default lists but nothing is deleted."
+              value={client.status}
+              onChange={(e) =>
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { status: e.target.value as ClientStatus },
+                })
+              }
+              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
+            >
+              <option value="onboarding">Onboarding</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
             <GradientButton onClick={() => setAddingCampaign(true)}>
               + New campaign
             </GradientButton>

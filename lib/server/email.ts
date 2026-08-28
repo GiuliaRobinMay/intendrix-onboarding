@@ -3,6 +3,8 @@
 // nothing. The from-address is the responsible's own address (the Coach),
 // which requires the sending domain to be verified with the provider.
 
+export { personalize, MERGE_FIELDS, type MergeValues } from "../merge";
+
 const apiKey = process.env.RESEND_API_KEY;
 
 export const emailConfigured = Boolean(apiKey);
@@ -56,6 +58,12 @@ export function renderLessonEmail(opts: {
   extras?: LessonLinkLike[];
   teamMeeting?: string | null;
   senderName: string;
+  /** the sender's role, used when they have no signature of their own */
+  senderRole?: string | null;
+  /** exact sign-off block, one line per line */
+  signature?: string | null;
+  /** marks a test send, so nobody mistakes one for the real thing */
+  test?: boolean;
 }): string {
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -79,11 +87,28 @@ export function renderLessonEmail(opts: {
   const meeting = opts.teamMeeting
     ? `<p style="margin:18px 0;padding:10px 14px;background:#fdf6e3;border-radius:6px;font-size:13px;color:#8a6d1a;"><strong>Team meeting:</strong> ${esc(opts.teamMeeting)}</p>`
     : "";
+  // the sign-off: their own signature if they have written one, else
+  // their name and role
+  const signOff = (
+    opts.signature?.trim()
+      ? opts.signature.trim()
+      : [opts.senderName, opts.senderRole].filter(Boolean).join("\n")
+  )
+    .split("\n")
+    .map((line, i) =>
+      i === 0
+        ? `<p style="margin:0;font-size:13px;font-weight:600;color:#1a1b2e;">${esc(line)}</p>`
+        : `<p style="margin:0;font-size:12px;color:#5f6170;">${esc(line)}</p>`
+    )
+    .join("");
+  const banner = opts.test
+    ? `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the programme received it.</p>`
+    : "";
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f6;">
 <div style="max-width:560px;margin:0 auto;padding:32px 20px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;">
   <div style="background:#ffffff;border:1px solid #e4e4e8;border-radius:8px;padding:28px;">
-    ${paragraphs}${button}${extras}${meeting}
-    <p style="margin:22px 0 0;font-size:13px;color:#5f6170;">— ${esc(opts.senderName)}</p>
+    ${banner}${paragraphs}${button}${extras}${meeting}
+    <div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;">${signOff}</div>
   </div>
   <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership programme.</p>
 </div>
