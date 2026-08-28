@@ -17,11 +17,17 @@ import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced } from "@/lib/server/auth";
 import { emailConfigured, renderLessonEmail, sendEmail } from "@/lib/server/email";
+import { FALLBACK_SENDING_ADDRESS as DEFAULT_SENDING_ADDRESS } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const GRACE_DAYS = 2;
+
+/** The address a client member's email leaves from. Override with
+ *  SENDING_ADDRESS once the domain is not phoenixperform.com. */
+const FALLBACK_SENDING_ADDRESS =
+  process.env.SENDING_ADDRESS || DEFAULT_SENDING_ADDRESS;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -82,9 +88,10 @@ export async function GET(req: Request) {
 
   const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged] =
     await Promise.all([
-      q(`select id, client_id, code, name, timezone, status_override from campaigns`),
+      q(`select id, client_id, code, name, timezone, status_override,
+                sender_member_id from campaigns`),
       q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
-      q(`select id, client_id, name, email, role from members`),
+      q(`select id, client_id, name, email, role, title from members`),
       q(`select id, name, email from staff`),
       q(`select campaign_id, series_template_id, trigger_session_id
            from campaign_series order by campaign_id, sort_order, created_at`),
@@ -133,6 +140,8 @@ export async function GET(req: Request) {
       order by created_at`
   );
 
+  const memberById = new Map(members.map((m: any) => [m.id, m]));
+
   const senderFor = (campaign: any): any | null => {
     const client = clientById.get(campaign.client_id);
     const pick = (role: string, fallbackId?: string | null) => {
@@ -148,6 +157,31 @@ export async function GET(req: Request) {
       pick("project_manager", client?.project_manager_id) ??
       null
     );
+  };
+
+  // What recipients actually see. A campaign can nominate one of the
+  // client's own people — their name goes on the message and replies reach
+  // them, but the from-address stays on our verified sending domain, since
+  // mail wearing the client's own domain fails their anti-spoofing checks.
+  const fromFor = (
+    campaign: any,
+    responsible: any
+  ): { name: string; address: string; replyTo: string } | null => {
+    if (campaign.sender_member_id) {
+      const member = memberById.get(campaign.sender_member_id);
+      if (member)
+        return {
+          name: member.name,
+          address: FALLBACK_SENDING_ADDRESS,
+          replyTo: member.email || responsible?.email || FALLBACK_SENDING_ADDRESS,
+        };
+    }
+    if (!responsible) return null;
+    return {
+      name: responsible.name,
+      address: responsible.email,
+      replyTo: responsible.email,
+    };
   };
 
   let sent = 0;
@@ -186,6 +220,7 @@ export async function GET(req: Request) {
     }
     const now = nowInZone(campaign.timezone || "America/New_York");
     const sender = senderFor(campaign);
+    const from = fromFor(campaign, sender);
     const clientMembers = membersByClient.get(campaign.client_id) ?? [];
 
     for (const ls of loaded.filter((x: any) => x.campaign_id === campaign.id)) {
@@ -216,6 +251,8 @@ export async function GET(req: Request) {
               wouldSend.push({
                 campaign: campaign.code,
                 step: step.code,
+                from: from ? `${from.name} <${from.address}>` : "— no sender —",
+                replyTo: from?.replyTo ?? null,
                 to: member.email,
                 variant,
                 date: localDate,
@@ -233,14 +270,14 @@ export async function GET(req: Request) {
             held++;
             continue;
           }
-          if (!sender) {
+          if (!from) {
             await logRow(campaign, step.id, member.id, variant, null,
               localDate, time, "held", "no responsible assigned — no sender address");
             held++;
             continue;
           }
           if (!member.email) {
-            await logRow(campaign, step.id, member.id, variant, sender.id,
+            await logRow(campaign, step.id, member.id, variant, sender?.id ?? null,
               localDate, time, "failed", "member has no email address");
             failed++;
             continue;
@@ -255,16 +292,16 @@ export async function GET(req: Request) {
               url: l.url,
             })),
             teamMeeting: content.team_meeting,
-            senderName: sender.name,
+            senderName: from.name,
           });
           const result = await sendEmail({
-            from: `${sender.name} <${sender.email}>`,
+            from: `${from.name} <${from.address}>`,
             to: member.email,
-            replyTo: sender.email,
+            replyTo: from.replyTo,
             subject: content.email_subject || step.title,
             html,
           });
-          await logRow(campaign, step.id, member.id, variant, sender.id,
+          await logRow(campaign, step.id, member.id, variant, sender?.id ?? null,
             localDate, time, result.ok ? "sent" : "failed",
             result.ok ? null : (result.error ?? "unknown error"));
           if (result.ok) sent++;

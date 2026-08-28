@@ -9,6 +9,7 @@ import {
   ChevronDown,
   GripVertical,
   Layers,
+  Mail,
   MapPin,
   Plus,
   Trash2,
@@ -19,9 +20,11 @@ import { EditableText } from "@/components/editable";
 import { useData } from "@/lib/state";
 import {
   computeSchedule,
+  emailSenderFor,
   findCampaign,
   findStaff,
   findTemplate,
+  senderFor,
   seriesProgress,
   campaignCompletion,
   campaignStatus,
@@ -142,6 +145,8 @@ export default function CampaignDetailPage() {
     }
   }
   const datedSessions = campaign.sessions.filter((s) => s.date).length;
+  const phoenixSender = senderFor(client, campaign, team);
+  const emailSender = emailSenderFor(client, campaign, team);
 
   const staffOptions = [
     { value: "", label: "— unassigned —" },
@@ -556,6 +561,77 @@ export default function CampaignDetailPage() {
           </div>
         </section>
       </div>
+
+      {/* Who the emails come from */}
+      <section className="card mb-6 p-5">
+        <h2 className="flex items-center gap-2 text-base font-bold">
+          <Mail size={17} className="text-mist" /> Emails sent by
+        </h2>
+        <p className="mt-1 mb-4 text-xs text-mist">
+          Normally the Phoenix Coach. For a programme introduced from inside
+          the client&rsquo;s own organisation, pick their Transformational
+          Champion instead — recipients see that person&rsquo;s name and replies
+          reach them, while the address stays on our sending domain so the
+          emails keep arriving.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <select
+            title="Who this campaign's emails appear to come from"
+            value={campaign.senderMemberId ?? ""}
+            onChange={(e) =>
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: { senderMemberId: e.target.value || null },
+              })
+            }
+            className="min-w-64 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+          >
+            <option value="">
+              The Phoenix Coach
+              {phoenixSender ? ` — ${phoenixSender.name}` : " — none assigned"}
+            </option>
+            {client.members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+                {m.title ? ` — ${m.title}` : ""} (at {client.shortName})
+              </option>
+            ))}
+          </select>
+
+          {emailSender ? (
+            <p className="min-w-0 text-xs text-mist">
+              Recipients see{" "}
+              <span className="font-semibold text-paper">
+                {emailSender.name} &lt;{emailSender.address}&gt;
+              </span>
+              {emailSender.isClientMember && (
+                <>
+                  {" "}
+                  · replies go to{" "}
+                  <span className="font-semibold text-paper">
+                    {emailSender.replyTo}
+                  </span>
+                </>
+              )}
+            </p>
+          ) : (
+            <p className="text-xs font-semibold text-[#ff7a55]">
+              No sender yet — assign a Phoenix Coach above, or pick a client
+              member.
+            </p>
+          )}
+        </div>
+
+        {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
+          <p className="mt-3 text-xs font-semibold text-[#ff7a55]">
+            {emailSender.name} has no email address — add it on the client page
+            so replies have somewhere to go.
+          </p>
+        )}
+      </section>
 
       <div className="flex flex-col gap-6">
         {/* Sessions — square, draggable cards */}

@@ -101,11 +101,11 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
             From
           </dt>
           <dd className="min-w-0">
-            {item.sender ? (
+            {item.from ? (
               <span className="font-semibold">
-                {item.sender.name}{" "}
+                {item.from.name}{" "}
                 <span className="font-normal text-mist">
-                  &lt;{item.sender.email}&gt; · {item.sender.role}
+                  &lt;{item.from.address}&gt; · {item.from.role}
                 </span>
               </span>
             ) : (
@@ -116,6 +116,19 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
             )}
           </dd>
         </div>
+        {/* a client's own champion sends under their name from our domain,
+            so the reply address is the one that differs — show it */}
+        {item.from?.isClientMember && (
+          <div className="flex gap-2">
+            <dt className="w-12 shrink-0 font-bold text-mist/70">Reply</dt>
+            <dd className="min-w-0 text-mist">
+              {item.from.replyTo}{" "}
+              <span className="text-mist/60">
+                — replies go to {item.from.name} at {item.client.name}
+              </span>
+            </dd>
+          </div>
+        )}
         <div className="flex gap-2">
           <dt className="w-12 shrink-0 font-bold text-mist/70">
             To

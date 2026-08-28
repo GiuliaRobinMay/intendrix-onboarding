@@ -273,9 +273,12 @@ export interface MailboxItem {
   step: import("./types").SeriesStep;
   date: Date | null;
   status: "sent" | "scheduled" | "unscheduled";
-  /** who this communication goes out from (campaign manager, falling back
-   *  to account manager, then the client-level responsibles) */
+  /** the Phoenix person responsible for this campaign (campaign manager,
+   *  falling back to account manager, then the client-level responsibles) */
   sender?: StaffMember;
+  /** who the email actually appears to come from — the responsible above,
+   *  unless the campaign nominates one of the client's own people */
+  from?: EmailSender;
 }
 
 /** The address every email leaves from when the sender is not Phoenix
@@ -349,6 +352,7 @@ export function mailboxItems(
   for (const client of clients) {
     for (const campaign of client.campaigns) {
       const sender = senderFor(client, campaign, staff);
+      const from = emailSenderFor(client, campaign, staff);
       for (const loaded of campaign.series) {
         const series = findTemplate(templates, loaded.templateId);
         if (!series) continue;
@@ -361,6 +365,7 @@ export function mailboxItems(
             date: item.date,
             status: item.status,
             sender,
+            from,
           });
         }
       }
