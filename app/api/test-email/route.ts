@@ -21,6 +21,11 @@ export const dynamic = "force-dynamic";
 
 const SENDING_ADDRESS = process.env.SENDING_ADDRESS || DEFAULT_SENDING_ADDRESS;
 
+/** Resend's own address, which needs no verified domain. It only ever
+ *  delivers to the account owner, so it is useless for real sending and
+ *  exactly right for reading a draft before the DNS records land. */
+const TEST_RELAY_ADDRESS = process.env.TEST_RELAY_ADDRESS || "onboarding@resend.dev";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export async function POST(req: Request) {
@@ -198,9 +203,39 @@ export async function POST(req: Request) {
     subject,
     html,
   });
-  return result.ok
-    ? NextResponse.json({ sent: true, to, variant: content.variant })
-    : NextResponse.json(
+  if (result.ok)
+    return NextResponse.json({ sent: true, to, variant: content.variant });
+
+  // Before the sending domain is verified the provider refuses the real
+  // from-address. A test is for reading the email, not for proving the
+  // domain, so send it from the provider's own test address instead —
+  // same content, same name, same links. Real sends are untouched: they
+  // wait for the domain, as they must.
+  if (/not verified|domain is not/i.test(result.error ?? "")) {
+    const relayed = await sendEmail({
+      from: `${from.name} (via Intendrix) <${TEST_RELAY_ADDRESS}>`,
+      to,
+      replyTo: from.replyTo,
+      subject,
+      html,
+    });
+    if (relayed.ok)
+      return NextResponse.json({
+        sent: true,
+        to,
+        variant: content.variant,
+        note: `Sent from the test address — ${from.address.split("@")[1]} is not verified with the provider yet, so real lessons still cannot go out.`,
+      });
+    return NextResponse.json(
+      {
+        sent: false,
+        reason: `${from.address.split("@")[1]} is not verified with the provider yet, and the test address failed too — ${relayed.error ?? "unknown error"}`,
+      },
+      { status: 502 }
+    );
+  }
+
+  return NextResponse.json(
         { sent: false, reason: result.error ?? "unknown error" },
         { status: 502 }
       );

@@ -89,11 +89,13 @@ function TestSendButton({
 }) {
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
 
   const send = async () => {
     if (state === "sending") return;
     setState("sending");
     setError(null);
+    setNote(null);
     try {
       const res = await fetch("/api/test-email", {
         method: "POST",
@@ -107,7 +109,8 @@ function TestSendButton({
       const out = await res.json();
       if (out.sent) {
         setState("sent");
-        setTimeout(() => setState("idle"), 6000);
+        setNote(out.note ?? null);
+        setTimeout(() => setState("idle"), 8000);
       } else {
         setState("idle");
         // say what actually went wrong — guessing costs more time than it saves
@@ -136,8 +139,9 @@ function TestSendButton({
             : "Send me a test"}
       </button>
       {error && (
-        <span className="text-[11px] font-semibold text-[#ff7a55]">{error}</span>
+        <span className="max-w-md text-[11px] font-semibold text-[#ff7a55]">{error}</span>
       )}
+      {note && <span className="max-w-md text-[11px] text-mist">{note}</span>}
     </span>
   );
 }
