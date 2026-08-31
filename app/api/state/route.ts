@@ -83,7 +83,7 @@ export async function GET(req: Request) {
                 phoenix_leader_id, phoenix_coach_id, project_manager_id,
                 space_url, invite_url
            from clients order by created_at, id`),
-      q(`select id, client_id, name, email, role, title
+      q(`select id, client_id, name, first_name, last_name, email, role, title
            from members order by created_at, id`),
       q(`select id, client_id, template_id, code, name, timezone,
                 status_override, sender_member_id, shadow_emails,
@@ -109,7 +109,8 @@ export async function GET(req: Request) {
                 to_char(send_time, 'HH24:MI') as send_time
            from series_steps order by series_template_id, sort_order, created_at`),
       q(`select id, step_id, variant, email_subject, email_body,
-                lesson_label, lesson_url, team_meeting, note
+                lesson_label, lesson_url, attachment_label, attachment_url,
+                team_meeting, note
            from step_contents`),
       q(`select step_content_id, label, url
            from step_links order by sort_order, id`),
@@ -132,6 +133,9 @@ export async function GET(req: Request) {
         emailBody: c.email_body,
         ...(c.lesson_label || c.lesson_url
           ? { lesson: { label: c.lesson_label ?? "", url: c.lesson_url } }
+          : {}),
+        ...(c.attachment_label || c.attachment_url
+          ? { attachment: { label: c.attachment_label ?? "Attachment", url: c.attachment_url } }
           : {}),
         ...(extras && extras.length ? { extras } : {}),
         ...(c.team_meeting ? { teamMeeting: c.team_meeting } : {}),
@@ -242,6 +246,8 @@ export async function GET(req: Request) {
       list.push({
         id: m.id,
         name: m.name,
+        ...(m.first_name ? { firstName: m.first_name } : {}),
+        ...(m.last_name ? { lastName: m.last_name } : {}),
         email: m.email,
         role: m.role,
         ...(m.title ? { title: m.title } : {}),

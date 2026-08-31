@@ -22,6 +22,7 @@ import {
 import type {
   Campaign,
   CampaignSession,
+  Member,
   CampaignTemplate,
   AppRole,
   ClientAssignmentRole,
@@ -151,9 +152,17 @@ export type Action =
       id?: string;
       clientId: string;
       name: string;
+      firstName?: string;
+      lastName?: string;
       title: string;
       email: string;
       role: MemberRole;
+    }
+  | {
+      type: "updateMember";
+      clientId: string;
+      memberId: string;
+      patch: Partial<Pick<Member, "firstName" | "lastName" | "title" | "email" | "role">>;
     }
   | { type: "removeMember"; clientId: string; memberId: string }
   // campaigns
@@ -462,11 +471,25 @@ function reducer(db: DB, action: Action): DB {
           {
             id: action.id ?? uid("member"),
             name: action.name,
+            firstName: action.firstName,
+            lastName: action.lastName,
             title: action.title,
             email: action.email,
             role: action.role,
           },
         ],
+      }));
+
+    case "updateMember":
+      return mapClient(db, action.clientId, (c) => ({
+        ...c,
+        members: c.members.map((m) => {
+          if (m.id !== action.memberId) return m;
+          const next = { ...m, ...action.patch };
+          // the display name follows its parts
+          next.name = [next.firstName, next.lastName].filter(Boolean).join(" ") || m.name;
+          return next;
+        }),
       }));
 
     case "removeMember":

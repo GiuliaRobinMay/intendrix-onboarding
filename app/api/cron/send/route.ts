@@ -91,7 +91,7 @@ export async function GET(req: Request) {
       q(`select id, client_id, code, name, timezone, status_override,
                 sender_member_id, shadow_emails from campaigns`),
       q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
-      q(`select id, client_id, name, email, role, title from members`),
+      q(`select id, client_id, name, first_name, email, role, title from members`),
       q(`select id, name, email, role_title, signature from staff`),
       q(`select campaign_id, series_template_id, trigger_session_id
            from campaign_series order by campaign_id, sort_order, created_at`),
@@ -100,7 +100,8 @@ export async function GET(req: Request) {
                 to_char(send_time, 'HH24:MI') as send_time
            from series_steps order by series_template_id, sort_order, created_at`),
       q(`select id, step_id, variant, email_subject, email_body,
-                lesson_label, lesson_url, team_meeting from step_contents`),
+                lesson_label, lesson_url, attachment_label, attachment_url,
+                team_meeting from step_contents`),
       q(`select step_content_id, label, url from step_links order by sort_order`),
       q(`select campaign_id, step_id, member_id, shadow_to from email_sends`),
       q(`select value from app_settings where key = 'signatureLogoUrl'`).catch(() => []),
@@ -310,7 +311,8 @@ export async function GET(req: Request) {
             continue;
           }
           const merge = {
-            firstName: String(member.name ?? "").trim().split(/\s+/)[0],
+            firstName:
+              member.first_name || String(member.name ?? "").trim().split(/\s+/)[0],
             name: member.name,
             client: clientById.get(campaign.client_id)?.name,
             sender: from.name,
@@ -336,6 +338,12 @@ export async function GET(req: Request) {
             replyTo: from.replyTo,
             subject: personalize(content.email_subject || step.title, merge),
             html,
+            attachments: content.attachment_url
+              ? [{
+                  filename: content.attachment_label || "attachment.pdf",
+                  path: content.attachment_url,
+                }]
+              : undefined,
           });
           await logRow(campaign, step.id, member.id, variant, sender?.id ?? null,
             localDate, time, result.ok ? "sent" : "failed",
@@ -395,6 +403,12 @@ export async function GET(req: Request) {
               content.email_subject || step.title
             }`,
             html,
+            attachments: content.attachment_url
+              ? [{
+                  filename: content.attachment_label || "attachment.pdf",
+                  path: content.attachment_url,
+                }]
+              : undefined,
           });
           await logRow(campaign, step.id, null, "participant",
             sender?.id ?? null, localDate, time,

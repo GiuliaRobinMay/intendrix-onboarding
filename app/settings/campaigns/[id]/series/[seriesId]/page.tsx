@@ -11,6 +11,7 @@ import {
   Crown,
   ExternalLink,
   Mail,
+  Paperclip,
   Plus,
   Trash2,
   TriangleAlert,
@@ -136,6 +137,52 @@ function VariantEditor({
       </p>
       <div className="mt-3 flex flex-col gap-1.5">
         <LessonLinkEditor content={content} onPatch={onPatch} />
+        {content.attachment ? (
+          <div className="rounded-md bg-white/5 px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5">
+              <Paperclip size={12} className="shrink-0 text-mist" />
+              <EditableText
+                value={content.attachment.label}
+                placeholder="File name, e.g. Leaders Guide.pdf"
+                onCommit={(v) =>
+                  onPatch({ attachment: { ...content.attachment!, label: v } })
+                }
+                className="text-xs font-medium"
+              />
+              <button
+                data-tip="Remove the attachment from this email"
+                onClick={() => onPatch({ attachment: null })}
+                className="ml-auto shrink-0 cursor-pointer rounded p-0.5 text-mist/60 hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+            <EditableText
+              value={content.attachment.url ?? ""}
+              placeholder="Direct https link to the file…"
+              onCommit={(v) =>
+                onPatch({ attachment: { ...content.attachment!, url: v.trim() || null } })
+              }
+              className={`mt-0.5 text-[11px] ${content.attachment.url ? "text-mist/70" : "text-[#ff7a55]"}`}
+            />
+            {content.attachment.url && !content.attachment.url.startsWith("https://") && (
+              <p className="mt-1 text-[10px] font-semibold text-[#ff7a55]">
+                The link must start with https:// and point straight at the
+                file — a share page won&rsquo;t attach.
+              </p>
+            )}
+          </div>
+        ) : (
+          <button
+            data-tip="Attach one file to this email — paste a direct link, the file itself travels with the message"
+            onClick={() =>
+              onPatch({ attachment: { label: "", url: null } })
+            }
+            className="flex w-fit cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-mist/60 transition-colors hover:text-paper"
+          >
+            <Paperclip size={11} /> Add an attachment
+          </button>
+        )}
         {content.extras?.map((x) =>
           x.url ? (
             <a

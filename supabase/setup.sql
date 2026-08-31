@@ -13,6 +13,8 @@
 --   supabase/migrations/0005_email_personalisation.sql
 --   supabase/migrations/0006_app_settings.sql
 --   supabase/migrations/0007_custom_triggers.sql
+--   supabase/migrations/0008_attachments.sql
+--   supabase/migrations/0009_member_names.sql
 --   supabase/seed.sql
 -- ============================================================
 
@@ -604,6 +606,45 @@ alter table campaign_sessions
 comment on column series_templates.trigger_kind is
   'The session that usually starts this series. Standard: orientation, workshop, coaching1, coaching2, launch — or any custom name, e.g. "Pre-Planning Session".';
 
+-- Intendrix — one attachment per lesson email
+--
+-- Some lessons travel with a file — a workbook, a Leaders Guide as PDF.
+-- Each email variant can carry one attachment: a display name and the
+-- direct link to the file. The engine hands the link to the email
+-- provider, which fetches the file and attaches it to the message.
+--
+-- The link must point straight at the file (a share page is not a file).
+
+alter table step_contents
+  add column if not exists attachment_label text,
+  add column if not exists attachment_url   text;
+
+comment on column step_contents.attachment_url is
+  'Direct https link to the file this email carries as an attachment. Null = no attachment.';
+
+-- Intendrix — members get a first and a last name
+--
+-- {{first_name}} in an email should never be guesswork. The single name
+-- field becomes first + last; existing rows are split on the first space
+-- ("Lindsay Mann-Shanahan" → Lindsay / Mann-Shanahan). The joined name
+-- column stays — it is what lists and logs display — and the app keeps
+-- it in step whenever a part changes.
+
+alter table members
+  add column if not exists first_name text,
+  add column if not exists last_name  text;
+
+update members
+   set first_name = coalesce(first_name, nullif(split_part(name, ' ', 1), '')),
+       last_name  = coalesce(
+         last_name,
+         nullif(btrim(substr(name, length(split_part(name, ' ', 1)) + 1)), '')
+       )
+ where first_name is null or last_name is null;
+
+comment on column members.first_name is
+  'What {{first_name}} in a lesson email becomes for this person.';
+
 -- ═══ seed data ═══
 
 -- Intendrix Team Backend — seed data
@@ -864,3 +905,14 @@ insert into campaign_series (id, campaign_id, series_template_id, trigger_sessio
 insert into campaign_series (id, campaign_id, series_template_id, trigger_session_id, sort_order) values ('zumbro-tle-e-pcs1', 'zumbro-tle-e', 'pcs1', 'zv-s3', 2) on conflict (campaign_id, series_template_id) do nothing;
 insert into campaign_series (id, campaign_id, series_template_id, trigger_session_id, sort_order) values ('zumbro-tle-e-pcs2', 'zumbro-tle-e', 'pcs2', 'zv-s4', 3) on conflict (campaign_id, series_template_id) do nothing;
 insert into campaign_series (id, campaign_id, series_template_id, trigger_session_id, sort_order) values ('zumbro-tle-e-pls', 'zumbro-tle-e', 'pls', 'zv-s5', 4) on conflict (campaign_id, series_template_id) do nothing;
+
+
+-- ═══ after the seed: split the seeded names too ═══
+
+update members
+   set first_name = coalesce(first_name, nullif(split_part(name, ' ', 1), '')),
+       last_name  = coalesce(
+         last_name,
+         nullif(btrim(substr(name, length(split_part(name, ' ', 1)) + 1)), '')
+       )
+ where first_name is null or last_name is null;

@@ -94,7 +94,7 @@ export async function POST(req: Request) {
   const wanted = variant === "leader" ? "leader" : "participant";
   const { rows: contents } = await pool.query(
     `select id, variant, email_subject, email_body, lesson_label, lesson_url,
-            team_meeting
+            attachment_label, attachment_url, team_meeting
        from step_contents where step_id = $1`,
     [stepId]
   );
@@ -201,12 +201,19 @@ export async function POST(req: Request) {
       preview: { to, from: `${from.name} <${from.address}>`, subject },
     });
 
+  const attachments = content.attachment_url
+    ? [{
+        filename: content.attachment_label || "attachment.pdf",
+        path: content.attachment_url,
+      }]
+    : undefined;
   const result = await sendEmail({
     from: `${from.name} <${from.address}>`,
     to,
     replyTo: from.replyTo,
     subject,
     html,
+    attachments,
   });
   if (result.ok)
     return NextResponse.json({ sent: true, to, variant: content.variant });
@@ -223,6 +230,7 @@ export async function POST(req: Request) {
       replyTo: from.replyTo,
       subject,
       html,
+      attachments,
     });
     if (relayed.ok)
       return NextResponse.json({

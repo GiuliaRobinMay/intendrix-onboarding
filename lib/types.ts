@@ -27,6 +27,9 @@ export interface StepContent {
   lesson?: LessonLink;
   /** Leaders Guides and other extra links (leader variant only, usually) */
   extras?: LessonLink[];
+  /** one file this email carries — label + a direct https link.
+   *  null clears it; the provider fetches and attaches the file. */
+  attachment?: LessonLink | null;
   /** TEAM MEETING instruction embedded in this send, if any */
   teamMeeting?: string;
   /** production note / open item */
@@ -77,7 +80,10 @@ export type MemberRole = "leader" | "participant" | "coach";
 
 export interface Member {
   id: string;
+  /** first + last joined — what lists display */
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   role: MemberRole;
   title?: string;

@@ -199,7 +199,8 @@ function ResponsiblesCard({ client }: { client: Client }) {
 
 function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () => void }) {
   const { dispatch } = useData();
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [title, setTitle] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MemberRole>("participant");
@@ -207,9 +208,12 @@ function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () =>
   return (
     <div className="mb-4 rounded-md border border-white/10 p-4">
       <div className="grid gap-3">
-        <Field label="Name" value={name} onChange={setName} placeholder="Full name" />
-        <Field label="Title" value={title} onChange={setTitle} placeholder="e.g. COO" />
-        <Field label="Email" value={email} onChange={setEmail} placeholder="name@org.com" type="email" />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="First name" value={firstName} onChange={setFirstName} placeholder="" />
+          <Field label="Last name" value={lastName} onChange={setLastName} placeholder="" />
+        </div>
+        <Field label="Title" value={title} onChange={setTitle} placeholder="" />
+        <Field label="Email" value={email} onChange={setEmail} placeholder="" type="email" />
         <label className="block">
           <span className="text-[11px] font-medium text-mist">
             Series
@@ -229,8 +233,19 @@ function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () =>
       <div className="mt-3 flex gap-2">
         <GradientButton
           onClick={() => {
-            if (!name.trim()) return;
-            dispatch({ type: "addMember", clientId, name: name.trim(), title, email, role });
+            const first = firstName.trim();
+            const last = lastName.trim();
+            if (!first && !last) return;
+            dispatch({
+              type: "addMember",
+              clientId,
+              name: [first, last].filter(Boolean).join(" "),
+              firstName: first,
+              lastName: last,
+              title,
+              email: email.trim(),
+              role,
+            });
             onClose();
           }}
         >
@@ -532,23 +547,87 @@ export default function ClientDetailPage() {
                     .join("")}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
-                    {m.name}
+                  <p className="flex items-center gap-1 text-sm font-semibold">
+                    <EditableText
+                      value={m.firstName ?? m.name}
+                      placeholder="First"
+                      onCommit={(v) =>
+                        dispatch({
+                          type: "updateMember",
+                          clientId: client.id,
+                          memberId: m.id,
+                          patch: { firstName: v.trim() },
+                        })
+                      }
+                      className="text-sm font-semibold"
+                    />
+                    <EditableText
+                      value={m.lastName ?? ""}
+                      placeholder="Last"
+                      onCommit={(v) =>
+                        dispatch({
+                          type: "updateMember",
+                          clientId: client.id,
+                          memberId: m.id,
+                          patch: { lastName: v.trim() },
+                        })
+                      }
+                      className="text-sm font-semibold"
+                    />
                     {m.role === "leader" && (
                       <span data-tip="Receives the Leader series, with the Leaders Guides">
                         <Crown size={12} className="shrink-0 text-[#ff7a55]" />
                       </span>
                     )}
                   </p>
-                  <p className="truncate text-[11px] text-mist">{m.title}</p>
+                  <div className="flex items-center gap-1 text-[11px] text-mist">
+                    <EditableText
+                      value={m.title ?? ""}
+                      placeholder="Title"
+                      onCommit={(v) =>
+                        dispatch({
+                          type: "updateMember",
+                          clientId: client.id,
+                          memberId: m.id,
+                          patch: { title: v.trim() },
+                        })
+                      }
+                      className="text-[11px] text-mist"
+                    />
+                    <span>·</span>
+                    <EditableText
+                      value={m.email}
+                      placeholder="email@company.com"
+                      onCommit={(v) =>
+                        v.includes("@") &&
+                        dispatch({
+                          type: "updateMember",
+                          clientId: client.id,
+                          memberId: m.id,
+                          patch: { email: v.trim() },
+                        })
+                      }
+                      className="text-[11px] text-mist"
+                    />
+                  </div>
                 </div>
-                <span className="shrink-0 text-[10px] font-medium text-mist/70 group-hover:hidden">
-                  {m.role === "leader"
-                    ? "Leader series"
-                    : m.role === "coach"
-                      ? "Coach"
-                      : "Participant"}
-                </span>
+                <select
+                  data-tip="Which series they receive — Leader gets the Leaders Guides, Coach gets a copy of every send"
+                  value={m.role}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "updateMember",
+                      clientId: client.id,
+                      memberId: m.id,
+                      patch: { role: e.target.value as MemberRole },
+                    })
+                  }
+                  className="shrink-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-[10px] font-medium text-mist/70 transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:outline-none"
+                >
+                  <option value="participant">Participant</option>
+                  <option value="leader">Leader series</option>
+                  <option value="coach">Coach</option>
+                </select>
                 <button
                   data-tip="Remove this member"
                   onClick={async () => {

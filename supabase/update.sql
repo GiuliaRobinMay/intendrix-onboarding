@@ -124,6 +124,40 @@ comment on column series_templates.trigger_kind is
   'The session that usually starts this series. Standard: orientation, workshop, coaching1, coaching2, launch — or any custom name, e.g. "Pre-Planning Session".';
 
 
+-- ——— attachments ————————————————————————————————————————
+--
+-- Each lesson email can carry one file: a name and the direct link
+-- the provider fetches and attaches.
+
+alter table step_contents
+  add column if not exists attachment_label text,
+  add column if not exists attachment_url   text;
+
+comment on column step_contents.attachment_url is
+  'Direct https link to the file this email carries as an attachment. Null = no attachment.';
+
+
+-- ——— first and last names ————————————————————————————————
+--
+-- Members get first_name + last_name; existing rows are split on
+-- the first space. {{first_name}} stops being guesswork.
+
+alter table members
+  add column if not exists first_name text,
+  add column if not exists last_name  text;
+
+update members
+   set first_name = coalesce(first_name, nullif(split_part(name, ' ', 1), '')),
+       last_name  = coalesce(
+         last_name,
+         nullif(btrim(substr(name, length(split_part(name, ' ', 1)) + 1)), '')
+       )
+ where first_name is null or last_name is null;
+
+comment on column members.first_name is
+  'What {{first_name}} in a lesson email becomes for this person.';
+
+
 -- ——— check it landed ——————————————————————————————————————
 -- Expect seven rows.
 

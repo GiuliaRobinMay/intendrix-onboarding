@@ -16,10 +16,12 @@ import {
   Plus,
   Trash2,
   Video,
+  X,
 } from "lucide-react";
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { TestSendButton } from "@/components/test-send";
+import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
 import {
@@ -124,7 +126,11 @@ export default function CampaignDetailPage() {
   const [seriesOverIndex, setSeriesOverIndex] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [addingMember, setAddingMember] = useState(false);
-  const [newMember, setNewMember] = useState({ name: "", title: "", email: "" });
+  // a just-clicked + renders an empty row; the record is only created
+  // once a person is actually chosen
+  const [pendingClientRow, setPendingClientRow] = useState(false);
+  const [pendingPhoenixRow, setPendingPhoenixRow] = useState(false);
+  const [newMember, setNewMember] = useState({ first: "", last: "", title: "", email: "" });
   const [sessionView, setSessionView] = useState<"gallery" | "list">("gallery");
   // set after a session is rescheduled, offering to carry the rest along
   const [shift, setShift] = useState<{
@@ -453,18 +459,15 @@ export default function CampaignDetailPage() {
         {/* Phoenix side */}
         <section className="card p-5">
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-base font-bold">Phoenix team</h2>
+            <h2 className="text-base font-bold">
+              Phoenix team{" "}
+              <span className="text-sm font-medium text-mist">
+                ({campaign.phoenixTeam.length})
+              </span>
+            </h2>
             <button
               data-tip="Add a Phoenix collaborator to this campaign"
-              onClick={() =>
-                dispatch({
-                  type: "addPhoenixAssignment",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  staffId: team[0]?.id ?? "",
-                  role: "phoenix_coach",
-                })
-              }
+              onClick={() => setPendingPhoenixRow(true)}
               className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
             >
               <Plus size={14} />
@@ -552,7 +555,45 @@ export default function CampaignDetailPage() {
                 </div>
               );
             })}
-            {campaign.phoenixTeam.length === 0 && (
+            {pendingPhoenixRow && (
+              <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+                <select
+                  autoFocus
+                  data-tip="Choose who joins this campaign — nothing is saved until you do"
+                  value=""
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    dispatch({
+                      type: "addPhoenixAssignment",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                      staffId: e.target.value,
+                      role: "phoenix_coach",
+                    });
+                    setPendingPhoenixRow(false);
+                  }}
+                  className="min-w-0 cursor-pointer rounded border border-white/20 bg-navy/60 px-1 py-1 text-xs focus:border-white/30 focus:outline-none"
+                >
+                  <option value="">— choose a person —</option>
+                  {[...team]
+                    .sort((x, y) => x.name.localeCompare(y.name))
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                </select>
+                <span className="text-xs text-mist/50">then pick a role</span>
+                <button
+                  data-tip="Never mind"
+                  onClick={() => setPendingPhoenixRow(false)}
+                  className="cursor-pointer justify-self-end rounded p-1 text-mist/60 hover:bg-white/10 hover:text-paper"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+            {campaign.phoenixTeam.length === 0 && !pendingPhoenixRow && (
               <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
                 No one assigned yet — the client defaults apply
                 {(() => {
@@ -574,7 +615,12 @@ export default function CampaignDetailPage() {
         {/* Client side — same system */}
         <section className="card p-5">
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-base font-bold">Client team</h2>
+            <h2 className="text-base font-bold">
+              Client team{" "}
+              <span className="text-sm font-medium text-mist">
+                ({campaign.clientTeam.length})
+              </span>
+            </h2>
             <button
               data-tip={
                 client.members.length === 0
@@ -584,17 +630,8 @@ export default function CampaignDetailPage() {
               onClick={() => {
                 // no members yet? then the person has to be created first,
                 // right here — sending you to another page loses your place
-                if (client.members.length === 0) {
-                  setAddingMember(true);
-                  return;
-                }
-                dispatch({
-                  type: "addClientAssignment",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  memberId: client.members[0].id,
-                  role: "contact",
-                });
+                if (client.members.length === 0) setAddingMember(true);
+                else setPendingClientRow(true);
               }}
               className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
             >
@@ -607,49 +644,47 @@ export default function CampaignDetailPage() {
           </p>
 
           {campaign.clientTeam.length > 0 && (
-            <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+            <div className="grid grid-cols-[1.4rem_minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+              <span>#</span>
               <span>Name</span>
               <span>Role</span>
               <span />
             </div>
           )}
           <div className="flex flex-col">
+            {/* about five rows tall; the rest scrolls */}
+            <div className="flex max-h-[11.5rem] flex-col overflow-y-auto pr-1">
             {[...campaign.clientTeam]
               .sort((x, y) => {
                 const nx = client.members.find((m) => m.id === x.memberId)?.name ?? "";
                 const ny = client.members.find((m) => m.id === y.memberId)?.name ?? "";
                 return nx.localeCompare(ny);
               })
-              .map((a) => {
+              .map((a, rowIndex) => {
               const member = client.members.find((m) => m.id === a.memberId);
               return (
                 <div
                   key={a.id}
-                  className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
+                  className="grid grid-cols-[1.4rem_minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                 >
-                  <select
-                    title="Which member of the client"
+                  <span className="text-[11px] tabular-nums text-mist/60">
+                    {rowIndex + 1}
+                  </span>
+                  <MemberPicker
+                    tip="Which member of the client — type to search"
+                    members={client.members}
+                    excludeIds={campaign.clientTeam.map((x) => x.memberId)}
                     value={a.memberId}
-                    onChange={(e) =>
+                    onPick={(memberId) =>
                       dispatch({
                         type: "updateClientAssignment",
                         clientId: client.id,
                         campaignId: campaign.id,
                         assignmentId: a.id,
-                        patch: { memberId: e.target.value },
+                        patch: { memberId },
                       })
                     }
-                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
-                  >
-                    {[...client.members]
-                      .sort((x, y) => x.name.localeCompare(y.name))
-                      .map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
-                          {m.title ? ` — ${m.title}` : ""}
-                        </option>
-                      ))}
-                  </select>
+                  />
                   <select
                     title="Their role on this campaign"
                     value={a.role}
@@ -691,7 +726,37 @@ export default function CampaignDetailPage() {
                 </div>
               );
             })}
-            {campaign.clientTeam.length === 0 && !addingMember && (
+            </div>
+            {pendingClientRow && (
+              <div className="grid grid-cols-[1.4rem_minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+                <span className="text-[11px] tabular-nums text-mist/40">+</span>
+                <MemberPicker
+                  tip="Choose who joins this campaign — nothing is saved until you do"
+                  members={client.members}
+                  excludeIds={campaign.clientTeam.map((x) => x.memberId)}
+                  value=""
+                  onPick={(memberId) => {
+                    dispatch({
+                      type: "addClientAssignment",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                      memberId,
+                      role: "contact",
+                    });
+                    setPendingClientRow(false);
+                  }}
+                />
+                <span className="text-xs text-mist/50">as team member</span>
+                <button
+                  data-tip="Never mind"
+                  onClick={() => setPendingClientRow(false)}
+                  className="cursor-pointer justify-self-end rounded p-1 text-mist/60 hover:bg-white/10 hover:text-paper"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+            {campaign.clientTeam.length === 0 && !addingMember && !pendingClientRow && (
               <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
                 No one assigned yet — add the Client Transformational Champion
                 with the + above.
@@ -702,15 +767,23 @@ export default function CampaignDetailPage() {
                 one step — no detour to the client page. */}
             {addingMember && (
               <div className="rounded-md border border-white/10 bg-white/3 p-3">
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   <input
                     autoFocus
-                    value={newMember.name}
+                    value={newMember.first}
                     onChange={(e) =>
-                      setNewMember({ ...newMember, name: e.target.value })
+                      setNewMember({ ...newMember, first: e.target.value })
                     }
-                    placeholder="Full name"
-                    data-tip="How their name appears on the campaign and in the emails they send"
+                    placeholder="First name"
+                    data-tip="What {{first_name}} in their emails becomes"
+                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                  />
+                  <input
+                    value={newMember.last}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, last: e.target.value })
+                    }
+                    placeholder="Last name"
                     className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
                   />
                   <input
@@ -735,20 +808,23 @@ export default function CampaignDetailPage() {
                 </div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <button
-                    disabled={!newMember.name.trim()}
+                    disabled={!newMember.first.trim() && !newMember.last.trim()}
                     data-tip="Adds them to this client and puts them on this campaign as a team member"
                     onClick={() => {
-                      const name = newMember.name.trim();
-                      if (!name) return;
+                      const first = newMember.first.trim();
+                      const last = newMember.last.trim();
+                      if (!first && !last) return;
                       const memberId = `member-${Math.random().toString(36).slice(2, 9)}`;
                       dispatch({
                         type: "addMember",
                         id: memberId,
                         clientId: client.id,
-                        name,
+                        name: [first, last].filter(Boolean).join(" "),
+                        firstName: first,
+                        lastName: last,
                         title: newMember.title.trim(),
                         email: newMember.email.trim(),
-                        role: "leader",
+                        role: "participant",
                       });
                       dispatch({
                         type: "addClientAssignment",
@@ -757,7 +833,7 @@ export default function CampaignDetailPage() {
                         memberId,
                         role: "contact",
                       });
-                      setNewMember({ name: "", title: "", email: "" });
+                      setNewMember({ first: "", last: "", title: "", email: "" });
                       setAddingMember(false);
                     }}
                     className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"

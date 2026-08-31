@@ -15,6 +15,8 @@ export interface OutgoingEmail {
   replyTo?: string;
   subject: string;
   html: string;
+  /** files the provider fetches and attaches — direct https links only */
+  attachments?: Array<{ filename: string; path: string }>;
 }
 
 export async function sendEmail(
@@ -34,6 +36,7 @@ export async function sendEmail(
         reply_to: mail.replyTo,
         subject: mail.subject,
         html: mail.html,
+        ...(mail.attachments?.length ? { attachments: mail.attachments } : {}),
       }),
     });
     if (!res.ok) {

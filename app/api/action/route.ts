@@ -136,9 +136,27 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       return;
     case "addMember":
       await tx.query(
-        `insert into members (id, client_id, name, title, email, role)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [a.id, a.clientId, a.name, a.title || null, a.email, a.role]
+        `insert into members (id, client_id, name, first_name, last_name, title, email, role)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [a.id, a.clientId, a.name, a.firstName ?? null, a.lastName ?? null,
+         a.title || null, a.email, a.role]
+      );
+      return;
+    case "updateMember":
+      await patchRow(tx, "members", a.memberId, a.patch, {
+        firstName: "first_name",
+        lastName: "last_name",
+        title: "title",
+        email: "email",
+        role: "role",
+      });
+      // the display name follows its parts
+      await tx.query(
+        `update members
+            set name = btrim(coalesce(first_name, '') || ' ' || coalesce(last_name, ''))
+          where id = $1
+            and btrim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')) <> ''`,
+        [a.memberId]
       );
       return;
     case "removeMember":
@@ -427,11 +445,17 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         patch.lessonLabel = p.lesson?.label ?? null;
         patch.lessonUrl = p.lesson?.url ?? null;
       }
+      if ("attachment" in p) {
+        patch.attachmentLabel = p.attachment?.label ?? null;
+        patch.attachmentUrl = p.attachment?.url ?? null;
+      }
       await patchRow(tx, "step_contents", contentId, patch, {
         emailSubject: "email_subject",
         emailBody: "email_body",
         lessonLabel: "lesson_label",
         lessonUrl: "lesson_url",
+        attachmentLabel: "attachment_label",
+        attachmentUrl: "attachment_url",
         teamMeeting: "team_meeting",
         note: "note",
       });

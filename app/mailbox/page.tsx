@@ -6,6 +6,7 @@ import {
   Crown,
   ExternalLink,
   Inbox,
+  Paperclip,
   Search,
   TriangleAlert,
   Users,
@@ -43,7 +44,7 @@ const DOT: Record<SendStatus, { color: string; tip: string }> = {
 };
 
 function ContentLinks({ content }: { content: StepContent }) {
-  if (!content.lesson && !content.extras?.length) return null;
+  if (!content.lesson && !content.extras?.length && !content.attachment) return null;
   return (
     <div className="flex flex-wrap gap-1.5">
       {content.lesson &&
@@ -61,6 +62,22 @@ function ContentLinks({ content }: { content: StepContent }) {
             <TriangleAlert size={11} /> {content.lesson.label} — link missing
           </span>
         ))}
+      {content.attachment && (
+        <span
+          data-tip={
+            content.attachment.url
+              ? "This file travels with the email as an attachment"
+              : "Attachment named but its link is missing — it will NOT be attached"
+          }
+          className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium ${
+            content.attachment.url
+              ? "bg-white/5 text-mist"
+              : "bg-[#eb320f]/15 font-semibold text-[#ff7a55]"
+          }`}
+        >
+          <Paperclip size={11} /> {content.attachment.label}
+        </span>
+      )}
       {content.extras?.map((x) =>
         x.url ? (
           <a
