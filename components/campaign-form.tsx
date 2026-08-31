@@ -49,6 +49,7 @@ export function NewCampaignForm({
         <h2 className="text-base font-bold">New campaign</h2>
         <button
           onClick={onClose}
+          data-tip="Close without creating the campaign"
           className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
         >
           <X size={16} />
@@ -65,6 +66,7 @@ export function NewCampaignForm({
           return (
             <button
               key={ct.id}
+              data-tip={`Start from ${ct.name} — its series and sessions come with it`}
               onClick={() => chooseTemplate(ct.id)}
               className={`cursor-pointer rounded-md px-3.5 py-2 text-left text-xs font-bold ${
                 on ? "brand-gradient-soft" : "bg-white/6 text-mist"
@@ -76,6 +78,7 @@ export function NewCampaignForm({
           );
         })}
         <button
+          data-tip="Start with nothing — add the sessions and series by hand afterwards"
           onClick={() => {
             setTemplateId("");
             setPicked([]);
@@ -106,6 +109,7 @@ export function NewCampaignForm({
       <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-sm">
         <input
           type="checkbox"
+          data-tip="Orientation, Workshop, two Coaching Sessions and a Launch Session, ready to be dated"
           checked={withStandardSessions}
           onChange={(e) => setWithStandard(e.target.checked)}
           className="size-4 cursor-pointer accent-[#eb320f]"
@@ -130,6 +134,7 @@ export function NewCampaignForm({
               return (
                 <button
                   key={t.id}
+                  data-tip={`${t.name} — ${t.steps.length} lessons, usually triggered by the ${t.triggerLabel}. Click to include or leave out.`}
                   onClick={() => toggle(t.id)}
                   className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold"
                   style={

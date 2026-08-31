@@ -186,6 +186,7 @@ export default function CampaignsPage() {
               Client
             </span>
             <select
+              data-tip="Which client this new campaign belongs to"
               value={creatingFor}
               onChange={(e) => setCreatingFor(e.target.value)}
               className="rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"

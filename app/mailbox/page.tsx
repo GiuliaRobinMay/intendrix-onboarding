@@ -7,12 +7,11 @@ import {
   ExternalLink,
   Inbox,
   Search,
-  SendHorizonal,
   TriangleAlert,
   Users,
   X,
 } from "lucide-react";
-import { authHeaders } from "@/lib/supabase-browser";
+import { TestSendButton } from "@/components/test-send";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
 import { useData } from "@/lib/state";
 import {
@@ -76,73 +75,6 @@ function ContentLinks({ content }: { content: StepContent }) {
         ) : null
       )}
     </div>
-  );
-}
-
-/** Send this exact email to yourself before it goes to anybody else. */
-function TestSendButton({
-  item,
-  variant,
-}: {
-  item: MailboxItem;
-  variant: "participant" | "leader";
-}) {
-  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-
-  const send = async () => {
-    if (state === "sending") return;
-    setState("sending");
-    setError(null);
-    setNote(null);
-    try {
-      const res = await fetch("/api/test-email", {
-        method: "POST",
-        headers: { "content-type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({
-          campaignId: item.campaign.id,
-          stepId: item.step.id,
-          variant,
-        }),
-      });
-      const out = await res.json();
-      if (out.sent) {
-        setState("sent");
-        setNote(out.note ?? null);
-        setTimeout(() => setState("idle"), 8000);
-      } else {
-        setState("idle");
-        // say what actually went wrong — guessing costs more time than it saves
-        setError(out.reason ?? "unknown reason");
-      }
-    } catch {
-      setState("idle");
-      setError("could not reach the server");
-    }
-  };
-
-  return (
-    <span className="flex flex-wrap items-center gap-2">
-      <button
-        onClick={send}
-        disabled={state === "sending"}
-        data-tip="Sends this exact email to your own address — same sender, same links, marked as a test"
-        data-tip-pos="top"
-        className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:opacity-50"
-      >
-        <SendHorizonal size={13} />
-        {state === "sending"
-          ? "Sending…"
-          : state === "sent"
-            ? "Sent to you"
-            : "Send me a test"}
-      </button>
-      {error && (
-        <span className="max-w-md text-[11px] font-semibold text-[#ff7a55]">{error}</span>
-      )}
-      {note && <span className="max-w-md text-[11px] text-mist">{note}</span>}
-    </span>
   );
 }
 
@@ -285,7 +217,11 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
-        <TestSendButton item={item} variant={same ? "participant" : variant} />
+        <TestSendButton
+          campaignId={item.campaign.id}
+          stepId={item.step.id}
+          variant={same ? "participant" : variant}
+        />
         <Link
           href={`/campaigns/${item.campaign.id}`}
           data-tip="Go to this campaign's page"

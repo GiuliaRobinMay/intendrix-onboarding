@@ -94,6 +94,7 @@ function AddColleagueForm({
       <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
         <input
           type="checkbox"
+          data-tip="They get an email with a link to choose their own password"
           checked={invite}
           onChange={(e) => setInvite(e.target.checked)}
           className="mt-0.5 size-4 cursor-pointer accent-[#eb320f]"
@@ -194,6 +195,7 @@ function InviteClientAdminForm({
       <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
         <input
           type="checkbox"
+          data-tip="Leave this off to write them down now and invite them when the programme is ready"
           checked={invite}
           onChange={(e) => setInvite(e.target.checked)}
           className="mt-0.5 size-4 cursor-pointer accent-[#eb320f]"
@@ -336,6 +338,7 @@ function TeamRow({ person }: { person: StaffMember }) {
           </span>
           <textarea
             rows={3}
+            data-tip="Appears at the foot of every lesson this person sends. Leave it empty for their name and role."
             defaultValue={person.signature ?? ""}
             placeholder={`${person.name}\n${person.role}\nPhoenix Performance Partners`}
             onBlur={(e) => {

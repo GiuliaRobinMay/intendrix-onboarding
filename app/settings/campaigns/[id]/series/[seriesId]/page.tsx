@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import { Chip, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
+import { TestSendButton } from "@/components/test-send";
 import { useData, type Action } from "@/lib/state";
 import { MERGE_FIELDS } from "@/lib/merge";
 import type { SeriesStep, SeriesTemplate, StepContent } from "@/lib/types";
@@ -64,18 +66,43 @@ function VariantEditor({
   content,
   leader,
   onPatch,
+  testCampaignId,
+  stepId,
+  variantLabel,
 }: {
   label: string;
   content: StepContent;
   leader?: boolean;
   onPatch: (patch: Partial<StepContent>) => void;
+  /** the campaign a test goes out as; absent = no campaign uses this series */
+  testCampaignId?: string;
+  stepId: string;
+  variantLabel?: string;
 }) {
   return (
     <div className="rounded-md bg-white/3 p-4">
-      <p className="flex items-center gap-1.5 text-[11px] font-bold text-mist">
-        {leader ? <Crown size={12} className="text-[#ff7a55]" /> : <Users size={12} />}
-        {label}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-bold text-mist">
+          {leader ? <Crown size={12} className="text-[#ff7a55]" /> : <Users size={12} />}
+          {label}
+        </p>
+        {testCampaignId ? (
+          <TestSendButton
+            compact
+            campaignId={testCampaignId}
+            stepId={stepId}
+            variant={leader ? "leader" : "participant"}
+            variantLabel={variantLabel}
+          />
+        ) : (
+          <span
+            data-tip="No client campaign uses this series yet, so there is no sender to test as. Add the series to a campaign first."
+            className="cursor-help text-[11px] text-mist/50"
+          >
+            no test
+          </span>
+        )}
+      </div>
       <div className="mt-2 flex items-start gap-1.5">
         <Mail size={14} className="mt-1 shrink-0 text-mist" />
         <EditableText
@@ -141,12 +168,14 @@ function StepEditor({
   count,
   series,
   dispatch,
+  testCampaignId,
 }: {
   step: SeriesStep;
   index: number;
   count: number;
   series: SeriesTemplate;
   dispatch: (a: Action) => void;
+  testCampaignId?: string;
 }) {
   const sameContent = JSON.stringify(step.participant) === JSON.stringify(step.leader);
   const patchContent =
@@ -255,6 +284,8 @@ function StepEditor({
             label="Participant + Leader (identical)"
             content={step.participant}
             onPatch={patchContent("both")}
+            testCampaignId={testCampaignId}
+            stepId={step.id}
           />
         ) : (
           <>
@@ -262,12 +293,18 @@ function StepEditor({
               label="Participant series"
               content={step.participant}
               onPatch={patchContent("participant")}
+              testCampaignId={testCampaignId}
+              stepId={step.id}
+              variantLabel="Participant"
             />
             <VariantEditor
               label="Leader series"
               content={step.leader}
               leader
               onPatch={patchContent("leader")}
+              testCampaignId={testCampaignId}
+              stepId={step.id}
+              variantLabel="Leader"
             />
           </>
         )}
@@ -278,7 +315,16 @@ function StepEditor({
 
 export default function SeriesEditorPage() {
   const { id, seriesId } = useParams<{ id: string; seriesId: string }>();
-  const { campaignTemplates, templates, dispatch } = useData();
+  const { campaignTemplates, templates, clients, dispatch } = useData();
+  // A test needs a real campaign behind it — that is where the sender, the
+  // client name and the personalisation come from. Offer the campaigns
+  // that actually use this series.
+  const usingThis = clients.flatMap((c) =>
+    c.campaigns
+      .filter((cp) => cp.series.some((ls) => ls.templateId === seriesId))
+      .map((cp) => ({ id: cp.id, label: `${c.shortName} · ${cp.code}` }))
+  );
+  const [testCampaignId, setTestCampaignId] = useState(usingThis[0]?.id);
 
   const ct = campaignTemplates.find((t) => t.id === id);
   const series = templates.find((t) => t.id === seriesId);
@@ -312,9 +358,31 @@ export default function SeriesEditorPage() {
             Focus: {series.focus} — click any text to edit it.
           </p>
         </div>
-        <GhostButton onClick={() => dispatch({ type: "addStep", templateId: series.id })}>
-          + Add lesson
-        </GhostButton>
+        <div className="flex flex-wrap items-center gap-3">
+          {usingThis.length > 0 && (
+            <label className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-mist">Test as</span>
+              <select
+                data-tip="Which campaign a test send uses — it decides the sender, the client name and what the merge fields become"
+                value={testCampaignId ?? ""}
+                onChange={(e) => setTestCampaignId(e.target.value)}
+                className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
+              >
+                {usingThis.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <GhostButton
+            tip="Add a lesson at the end of this series"
+            onClick={() => dispatch({ type: "addStep", templateId: series.id })}
+          >
+            + Add lesson
+          </GhostButton>
+        </div>
       </div>
 
       <div className="card mb-6 flex flex-wrap items-center gap-x-8 gap-y-3 p-5 text-sm">
@@ -344,6 +412,7 @@ export default function SeriesEditorPage() {
             count={series.steps.length}
             series={series}
             dispatch={dispatch}
+            testCampaignId={testCampaignId}
           />
         ))}
       </ol>

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
+import { TestSendButton } from "@/components/test-send";
 import { daysBetweenIso, useData } from "@/lib/state";
 import {
   computeSchedule,
@@ -671,6 +672,7 @@ export default function CampaignDetailPage() {
                       setNewMember({ ...newMember, name: e.target.value })
                     }
                     placeholder="Full name"
+                    data-tip="How their name appears on the campaign and in the emails they send"
                     className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
                   />
                   <input
@@ -679,6 +681,7 @@ export default function CampaignDetailPage() {
                       setNewMember({ ...newMember, title: e.target.value })
                     }
                     placeholder="Job title"
+                    data-tip="Shown beside their name, and used as their role if they ever send the campaign's emails"
                     className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
                   />
                   <input
@@ -688,6 +691,7 @@ export default function CampaignDetailPage() {
                       setNewMember({ ...newMember, email: e.target.value })
                     }
                     placeholder="name@company.com"
+                    data-tip="Where their lessons go, and where replies reach them if they are the sender"
                     className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
                   />
                 </div>
@@ -724,6 +728,7 @@ export default function CampaignDetailPage() {
                   </button>
                   <button
                     onClick={() => setAddingMember(false)}
+                    data-tip="Discard this person without adding them"
                     className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
                   >
                     Cancel
@@ -738,6 +743,7 @@ export default function CampaignDetailPage() {
             {client.members.length > 0 && !addingMember && (
               <button
                 onClick={() => setAddingMember(true)}
+                data-tip="Create a person at this client and put them on this campaign in one step"
                 className="w-fit cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
               >
                 Someone not on the list yet? Add them here
@@ -1104,6 +1110,7 @@ export default function CampaignDetailPage() {
                       campaignId: campaign.id,
                     })
                   }
+                  data-tip="Add a meeting to this campaign — you can drag it into place afterwards"
                   className="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
                 >
                   <Plus size={16} />
@@ -1255,6 +1262,7 @@ export default function CampaignDetailPage() {
                     campaignId: campaign.id,
                   })
                 }
+                data-tip="Add a meeting to this campaign — you can drag it into place afterwards"
                 className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-white/12 py-2 text-[11px] font-semibold text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
               >
                 <Plus size={14} /> New session
@@ -1306,6 +1314,7 @@ export default function CampaignDetailPage() {
                     });
                     setPickingModule(false);
                   }}
+                  data-tip={`Add ${t.name} to this campaign — ${t.steps.length} lessons, usually triggered by the ${t.triggerLabel}`}
                   className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
                   style={{ backgroundColor: t.color }}
                 >
@@ -1533,6 +1542,23 @@ export default function CampaignDetailPage() {
                             <span className="w-24 shrink-0 text-right">
                               <StatusChip status={item.status} />
                             </span>
+                            <span
+                              className="shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <TestSendButton
+                                compact
+                                campaignId={campaign.id}
+                                stepId={item.step.id}
+                                variant="participant"
+                                variantLabel={
+                                  JSON.stringify(item.step.participant) ===
+                                  JSON.stringify(item.step.leader)
+                                    ? undefined
+                                    : "Participant"
+                                }
+                              />
+                            </span>
                           </li>
                         ))}
                         {schedule.length === 0 && (
@@ -1559,6 +1585,7 @@ export default function CampaignDetailPage() {
             {campaign.series.length === 0 && (
               <button
                 onClick={() => setPickingModule(true)}
+                data-tip="A campaign needs at least one series before anything can be sent"
                 className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
               >
                 <Plus size={15} /> Add a series to this campaign
@@ -1600,6 +1627,8 @@ export default function CampaignDetailPage() {
               </button>
               <button
                 onClick={() => setShift(null)}
+                data-tip="Keep the later sessions on the dates they already have"
+                data-tip-pos="top"
                 className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 Leave them
