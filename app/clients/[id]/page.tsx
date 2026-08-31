@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
@@ -26,6 +26,7 @@ import {
 import { EditableText, Field } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
+import { useConfirm } from "@/components/confirm";
 import { findTemplate, campaignCompletion, seriesProgress, fmtDate } from "@/lib/store";
 import type { Client, ClientStatus, MemberRole } from "@/lib/types";
 
@@ -43,6 +44,7 @@ const selectCls =
 /** Phoenix responsibles as a small name + role table, rows added with +. */
 function ResponsiblesCard({ client }: { client: Client }) {
   const { staff: team, dispatch } = useData();
+  const confirmDelete = useConfirm();
   const [adding, setAdding] = useState(false);
   const [staffId, setStaffId] = useState(team[0]?.id ?? "");
   const [role, setRole] = useState<RoleField>("phoenixLeaderId");
@@ -118,7 +120,17 @@ function ResponsiblesCard({ client }: { client: Client }) {
               </select>
               <button
                 data-tip="Remove this responsible"
-                onClick={() => patchRoles({ [r.field]: undefined })}
+                onClick={async () => {
+                  const person = team.find((t) => t.id === client[r.field]);
+                  if (
+                    await confirmDelete({
+                      name: person?.name ?? r.label,
+                      detail: `Removes them as ${r.label} for ${client.shortName} — they stay on the Phoenix team.`,
+                      verb: "Remove",
+                    })
+                  )
+                    patchRoles({ [r.field]: undefined });
+                }}
                 className="cursor-pointer justify-self-end rounded-md p-1 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
               >
                 <Trash2 size={13} />
@@ -231,6 +243,8 @@ function AddMemberForm({ clientId, onClose }: { clientId: string; onClose: () =>
 }
 
 export default function ClientDetailPage() {
+  const confirmDelete = useConfirm();
+  const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const { clients, templates, dispatch } = useData();
   const [addingMember, setAddingMember] = useState(false);
@@ -378,13 +392,19 @@ export default function ClientDetailPage() {
                   </Link>
                   <button
                     data-tip="Delete this campaign and its schedule"
-                    onClick={() =>
-                      dispatch({
-                        type: "removeCampaign",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                      })
-                    }
+                    onClick={async () => {
+                      if (
+                        await confirmDelete({
+                          name: campaign.name,
+                          detail: "Deletes the campaign with its sessions and schedule, and everything already logged about its sends. The lesson library is untouched.",
+                        })
+                      )
+                        dispatch({
+                          type: "removeCampaign",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                        });
+                    }}
                     className="absolute right-3 top-3 hidden cursor-pointer rounded-md p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                   >
                     <Trash2 size={14} />
@@ -529,9 +549,16 @@ export default function ClientDetailPage() {
                 </span>
                 <button
                   data-tip="Remove this member"
-                  onClick={() =>
-                    dispatch({ type: "removeMember", clientId: client.id, memberId: m.id })
-                  }
+                  onClick={async () => {
+                    if (
+                      await confirmDelete({
+                        name: m.name,
+                        detail: `They stop receiving emails from every ${client.shortName} campaign, from the next send on. What they already received stays in the log.`,
+                        verb: "Remove",
+                      })
+                    )
+                      dispatch({ type: "removeMember", clientId: client.id, memberId: m.id });
+                  }}
                   className="hidden shrink-0 cursor-pointer rounded-md p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                 >
                   <Trash2 size={13} />
@@ -556,6 +583,28 @@ export default function ClientDetailPage() {
           </div>
         </section>
         </div>
+      </div>
+
+      {/* The one door out for a whole organization — deliberately quiet
+          and at the very bottom, behind the same are-you-sure dialog. */}
+      <div className="mt-8 border-t border-white/5 pt-4 text-right">
+        <button
+          data-tip="Deletes the whole organization — usually Archived (top of the page) is the better choice"
+          onClick={async () => {
+            if (
+              await confirmDelete({
+                name: client.name,
+                detail: `Deletes the organization with all ${client.members.length} members, every campaign, and its full send history. Archiving keeps everything — deleting cannot be undone.`,
+              })
+            ) {
+              dispatch({ type: "removeClient", clientId: client.id });
+              router.push("/clients");
+            }
+          }}
+          className="cursor-pointer text-[11px] font-semibold text-mist/50 underline transition-colors hover:text-[#ff7a55]"
+        >
+          Delete this client…
+        </button>
       </div>
     </>
   );

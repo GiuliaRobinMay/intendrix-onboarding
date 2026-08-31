@@ -5,6 +5,7 @@ import { Mail, PenLine, Send, ShieldCheck, Trash2, UserPlus } from "lucide-react
 import { Chip, GhostButton, GradientButton } from "@/components/ui";
 import { EditableText, Field } from "@/components/editable";
 import { useData } from "@/lib/state";
+import { useConfirm } from "@/components/confirm";
 import { authHeaders } from "@/lib/supabase-browser";
 import type { Invitation, StaffMember } from "@/lib/types";
 
@@ -242,6 +243,7 @@ function InviteClientAdminForm({
 
 function TeamRow({ person }: { person: StaffMember }) {
   const { dispatch } = useData();
+  const confirmDelete = useConfirm();
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const access = ACCESS[person.access ?? "none"];
@@ -317,11 +319,14 @@ function TeamRow({ person }: { person: StaffMember }) {
           )}
           <button
             data-tip="Remove from the team — they also lose every assignment"
-            onClick={() => {
+            onClick={async () => {
               if (
-                confirm(
-                  `Remove ${person.name} from the team? They lose their assignments; their sign-in account is removed in Supabase.`
-                )
+                await confirmDelete({
+                  name: person.name,
+                  detail:
+                    "They come off the team, lose every client and campaign assignment, and can no longer be a sender. Their sign-in account is removed separately in Supabase.",
+                  verb: "Remove",
+                })
               )
                 dispatch({ type: "removeStaff", staffId: person.id });
             }}
@@ -367,6 +372,7 @@ function TeamRow({ person }: { person: StaffMember }) {
  *  company, and the same send button the team list has. */
 function ClientAdminRow({ invitation }: { invitation: Invitation }) {
   const { clients, dispatch } = useData();
+  const confirmDelete = useConfirm();
   const [notice, setNotice] = useState<string | null>(null);
   const client = clients.find((c) => c.id === invitation.clientId);
 
@@ -400,9 +406,15 @@ function ClientAdminRow({ invitation }: { invitation: Invitation }) {
           </button>
           <button
             data-tip="Withdraw this invitation"
-            onClick={() =>
-              dispatch({ type: "removeInvitation", invitationId: invitation.id })
-            }
+            onClick={async () => {
+              if (
+                await confirmDelete({
+                  name: invitation.name || invitation.email,
+                  detail: "Withdraws the invitation — they can no longer activate an account with it.",
+                })
+              )
+                dispatch({ type: "removeInvitation", invitationId: invitation.id });
+            }}
             className="cursor-pointer rounded-md p-1.5 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
           >
             <Trash2 size={14} />

@@ -6,6 +6,7 @@ import { BookOpen, ChevronRight, CopyPlus, Layers, Trash2, Users, X } from "luci
 import { Chip, GradientButton, GhostButton } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
+import { useConfirm } from "@/components/confirm";
 import { seriesOfCampaignTemplate } from "@/lib/store";
 
 function NewCampaignTemplateForm({ onClose }: { onClose: () => void }) {
@@ -64,6 +65,7 @@ function NewCampaignTemplateForm({ onClose }: { onClose: () => void }) {
 
 export default function CampaignTemplatesPage() {
   const { campaignTemplates, templates, clients, dispatch } = useData();
+  const confirmDelete = useConfirm();
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -166,11 +168,12 @@ export default function CampaignTemplatesPage() {
                   </button>
                   <button
                     data-tip="Delete this campaign blueprint and its series"
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        confirm(
-                          `Delete the ${ct.code} blueprint and its ${series.length} series?`
-                        )
+                        await confirmDelete({
+                          name: ct.name,
+                          detail: `Deletes this blueprint and its ${series.length} series with every lesson and email in them. Client campaigns built on it lose those series too.`,
+                        })
                       ) {
                         dispatch({ type: "removeCampaignTemplate", templateId: ct.id });
                       }

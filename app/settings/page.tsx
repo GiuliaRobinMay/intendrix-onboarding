@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Building2, Check, DatabaseBackup, Mail, Palette, Plug, Type } from "lucide-react";
 import { Chip, GhostButton } from "@/components/ui";
 import { useData } from "@/lib/state";
+import { useConfirm } from "@/components/confirm";
 
 /** Typeface choice — applied app-wide, persisted in this browser. */
 const FONTS = [
@@ -115,6 +116,7 @@ const integrations = [
 ];
 
 export default function AppSettingsPage() {
+  const confirmDelete = useConfirm();
   const { backend, dispatch } = useData();
 
   return (
@@ -207,8 +209,14 @@ export default function AppSettingsPage() {
           {backend !== "database" && (
           <GhostButton
             tip="Wipe your local edits and restore the demo data"
-            onClick={() => {
-              if (confirm("Reset all prototype data back to the demo state?")) {
+            onClick={async () => {
+              if (
+                await confirmDelete({
+                  name: "all prototype data",
+                  detail: "Wipes every edit in this browser and restores the demo state. Only affects prototype mode — a connected database is never touched.",
+                  verb: "Reset",
+                })
+              ) {
                 dispatch({ type: "reset" });
               }
             }}

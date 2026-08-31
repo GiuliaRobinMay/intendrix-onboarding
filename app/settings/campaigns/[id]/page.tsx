@@ -7,6 +7,7 @@ import { ArrowLeft, Clock, Trash2, X, Zap } from "lucide-react";
 import { Chip, GradientButton, GhostButton } from "@/components/ui";
 import { EditableText, Field } from "@/components/editable";
 import { useData } from "@/lib/state";
+import { useConfirm } from "@/components/confirm";
 import { seriesOfCampaignTemplate } from "@/lib/store";
 import type { SessionKey } from "@/lib/types";
 
@@ -81,6 +82,7 @@ function NewSeriesForm({
 }
 
 export default function CampaignTemplateDetailPage() {
+  const confirmDelete = useConfirm();
   const { id } = useParams<{ id: string }>();
   const { campaignTemplates, templates, clients, dispatch } = useData();
   const [showForm, setShowForm] = useState(false);
@@ -215,8 +217,13 @@ export default function CampaignTemplateDetailPage() {
               </Link>
               <button
                 data-tip="Delete this series and its lessons — it also disappears from client campaigns using it"
-                onClick={() => {
-                  if (confirm(`Delete the ${s.code} series and its lessons?`)) {
+                onClick={async () => {
+                  if (
+                    await confirmDelete({
+                      name: `${s.code} · ${s.name}`,
+                      detail: "Deletes the series and every lesson and email in it — it also disappears from client campaigns using it.",
+                    })
+                  ) {
                     dispatch({ type: "removeSeries", templateId: s.id });
                   }
                 }}

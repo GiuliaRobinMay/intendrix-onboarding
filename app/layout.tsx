@@ -3,6 +3,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
+import { ConfirmProvider } from "@/components/confirm";
 
 export const metadata: Metadata = {
   title: "Intendrix · Team Backend",
@@ -38,6 +39,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: bootScript }} />
         <AuthGate>
           <DataProvider>
+            <ConfirmProvider>
             <div className="flex min-h-screen">
               <Sidebar />
               <main className="min-w-0 flex-1">
@@ -46,6 +48,7 @@ export default function RootLayout({
                 </div>
               </main>
             </div>
+            </ConfirmProvider>
           </DataProvider>
         </AuthGate>
       </body>

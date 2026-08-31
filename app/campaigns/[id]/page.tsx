@@ -21,6 +21,7 @@ import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { TestSendButton } from "@/components/test-send";
 import { daysBetweenIso, useData } from "@/lib/state";
+import { useConfirm } from "@/components/confirm";
 import {
   computeSchedule,
   emailSenderFor,
@@ -115,6 +116,7 @@ function InlineSelect({
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { clients, templates, staff: team, dispatch } = useData();
+  const confirmDelete = useConfirm();
   const [pickingModule, setPickingModule] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -521,14 +523,21 @@ export default function CampaignDetailPage() {
                   </select>
                   <button
                     data-tip="Remove this assignment"
-                    onClick={() =>
-                      dispatch({
-                        type: "removePhoenixAssignment",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        assignmentId: a.id,
-                      })
-                    }
+                    onClick={async () => {
+                      if (
+                        await confirmDelete({
+                          name: person?.name ?? "this assignment",
+                          detail: "Takes them off this campaign only — they stay on the team and on the client.",
+                          verb: "Remove",
+                        })
+                      )
+                        dispatch({
+                          type: "removePhoenixAssignment",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          assignmentId: a.id,
+                        });
+                    }}
                     className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                   >
                     <Trash2 size={13} />
@@ -638,14 +647,21 @@ export default function CampaignDetailPage() {
                   </select>
                   <button
                     data-tip="Remove this assignment"
-                    onClick={() =>
-                      dispatch({
-                        type: "removeClientAssignment",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        assignmentId: a.id,
-                      })
-                    }
+                    onClick={async () => {
+                      if (
+                        await confirmDelete({
+                          name: member?.name ?? "this assignment",
+                          detail: `Takes them off this campaign's team only — they stay on ${client.shortName}'s members list.`,
+                          verb: "Remove",
+                        })
+                      )
+                        dispatch({
+                          type: "removeClientAssignment",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          assignmentId: a.id,
+                        });
+                    }}
                     className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                   >
                     <Trash2 size={13} />
@@ -1026,14 +1042,20 @@ export default function CampaignDetailPage() {
                         </span>
                         <button
                           data-tip="Delete this session — series bound to it fall back to unbound"
-                          onClick={() =>
-                            dispatch({
-                              type: "removeSession",
-                              clientId: client.id,
-                              campaignId: campaign.id,
-                              sessionId: session.id,
-                            })
-                          }
+                          onClick={async () => {
+                            if (
+                              await confirmDelete({
+                                name: session.name,
+                                detail: "Deletes this meeting from the campaign. Series bound to it lose their trigger and stop being scheduled until rebound.",
+                              })
+                            )
+                              dispatch({
+                                type: "removeSession",
+                                clientId: client.id,
+                                campaignId: campaign.id,
+                                sessionId: session.id,
+                              });
+                          }}
                           className="hidden cursor-pointer rounded p-0.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                         >
                           <Trash2 size={11} />
@@ -1238,14 +1260,20 @@ export default function CampaignDetailPage() {
                       </span>
                       <button
                         data-tip="Delete this session — series bound to it fall back to unbound"
-                        onClick={() =>
-                          dispatch({
-                            type: "removeSession",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            sessionId: session.id,
-                          })
-                        }
+                        onClick={async () => {
+                          if (
+                            await confirmDelete({
+                              name: session.name,
+                              detail: "Deletes this meeting from the campaign. Series bound to it lose their trigger and stop being scheduled until rebound.",
+                            })
+                          )
+                            dispatch({
+                              type: "removeSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                            });
+                        }}
                         className="cursor-pointer justify-self-end rounded p-1 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
                       >
                         <Trash2 size={13} />
@@ -1448,14 +1476,21 @@ export default function CampaignDetailPage() {
 
                     <button
                       data-tip="Remove this series from the campaign (the blueprint stays in Settings)"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        dispatch({
-                          type: "unloadSeries",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          templateId: loaded.templateId,
-                        });
+                        if (
+                          await confirmDelete({
+                            name: `${series.code} · ${series.name}`,
+                            detail: "Removes the series and its scheduled sends from this campaign. The blueprint in Settings is untouched — it can be added back.",
+                            verb: "Remove",
+                          })
+                        )
+                          dispatch({
+                            type: "unloadSeries",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            templateId: loaded.templateId,
+                          });
                       }}
                       className="hidden shrink-0 cursor-pointer rounded p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
                     >

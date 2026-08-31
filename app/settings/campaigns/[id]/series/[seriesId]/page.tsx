@@ -22,6 +22,7 @@ import { EditableText } from "@/components/editable";
 import { TestSendButton } from "@/components/test-send";
 import { useData, type Action } from "@/lib/state";
 import { MERGE_FIELDS } from "@/lib/merge";
+import { useConfirm } from "@/components/confirm";
 import type { SeriesStep, SeriesTemplate, StepContent } from "@/lib/types";
 
 function LessonLinkEditor({
@@ -177,6 +178,7 @@ function StepEditor({
   dispatch: (a: Action) => void;
   testCampaignId?: string;
 }) {
+  const confirmDelete = useConfirm();
   const sameContent = JSON.stringify(step.participant) === JSON.stringify(step.leader);
   const patchContent =
     (variant: "participant" | "leader" | "both") => (patch: Partial<StepContent>) => {
@@ -270,7 +272,15 @@ function StepEditor({
           </button>
           <button
             data-tip="Delete this lesson from the series"
-            onClick={() => dispatch({ type: "removeStep", templateId: series.id, stepId: step.id })}
+            onClick={async () => {
+              if (
+                await confirmDelete({
+                  name: `${step.code} · ${step.title}`,
+                  detail: "Deletes this lesson and both of its email versions from the series, for every campaign that uses it.",
+                })
+              )
+                dispatch({ type: "removeStep", templateId: series.id, stepId: step.id });
+            }}
             className="cursor-pointer rounded-md p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
           >
             <Trash2 size={14} />
