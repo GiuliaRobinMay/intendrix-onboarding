@@ -92,13 +92,13 @@ html.light body {
   margin: 0;
 }
 
-/* A session card: a normal card wearing the colour of where it sits in
-   time. Set --chip-c on the element; the tint is deliberately faint, the
-   left edge carries the signal. */
+/* A session card carries two colours: --state-c (where it sits in time —
+   green now, blue ahead, grey done) paints the background, --series-c
+   (the series its date starts) owns the left edge and the number chip. */
 .session-card {
-  background-color: color-mix(in srgb, var(--chip-c) 5%, var(--color-panel));
-  border: 1px solid color-mix(in srgb, var(--chip-c) 22%, transparent);
-  border-left: 3px solid var(--chip-c);
+  background-color: color-mix(in srgb, var(--state-c) 12%, var(--color-panel));
+  border: 1px solid color-mix(in srgb, var(--state-c) 28%, transparent);
+  border-left: 3px solid var(--series-c);
   border-radius: 8px;
 }
 

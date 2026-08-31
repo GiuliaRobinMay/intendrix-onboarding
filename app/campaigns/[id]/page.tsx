@@ -997,14 +997,17 @@ export default function CampaignDetailPage() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               {/* what the styling means */}
               <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-mist">
-                <span data-tip="Each card wears the colour of the series its date starts">
-                  Colour = its series
+                <span className="flex items-center gap-1.5" data-tip="Green card: the session coming up now">
+                  <span className="size-2 rounded-full bg-[#4ade80]" /> now
                 </span>
-                <span className="flex items-center gap-1.5" data-tip="The next session coming up">
-                  <span className="size-2 rounded-full bg-[#4ade80]" /> next
+                <span className="flex items-center gap-1.5" data-tip="Blue cards: still ahead">
+                  <span className="size-2 rounded-full bg-[#6ea8ff]" /> ahead
                 </span>
-                <span className="opacity-60" data-tip="Faded cards already happened">
-                  faded = done
+                <span className="flex items-center gap-1.5" data-tip="Grey, faded cards already happened">
+                  <span className="size-2 rounded-full bg-[#7c7e8c]" /> done
+                </span>
+                <span data-tip="The line on the left and the number wear the colour of the series this session starts">
+                  edge = its series
                 </span>
               </div>
               <div className="flex divide-x divide-white/8 rounded-md border border-white/10">
@@ -1092,8 +1095,10 @@ export default function CampaignDetailPage() {
             <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {campaign.sessions.map((session, i) => {
                 const state = sessionState(session);
+                const tone = SESSION_STATE[state];
                 const bound = seriesOfSession(session.id);
-                // the card wears the colour of the series it starts
+                // the left edge and number wear the series; the card
+                // background wears where it sits in time
                 const color = bound[0]?.color ?? "#7c7e8c";
                 const dragging = dragId === session.id;
                 const isOver = overIndex === i && dragId !== null && !dragging;
@@ -1103,7 +1108,12 @@ export default function CampaignDetailPage() {
                     key={session.id}
                     draggable
                     {...dragProps(session.id, i)}
-                    style={{ "--chip-c": color } as CSSProperties}
+                    style={
+                      {
+                        "--series-c": color,
+                        "--state-c": tone.color,
+                      } as CSSProperties
+                    }
                     className={`session-card group relative flex min-h-32 cursor-grab flex-col p-2.5 transition-all active:cursor-grabbing ${
                       state === "past" ? "opacity-60" : ""
                     } ${dragging ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20" : ""} ${
@@ -1122,12 +1132,6 @@ export default function CampaignDetailPage() {
                       >
                         {i + 1}
                       </span>
-                      {state === "next" && (
-                        <span
-                          data-tip="The next session — this is what's coming up"
-                          className="size-1.5 shrink-0 rounded-full bg-[#4ade80]"
-                        />
-                      )}
                       <button
                         onClick={() =>
                           dispatch({
