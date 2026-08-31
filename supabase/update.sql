@@ -109,6 +109,21 @@ begin
 end $$;
 
 
+-- ——— free-text triggers ——————————————————————————————————
+--
+-- A series can be triggered by any session name, not only the five
+-- standard kinds — Pre-Planning Sessions to begin with.
+
+alter table series_templates
+  alter column trigger_kind type text using trigger_kind::text;
+
+alter table campaign_sessions
+  alter column kind type text using kind::text;
+
+comment on column series_templates.trigger_kind is
+  'The session that usually starts this series. Standard: orientation, workshop, coaching1, coaching2, launch — or any custom name, e.g. "Pre-Planning Session".';
+
+
 -- ——— check it landed ——————————————————————————————————————
 -- Expect seven rows.
 

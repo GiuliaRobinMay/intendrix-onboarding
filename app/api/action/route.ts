@@ -448,6 +448,12 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       }
       return;
     }
+    case "moveSeriesTemplate":
+      await reorder(
+        tx, "series_templates", "campaign_template_id", a.campaignTemplateId,
+        "id", a.templateId, null, a.dir
+      );
+      return;
     case "removeSeries":
       await tx.query(`delete from series_templates where id = $1`, [a.templateId]);
       return;

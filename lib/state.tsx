@@ -71,6 +71,7 @@ const TRIGGER_LABELS: Record<SessionKey, string> = {
   coaching1: "Coaching Session 1",
   coaching2: "Coaching Session 2",
   launch: "Launch Session",
+  preplanning: "Pre-Planning Session",
 };
 
 const SERIES_RAMP = ["#eb320f", "#cf3352", "#a1348c", "#6531a5", "#2c2d83"];
@@ -276,6 +277,13 @@ export type Action =
       patch: Partial<StepContent>;
     }
   | { type: "removeSeries"; templateId: string }
+  /** reorder a series within its blueprint (the library, not a campaign) */
+  | {
+      type: "moveSeriesTemplate";
+      campaignTemplateId: string;
+      templateId: string;
+      dir: -1 | 1;
+    }
   | { type: "addStep"; id?: string; templateId: string }
   | { type: "removeStep"; templateId: string; stepId: string }
   | { type: "moveStep"; templateId: string; stepId: string; dir: -1 | 1 }
@@ -896,11 +904,26 @@ function reducer(db: DB, action: Action): DB {
         name: action.name,
         focus: action.focus || "—",
         trigger: action.trigger,
-        triggerLabel: TRIGGER_LABELS[action.trigger],
+        // custom triggers are their own label
+        triggerLabel: TRIGGER_LABELS[action.trigger] ?? action.trigger,
         color: SERIES_RAMP[siblings.length % SERIES_RAMP.length],
         steps: [],
       };
       return { ...db, templates: [...db.templates, template] };
+    }
+
+    case "moveSeriesTemplate": {
+      const subset = db.templates.filter(
+        (t) => t.campaignTemplateId === action.campaignTemplateId
+      );
+      const at = subset.findIndex((t) => t.id === action.templateId);
+      const to = at + action.dir;
+      if (at < 0 || to < 0 || to >= subset.length) return db;
+      const a = db.templates.indexOf(subset[at]);
+      const b = db.templates.indexOf(subset[to]);
+      const templates = [...db.templates];
+      [templates[a], templates[b]] = [templates[b], templates[a]];
+      return { ...db, templates };
     }
 
     case "addCampaignTemplate": {

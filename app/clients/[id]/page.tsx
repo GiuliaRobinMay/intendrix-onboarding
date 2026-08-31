@@ -517,7 +517,9 @@ export default function ClientDetailPage() {
           )}
 
           <ul className="flex max-h-130 flex-col gap-1 overflow-y-auto pr-1">
-            {client.members.map((m) => (
+            {[...client.members]
+              .sort((x, y) => x.name.localeCompare(y.name))
+              .map((m) => (
               <li
                 key={m.id}
                 className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-white/4"

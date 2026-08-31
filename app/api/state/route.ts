@@ -25,6 +25,7 @@ const TRIGGER_LABELS: Record<SessionKey, string> = {
   coaching1: "Coaching Session 1",
   coaching2: "Coaching Session 2",
   launch: "Launch Session",
+  preplanning: "Pre-Planning Session",
 };
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

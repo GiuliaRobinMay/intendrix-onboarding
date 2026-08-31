@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Clock, Trash2, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Clock, Trash2, X, Zap } from "lucide-react";
 import { Chip, GradientButton, GhostButton } from "@/components/ui";
 import { EditableText, Field } from "@/components/editable";
 import { useData } from "@/lib/state";
@@ -23,6 +23,7 @@ function NewSeriesForm({
   const [code, setCode] = useState("");
   const [focus, setFocus] = useState("");
   const [trigger, setTrigger] = useState<SessionKey>("orientation");
+  const [customTrigger, setCustomTrigger] = useState("");
 
   return (
     <div className="card mb-6 p-5">
@@ -45,30 +46,43 @@ function NewSeriesForm({
             Usually triggered by
           </span>
           <select
-            title="The standard session whose date usually starts this series"
+            title="The session whose date usually starts this series — pick one, or name your own"
             value={trigger}
             onChange={(e) => setTrigger(e.target.value as SessionKey)}
             className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
           >
+            <option value="preplanning">Pre-Planning Session</option>
             <option value="orientation">Orientation Session</option>
             <option value="workshop">Workshop</option>
             <option value="coaching1">Coaching Session 1</option>
             <option value="coaching2">Coaching Session 2</option>
             <option value="launch">Launch Session</option>
+            <option value="__custom">Something else…</option>
           </select>
+          {trigger === "__custom" && (
+            <input
+              autoFocus
+              value={customTrigger}
+              onChange={(e) => setCustomTrigger(e.target.value)}
+              placeholder="Name the session, e.g. Kick-off Call"
+              data-tip="Your own session name — a campaign session carrying this exact name will trigger the series automatically; otherwise bind it by hand"
+              className="mt-2 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-[13px] focus:border-white/30 focus:outline-none"
+            />
+          )}
         </label>
       </div>
       <div className="mt-4 flex gap-2">
         <GradientButton
           onClick={() => {
             if (!name.trim() || !code.trim()) return;
+            if (trigger === "__custom" && !customTrigger.trim()) return;
             dispatch({
               type: "addSeries",
               campaignTemplateId,
               name: name.trim(),
               code: code.trim(),
               focus,
-              trigger,
+              trigger: trigger === "__custom" ? customTrigger.trim() : trigger,
             });
             onClose();
           }}
@@ -169,7 +183,7 @@ export default function CampaignTemplateDetailPage() {
       )}
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {series.map((s) => {
+        {series.map((s, i) => {
           const meetings = s.steps.filter((x) => x.leader.teamMeeting).length;
           const cadence =
             s.steps.length === 0
@@ -215,22 +229,54 @@ export default function CampaignTemplateDetailPage() {
                   )}
                 </div>
               </Link>
-              <button
-                data-tip="Delete this series and its lessons — it also disappears from client campaigns using it"
-                onClick={async () => {
-                  if (
-                    await confirmDelete({
-                      name: `${s.code} · ${s.name}`,
-                      detail: "Deletes the series and every lesson and email in it — it also disappears from client campaigns using it.",
+              <div className="absolute bottom-2.5 right-2.5 flex items-center gap-0.5">
+                <button
+                  data-tip="Move this series one place up"
+                  disabled={i === 0}
+                  onClick={() =>
+                    dispatch({
+                      type: "moveSeriesTemplate",
+                      campaignTemplateId: ct.id,
+                      templateId: s.id,
+                      dir: -1,
                     })
-                  ) {
-                    dispatch({ type: "removeSeries", templateId: s.id });
                   }
-                }}
-                className="absolute right-3 top-3 hidden cursor-pointer rounded-md p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
-              >
-                <Trash2 size={14} />
-              </button>
+                  className="cursor-pointer rounded p-1 text-mist/60 transition-colors hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-25"
+                >
+                  <ArrowUp size={13} />
+                </button>
+                <button
+                  data-tip="Move this series one place down"
+                  disabled={i === series.length - 1}
+                  onClick={() =>
+                    dispatch({
+                      type: "moveSeriesTemplate",
+                      campaignTemplateId: ct.id,
+                      templateId: s.id,
+                      dir: 1,
+                    })
+                  }
+                  className="cursor-pointer rounded p-1 text-mist/60 transition-colors hover:bg-white/10 hover:text-paper disabled:cursor-default disabled:opacity-25"
+                >
+                  <ArrowDown size={13} />
+                </button>
+                <button
+                  data-tip="Delete this series and its lessons — it also disappears from client campaigns using it"
+                  onClick={async () => {
+                    if (
+                      await confirmDelete({
+                        name: `${s.code} · ${s.name}`,
+                        detail: "Deletes the series and every lesson and email in it — it also disappears from client campaigns using it.",
+                      })
+                    ) {
+                      dispatch({ type: "removeSeries", templateId: s.id });
+                    }
+                  }}
+                  className="cursor-pointer rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           );
         })}

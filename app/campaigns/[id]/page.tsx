@@ -614,7 +614,13 @@ export default function CampaignDetailPage() {
             </div>
           )}
           <div className="flex flex-col">
-            {campaign.clientTeam.map((a) => {
+            {[...campaign.clientTeam]
+              .sort((x, y) => {
+                const nx = client.members.find((m) => m.id === x.memberId)?.name ?? "";
+                const ny = client.members.find((m) => m.id === y.memberId)?.name ?? "";
+                return nx.localeCompare(ny);
+              })
+              .map((a) => {
               const member = client.members.find((m) => m.id === a.memberId);
               return (
                 <div
@@ -635,12 +641,14 @@ export default function CampaignDetailPage() {
                     }
                     className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
                   >
-                    {client.members.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                        {m.title ? ` — ${m.title}` : ""}
-                      </option>
-                    ))}
+                    {[...client.members]
+                      .sort((x, y) => x.name.localeCompare(y.name))
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                          {m.title ? ` — ${m.title}` : ""}
+                        </option>
+                      ))}
                   </select>
                   <select
                     title="Their role on this campaign"

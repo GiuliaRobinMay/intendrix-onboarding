@@ -2,14 +2,17 @@
 // In the prototype phase this is served from lib/data.ts through
 // lib/state.tsx; in the Supabase phase the same shapes become tables.
 
-/** Standard session kinds — used to auto-bind series templates when a
- *  campaign is created. Campaigns can also contain custom sessions. */
+/** Session kinds — used to auto-bind series templates when a campaign is
+ *  created. The five standard kinds keep their autocomplete; any other
+ *  string is a custom trigger, e.g. "Pre-Planning Session". */
 export type SessionKey =
   | "orientation"
   | "workshop"
   | "coaching1"
   | "coaching2"
-  | "launch";
+  | "launch"
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | (string & {});
 
 export interface LessonLink {
   label: string;
