@@ -475,13 +475,20 @@ export default function CampaignDetailPage() {
             with a role. The Coach is the one the emails are sent from.
           </p>
 
-          <div className="flex flex-col gap-2">
+          {campaign.phoenixTeam.length > 0 && (
+            <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+              <span>Name</span>
+              <span>Role</span>
+              <span />
+            </div>
+          )}
+          <div className="flex flex-col">
             {campaign.phoenixTeam.map((a) => {
               const person = findStaff(team, a.staffId);
               return (
                 <div
                   key={a.id}
-                  className="group flex items-center gap-3 rounded-md border border-white/8 px-3 py-2"
+                  className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                 >
                   <select
                     title="Which Phoenix collaborator"
@@ -495,7 +502,7 @@ export default function CampaignDetailPage() {
                         patch: { staffId: e.target.value },
                       })
                     }
-                    className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
                   >
                     {team.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -515,7 +522,7 @@ export default function CampaignDetailPage() {
                         patch: { role: e.target.value as PhoenixAssignmentRole },
                       })
                     }
-                    className="w-36 shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs text-mist transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
                   >
                     <option value="phoenix_leader">Phoenix Leader</option>
                     <option value="phoenix_coach">Phoenix Coach</option>
@@ -538,7 +545,7 @@ export default function CampaignDetailPage() {
                           assignmentId: a.id,
                         });
                     }}
-                    className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                    className="cursor-pointer justify-self-end rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -599,13 +606,20 @@ export default function CampaignDetailPage() {
             members, each with a role, e.g. the Client Transformational Champion.
           </p>
 
-          <div className="flex flex-col gap-2">
+          {campaign.clientTeam.length > 0 && (
+            <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+              <span>Name</span>
+              <span>Role</span>
+              <span />
+            </div>
+          )}
+          <div className="flex flex-col">
             {campaign.clientTeam.map((a) => {
               const member = client.members.find((m) => m.id === a.memberId);
               return (
                 <div
                   key={a.id}
-                  className="group flex items-center gap-3 rounded-md border border-white/8 px-3 py-2"
+                  className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                 >
                   <select
                     title="Which member of the client"
@@ -619,7 +633,7 @@ export default function CampaignDetailPage() {
                         patch: { memberId: e.target.value },
                       })
                     }
-                    className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
                   >
                     {client.members.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -640,7 +654,7 @@ export default function CampaignDetailPage() {
                         patch: { role: e.target.value as ClientAssignmentRole },
                       })
                     }
-                    className="w-36 shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs text-mist transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
                   >
                     <option value="contact">Team member</option>
                     <option value="champion">Transf. Champion</option>
@@ -662,7 +676,7 @@ export default function CampaignDetailPage() {
                           assignmentId: a.id,
                         });
                     }}
-                    className="hidden shrink-0 cursor-pointer rounded p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                    className="cursor-pointer justify-self-end rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
                   >
                     <Trash2 size={13} />
                   </button>
