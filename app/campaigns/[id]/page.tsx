@@ -191,7 +191,14 @@ export default function CampaignDetailPage() {
       .filter((s) => s.date && s.date >= todayIso)
       .sort((a, b) => (a.date! < b.date! ? -1 : 1))[0]?.id ?? null;
 
-  /** Where a session stands, which is all the colour on the card means. */
+  /** The series a session triggers — their colour is the card's colour. */
+  const seriesOfSession = (sessionId: string) =>
+    campaign.series
+      .filter((ls) => ls.sessionId === sessionId)
+      .map((ls) => findTemplate(templates, ls.templateId))
+      .filter((t): t is NonNullable<typeof t> => Boolean(t));
+
+  /** Where a session stands in time — faded when done, dot when next. */
   const sessionState = (s: CampaignSession): keyof typeof SESSION_STATE => {
     if (!s.date) return "undated";
     if (s.id === nextSessionId) return "next";
@@ -988,21 +995,17 @@ export default function CampaignDetailPage() {
               </span>
             </h2>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              {/* what the colours mean */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {(["past", "next", "later", "undated"] as const).map((k) => (
-                  <span
-                    key={k}
-                    data-tip={SESSION_STATE[k].tip}
-                    className="flex items-center gap-1.5 text-[11px] text-mist"
-                  >
-                    <span
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: SESSION_STATE[k].color }}
-                    />
-                    {SESSION_STATE[k].label}
-                  </span>
-                ))}
+              {/* what the styling means */}
+              <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-mist">
+                <span data-tip="Each card wears the colour of the series its date starts">
+                  Colour = its series
+                </span>
+                <span className="flex items-center gap-1.5" data-tip="The next session coming up">
+                  <span className="size-2 rounded-full bg-[#4ade80]" /> next
+                </span>
+                <span className="opacity-60" data-tip="Faded cards already happened">
+                  faded = done
+                </span>
               </div>
               <div className="flex divide-x divide-white/8 rounded-md border border-white/10">
                 {(
@@ -1089,10 +1092,9 @@ export default function CampaignDetailPage() {
             <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {campaign.sessions.map((session, i) => {
                 const state = sessionState(session);
-                const tone = SESSION_STATE[state];
-                const boundCount = campaign.series.filter(
-                  (s) => s.sessionId === session.id
-                ).length;
+                const bound = seriesOfSession(session.id);
+                // the card wears the colour of the series it starts
+                const color = bound[0]?.color ?? "#7c7e8c";
                 const dragging = dragId === session.id;
                 const isOver = overIndex === i && dragId !== null && !dragging;
 
@@ -1101,7 +1103,7 @@ export default function CampaignDetailPage() {
                     key={session.id}
                     draggable
                     {...dragProps(session.id, i)}
-                    style={{ "--chip-c": tone.color } as CSSProperties}
+                    style={{ "--chip-c": color } as CSSProperties}
                     className={`session-card group relative flex min-h-32 cursor-grab flex-col p-2.5 transition-all active:cursor-grabbing ${
                       state === "past" ? "opacity-60" : ""
                     } ${dragging ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20" : ""} ${
@@ -1110,16 +1112,22 @@ export default function CampaignDetailPage() {
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        data-tip={`${tone.tip}. ${
-                          boundCount === 0
-                            ? "No series hangs off it."
-                            : `Triggers ${boundCount} series.`
-                        }`}
-                        className="flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-navy"
-                        style={{ backgroundColor: tone.color }}
+                        data-tip={
+                          bound.length === 0
+                            ? "No series hangs off this session yet"
+                            : `Triggers ${bound.map((sr) => sr.code).join(" + ")} — the card wears that series' colour`
+                        }
+                        className="flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
+                        style={{ backgroundColor: color }}
                       >
                         {i + 1}
                       </span>
+                      {state === "next" && (
+                        <span
+                          data-tip="The next session — this is what's coming up"
+                          className="size-1.5 shrink-0 rounded-full bg-[#4ade80]"
+                        />
+                      )}
                       <button
                         onClick={() =>
                           dispatch({
@@ -1186,6 +1194,21 @@ export default function CampaignDetailPage() {
                       className="mt-1 text-[11px] font-semibold leading-snug"
                     />
 
+                    {bound.length > 0 && (
+                      <p className="mt-1 flex flex-wrap gap-1">
+                        {bound.map((sr) => (
+                          <span
+                            key={sr.id}
+                            data-tip={`${sr.name} starts when this session is dated`}
+                            className="rounded px-1 py-px text-[9px] font-bold text-paper"
+                            style={{ backgroundColor: sr.color }}
+                          >
+                            {sr.code}
+                          </span>
+                        ))}
+                      </p>
+                    )}
+
                     <div className="mt-auto flex items-center gap-1 pt-2">
                       <input
                         type="date"
@@ -1199,7 +1222,7 @@ export default function CampaignDetailPage() {
                         }`}
                         style={
                           session.date
-                            ? { backgroundColor: `${tone.color}22` }
+                            ? { backgroundColor: `${color}22` }
                             : undefined
                         }
                       />
@@ -1263,10 +1286,8 @@ export default function CampaignDetailPage() {
               <ol className="flex flex-col">
                 {campaign.sessions.map((session, i) => {
                   const state = sessionState(session);
-                  const tone = SESSION_STATE[state];
-                  const boundCount = campaign.series.filter(
-                    (s) => s.sessionId === session.id
-                  ).length;
+                  const bound = seriesOfSession(session.id);
+                  const color = bound[0]?.color ?? "#7c7e8c";
                   const dragging = dragId === session.id;
                   const isOver = overIndex === i && dragId !== null && !dragging;
 
@@ -1282,9 +1303,13 @@ export default function CampaignDetailPage() {
                       }`}
                     >
                       <span
-                        data-tip={tone.tip}
-                        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-navy"
-                        style={{ backgroundColor: tone.color }}
+                        data-tip={
+                          bound.length === 0
+                            ? "No series hangs off this session yet"
+                            : `Triggers ${bound.map((sr) => sr.code).join(" + ")}`
+                        }
+                        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-paper"
+                        style={{ backgroundColor: color }}
                       >
                         {i + 1}
                       </span>
@@ -1338,7 +1363,7 @@ export default function CampaignDetailPage() {
                             : "border-dashed border-white/15 text-mist/70"
                         }`}
                         style={
-                          session.date ? { backgroundColor: `${tone.color}22` } : undefined
+                          session.date ? { backgroundColor: `${color}22` } : undefined
                         }
                       />
                       <input
@@ -1363,8 +1388,27 @@ export default function CampaignDetailPage() {
                         }
                         className="num-plain rounded border border-white/10 bg-navy/60 px-1 py-1 text-center text-[11px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
                       />
-                      <span className="text-[11px] text-mist">
-                        {boundCount === 0 ? "—" : `${boundCount} series`}
+                      <span className="flex flex-wrap items-center gap-1">
+                        {state === "next" && (
+                          <span
+                            data-tip="The next session"
+                            className="size-1.5 rounded-full bg-[#4ade80]"
+                          />
+                        )}
+                        {bound.length === 0 ? (
+                          <span className="text-[11px] text-mist">—</span>
+                        ) : (
+                          bound.map((sr) => (
+                            <span
+                              key={sr.id}
+                              data-tip={`${sr.name} starts when this session is dated`}
+                              className="rounded px-1 py-px text-[9px] font-bold text-paper"
+                              style={{ backgroundColor: sr.color }}
+                            >
+                              {sr.code}
+                            </span>
+                          ))
+                        )}
                       </span>
                       <button
                         data-tip="Delete this session — series bound to it fall back to unbound"
