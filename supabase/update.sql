@@ -80,8 +80,37 @@ comment on column invitations.name is
   'The invited person''s name, shown in the app before they have an account.';
 
 
+-- ——— app-wide settings ————————————————————————————————————
+--
+-- One key-value table for the handful of values that belong to the
+-- app as a whole. First occupant: the company logo that closes
+-- every lesson email.
+
+create table if not exists app_settings (
+  key         text primary key,
+  value       text not null,
+  updated_at  timestamptz not null default now()
+);
+
+comment on table app_settings is
+  'App-wide values. signatureLogoUrl: public image URL rendered under the sign-off of every lesson email a Phoenix sender sends.';
+
+alter table app_settings enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+     where tablename = 'app_settings' and policyname = 'app_settings_team_all'
+  ) then
+    create policy app_settings_team_all on app_settings for all to authenticated
+      using (true) with check (true);
+  end if;
+end $$;
+
+
 -- ——— check it landed ——————————————————————————————————————
--- Expect six rows.
+-- Expect seven rows.
 
 select table_name, column_name
   from information_schema.columns
@@ -90,4 +119,5 @@ select table_name, column_name
     or (table_name = 'staff'             and column_name = 'signature')
     or (table_name = 'email_sends'       and column_name = 'shadow_to')
     or (table_name = 'invitations'       and column_name = 'name')
+    or (table_name = 'app_settings'      and column_name = 'key')
  order by table_name, column_name;

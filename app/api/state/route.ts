@@ -65,6 +65,7 @@ export async function GET(req: Request) {
       steps,
       contents,
       links,
+      settingRows,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
       q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
@@ -111,6 +112,8 @@ export async function GET(req: Request) {
            from step_contents`),
       q(`select step_content_id, label, url
            from step_links order by sort_order, id`),
+      // tolerate a database from before app_settings existed
+      q(`select key, value from app_settings`).catch(() => []),
     ]);
 
     const linksByContent = new Map<string, Array<{ label: string; url: string | null }>>();
@@ -279,9 +282,13 @@ export async function GET(req: Request) {
       ...(i.client_id ? { clientId: i.client_id } : {}),
     }));
 
+    const settings: Record<string, string> = {};
+    for (const r of settingRows) settings[r.key] = r.value;
+
     const scoped =
       scope?.role === "client_admin" && scope.clientId
         ? {
+            settings,
             staff: staffList,
             clients: clientList.filter((c) => c.id === scope.clientId),
             invitations: [],
@@ -289,6 +296,7 @@ export async function GET(req: Request) {
             templates,
           }
         : {
+            settings,
             staff: staffList,
             clients: clientList,
             invitations: invitationList,

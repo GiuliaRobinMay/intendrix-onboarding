@@ -143,7 +143,9 @@ export interface PhoenixAssignment {
 }
 
 /** A client member assigned to a campaign with a role — chosen from the
- *  client's members list, same system as the Phoenix side. */
+ *  client's members list, same system as the Phoenix side.
+ *  "contact" is shown as Team member — the everyday assignment;
+ *  "champion" is the Client Transformational Champion. */
 export type ClientAssignmentRole = "champion" | "contact";
 
 export interface ClientAssignment {

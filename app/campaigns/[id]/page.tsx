@@ -577,7 +577,7 @@ export default function CampaignDetailPage() {
                   clientId: client.id,
                   campaignId: campaign.id,
                   memberId: client.members[0].id,
-                  role: "champion",
+                  role: "contact",
                 });
               }}
               className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
@@ -633,8 +633,8 @@ export default function CampaignDetailPage() {
                     }
                     className="w-36 shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
                   >
+                    <option value="contact">Team member</option>
                     <option value="champion">Transf. Champion</option>
-                    <option value="contact">Contact</option>
                   </select>
                   <button
                     data-tip="Remove this assignment"
@@ -698,7 +698,7 @@ export default function CampaignDetailPage() {
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <button
                     disabled={!newMember.name.trim()}
-                    data-tip="Adds them to this client and puts them on this campaign as Transformational Champion"
+                    data-tip="Adds them to this client and puts them on this campaign as a team member"
                     onClick={() => {
                       const name = newMember.name.trim();
                       if (!name) return;
@@ -717,7 +717,7 @@ export default function CampaignDetailPage() {
                         clientId: client.id,
                         campaignId: campaign.id,
                         memberId,
-                        role: "champion",
+                        role: "contact",
                       });
                       setNewMember({ name: "", title: "", email: "" });
                       setAddingMember(false);

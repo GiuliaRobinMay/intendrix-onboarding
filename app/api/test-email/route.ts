@@ -174,6 +174,10 @@ export async function POST(req: Request) {
     client: campaign.client_name,
     sender: from.name,
   };
+  const logoRows = await pool
+    .query(`select value from app_settings where key = 'signatureLogoUrl'`)
+    .then((r) => r.rows)
+    .catch(() => []);
   const html = renderLessonEmail({
     body: personalize(content.email_body ?? "", merge),
     lesson:
@@ -185,6 +189,7 @@ export async function POST(req: Request) {
     senderName: from.name,
     senderRole: from.role,
     signature: from.signature,
+    logoUrl: campaign.sender_member_id ? null : (logoRows[0]?.value ?? null),
     test: true,
   });
   const subject = `[TEST] ${personalize(content.email_subject || step.title, merge)}`;

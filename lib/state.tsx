@@ -43,6 +43,8 @@ const SEED_VERSION = 8;
 
 interface DB {
   seedVersion: number;
+  /** app-wide values, e.g. signatureLogoUrl — the logo under every sign-off */
+  settings?: Record<string, string>;
   /** the Phoenix team: one list for sign-in and for assignments */
   staff: StaffMember[];
   clients: Client[];
@@ -55,6 +57,7 @@ interface DB {
 
 const seed = (): DB => ({
   seedVersion: SEED_VERSION,
+  settings: {},
   staff: seedStaff,
   clients: seedClients,
   invitations: [],
@@ -119,6 +122,8 @@ export interface DuplicatePlan {
 export type Action =
   | { type: "hydrate"; db: DB }
   | { type: "reset" }
+  /** app-wide value, e.g. { key: "signatureLogoUrl", value: "https://…" } */
+  | { type: "setSetting"; key: string; value: string }
   // clients
   | { type: "addClient"; id?: string; name: string; location: string; sector: string }
   | { type: "removeClient"; clientId: string }
@@ -412,6 +417,12 @@ function reducer(db: DB, action: Action): DB {
 
     case "reset":
       return seed();
+
+    case "setSetting":
+      return {
+        ...db,
+        settings: { ...(db.settings ?? {}), [action.key]: action.value },
+      };
 
     // ——— clients ———————————————————————————————————————————
 
@@ -970,6 +981,8 @@ interface DataContextValue {
   invitations: Invitation[];
   campaignTemplates: CampaignTemplate[];
   templates: SeriesTemplate[];
+  /** app-wide values — absent keys simply mean "not set yet" */
+  settings: Record<string, string>;
   backend: Backend;
   /** true when a change could not be saved to the database */
   syncError: boolean;
@@ -1143,6 +1156,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         invitations: db.invitations,
         campaignTemplates: db.campaignTemplates,
         templates: db.templates,
+        settings: db.settings ?? {},
         backend,
         syncError,
         dispatch,

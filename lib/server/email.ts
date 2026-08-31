@@ -64,6 +64,8 @@ export function renderLessonEmail(opts: {
   signature?: string | null;
   /** marks a test send, so nobody mistakes one for the real thing */
   test?: boolean;
+  /** company logo shown under the sign-off — a public image URL */
+  logoUrl?: string | null;
 }): string {
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -101,6 +103,10 @@ export function renderLessonEmail(opts: {
         : `<p style="margin:0;font-size:12px;color:#5f6170;">${esc(line)}</p>`
     )
     .join("");
+  const logo =
+    opts.logoUrl && /^https:\/\//.test(opts.logoUrl)
+      ? `<img src="${opts.logoUrl}" alt="" style="display:block;margin:14px 0 0;max-height:44px;max-width:200px;" />`
+      : "";
   const banner = opts.test
     ? `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the programme received it.</p>`
     : "";
@@ -108,7 +114,7 @@ export function renderLessonEmail(opts: {
 <div style="max-width:560px;margin:0 auto;padding:32px 20px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;">
   <div style="background:#ffffff;border:1px solid #e4e4e8;border-radius:8px;padding:28px;">
     ${banner}${paragraphs}${button}${extras}${meeting}
-    <div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;">${signOff}</div>
+    <div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;">${signOff}${logo}</div>
   </div>
   <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership programme.</p>
 </div>

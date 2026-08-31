@@ -86,7 +86,7 @@ export async function GET(req: Request) {
   const q = async (text: string, params: any[] = []) =>
     (await pool.query(text, params)).rows;
 
-  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged] =
+  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows] =
     await Promise.all([
       q(`select id, client_id, code, name, timezone, status_override,
                 sender_member_id, shadow_emails from campaigns`),
@@ -103,7 +103,12 @@ export async function GET(req: Request) {
                 lesson_label, lesson_url, team_meeting from step_contents`),
       q(`select step_content_id, label, url from step_links order by sort_order`),
       q(`select campaign_id, step_id, member_id, shadow_to from email_sends`),
+      q(`select value from app_settings where key = 'signatureLogoUrl'`).catch(() => []),
     ]);
+
+  // the company logo under every Phoenix sign-off; client champions keep
+  // their own plain block — their organisation is not Phoenix
+  const logoUrl: string | null = logoRows[0]?.value ?? null;
 
   const clientById = new Map(clients.map((c: any) => [c.id, c]));
   const staffById = new Map(staff.map((s: any) => [s.id, s]));
@@ -323,6 +328,7 @@ export async function GET(req: Request) {
             senderName: from.name,
             senderRole: from.role,
             signature: from.signature,
+            logoUrl: campaign.sender_member_id ? null : logoUrl,
           });
           const result = await sendEmail({
             from: `${from.name} <${from.address}>`,
@@ -378,6 +384,7 @@ export async function GET(req: Request) {
             senderName: from.name,
             senderRole: from.role,
             signature: from.signature,
+            logoUrl: campaign.sender_member_id ? null : logoUrl,
           });
           const client = clientById.get(campaign.client_id);
           const result = await sendEmail({

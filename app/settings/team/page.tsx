@@ -415,7 +415,7 @@ function ClientAdminRow({ invitation }: { invitation: Invitation }) {
 }
 
 export default function TeamSettingsPage() {
-  const { staff, clients, invitations, dispatch } = useData();
+  const { staff, clients, invitations, settings, dispatch } = useData();
   const [adding, setAdding] = useState(false);
   const [invitingClient, setInvitingClient] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -518,6 +518,71 @@ export default function TeamSettingsPage() {
               onNotice={setNotice}
             />
           )}
+        </section>
+
+        {/* How the lesson emails sign off: text per person, one logo for all */}
+        <section className="card p-5">
+          <h2 className="flex items-center gap-2 text-base font-bold">
+            <PenLine size={16} className="text-mist" /> Email sign-off
+          </h2>
+          <p className="mt-1 mb-4 text-xs text-mist">
+            Every lesson email closes with the sender&rsquo;s signature and the
+            company logo. The signature text is personal — the{" "}
+            <PenLine size={11} className="inline text-paper" /> on each row
+            above edits it. The logo below is one image for the whole team.
+          </p>
+
+          <div className="flex flex-wrap items-start gap-6">
+            <label className="block min-w-64 flex-1">
+              <span className="text-[11px] font-medium text-mist">
+                Company logo — image address
+              </span>
+              <input
+                type="url"
+                defaultValue={settings.signatureLogoUrl ?? ""}
+                placeholder="https://phoenixperform.com/logo.png"
+                data-tip="A public https image address. Right-click the logo on your website → Copy image address — that link is exactly what goes here."
+                onBlur={(e) => {
+                  const next = e.target.value.trim();
+                  if (next === (settings.signatureLogoUrl ?? "").trim()) return;
+                  dispatch({ type: "setSetting", key: "signatureLogoUrl", value: next });
+                }}
+                className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-2 text-xs focus:border-white/30 focus:outline-none"
+              />
+              <span className="mt-1.5 block text-[11px] leading-relaxed text-mist">
+                Must start with https:// and point straight at the image.
+                Leave it empty for no logo. Emails sent under a client&rsquo;s
+                own champion never carry it — their organisation isn&rsquo;t
+                Phoenix.
+              </span>
+            </label>
+
+            {/* the email is white, so the preview is too */}
+            <div className="w-56 shrink-0">
+              <span className="text-[11px] font-medium text-mist">
+                How it will look
+              </span>
+              <div className="mt-1 rounded-md border border-white/10 bg-white p-3">
+                <p className="text-[12px] font-semibold text-[#1a1b2e]">Brad Zimmerman</p>
+                <p className="text-[11px] text-[#5f6170]">Phoenix Coach</p>
+                {settings.signatureLogoUrl?.startsWith("https://") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={settings.signatureLogoUrl}
+                    alt="Company logo preview"
+                    className="mt-2 block max-h-11 max-w-full"
+                  />
+                ) : (
+                  <p className="mt-2 rounded border border-dashed border-[#d8d8de] px-2 py-1.5 text-[10px] text-[#9a9ca6]">
+                    logo appears here
+                  </p>
+                )}
+              </div>
+              <span className="mt-1 block text-[11px] text-mist">
+                Check it with <em>Send me a test</em> in the Mailbox.
+              </span>
+            </div>
+          </div>
         </section>
       </div>
 

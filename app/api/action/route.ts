@@ -190,6 +190,14 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       );
       return;
     }
+    case "setSetting":
+      await tx.query(
+        `insert into app_settings (key, value) values ($1, $2)
+         on conflict (key) do update set value = excluded.value, updated_at = now()`,
+        [a.key, a.value]
+      );
+      return;
+
     case "removeCampaign":
       await tx.query(`delete from campaigns where id = $1`, [a.campaignId]);
       return;
