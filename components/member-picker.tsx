@@ -15,6 +15,7 @@ export function MemberPicker({
   onPick,
   tip,
   excludeIds,
+  nameOnly = false,
 }: {
   members: Member[];
   /** id of the currently chosen member */
@@ -23,6 +24,8 @@ export function MemberPicker({
   tip?: string;
   /** people already picked elsewhere — kept out of the list */
   excludeIds?: string[];
+  /** show only the name on the closed button (for tight table rows) */
+  nameOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -55,7 +58,9 @@ export function MemberPicker({
       >
         <span className="min-w-0 flex-1 truncate">
           {current
-            ? `${current.name}${current.title ? ` — ${current.title}` : ""}`
+            ? nameOnly
+              ? current.name
+              : `${current.name}${current.title ? ` — ${current.title}` : ""}`
             : "— pick a person —"}
         </span>
         <ChevronDown size={12} className="shrink-0 text-mist" />

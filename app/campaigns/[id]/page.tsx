@@ -644,9 +644,10 @@ export default function CampaignDetailPage() {
           </p>
 
           {campaign.clientTeam.length > 0 && (
-            <div className="grid grid-cols-[1.4rem_minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+            <div className="grid grid-cols-[1.4rem_minmax(0,1.1fr)_minmax(0,1.3fr)_8.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
               <span>#</span>
               <span>Name</span>
+              <span>Email</span>
               <span>Role</span>
               <span />
             </div>
@@ -665,12 +666,13 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="grid grid-cols-[1.4rem_minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
+                  className="grid grid-cols-[1.4rem_minmax(0,1.1fr)_minmax(0,1.3fr)_8.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                 >
                   <span className="text-[11px] tabular-nums text-mist/60">
                     {rowIndex + 1}
                   </span>
                   <MemberPicker
+                    nameOnly
                     tip="Which member of the client — type to search"
                     members={client.members}
                     excludeIds={campaign.clientTeam.map((x) => x.memberId)}
@@ -685,6 +687,12 @@ export default function CampaignDetailPage() {
                       })
                     }
                   />
+                  <span
+                    data-tip={member?.email || "No email address yet — add it on the client page"}
+                    className={`truncate text-xs ${member?.email ? "text-mist" : "font-semibold text-[#ff7a55]"}`}
+                  >
+                    {member?.email || "no email"}
+                  </span>
                   <select
                     title="Their role on this campaign"
                     value={a.role}
@@ -728,9 +736,10 @@ export default function CampaignDetailPage() {
             })}
             </div>
             {pendingClientRow && (
-              <div className="grid grid-cols-[1.4rem_minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+              <div className="grid grid-cols-[1.4rem_minmax(0,1.1fr)_minmax(0,1.3fr)_8.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
                 <span className="text-[11px] tabular-nums text-mist/40">+</span>
                 <MemberPicker
+                  nameOnly
                   tip="Choose who joins this campaign — nothing is saved until you do"
                   members={client.members}
                   excludeIds={campaign.clientTeam.map((x) => x.memberId)}
@@ -746,6 +755,7 @@ export default function CampaignDetailPage() {
                     setPendingClientRow(false);
                   }}
                 />
+                <span className="truncate text-xs text-mist/40">—</span>
                 <span className="text-xs text-mist/50">as team member</span>
                 <button
                   data-tip="Never mind"
