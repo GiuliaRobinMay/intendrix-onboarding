@@ -192,7 +192,14 @@ export default function CampaignTemplateDetailPage() {
                 ? `+${s.steps[0].offsetDays}d, then weekly`
                 : "weekly";
           return (
-            <div key={s.id} className="card card-hover group relative">
+            <div
+              key={s.id}
+              className="card card-hover group relative"
+              style={{
+                backgroundImage: `linear-gradient(140deg, ${s.color}30 0%, ${s.color}0c 55%, transparent 100%)`,
+                borderColor: `${s.color}55`,
+              }}
+            >
               <Link
                 href={`/settings/campaigns/${ct.id}/series/${s.id}`}
                 data-tip="Open the lessons and emails of this series"

@@ -1,15 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  /* Intendrix brand palette (dark theme values — the default) */
-  --color-ink: #050714;
-  --color-navy: #14143c;
+  /* Intendrix brand palette (dark theme values — the default).
+     The dark theme deliberately stays OFF the darkest brand blue: the
+     page floor is a mid navy and the surfaces are frosted glass above
+     it, so the whole thing reads lighter and less heavy. */
+  --color-ink: #12142b;
+  --color-navy: #1b1d45;
   --color-brand: #2c2d83;
   --color-flame: #eb320f;
-  --color-mist: #aeb0b2;
+  --color-mist: #b3b5c4;
   --color-paper: #eeeeef;
-  /* sidebar + card surface */
-  --color-panel: #0b0d1d;
+  /* solid fallback for the glass surfaces */
+  --color-panel: #181a38;
 }
 
 /* Light theme — toggled from the sidebar, persisted in localStorage.
@@ -21,27 +24,51 @@
   --tone-green: #4ade80;
   --tone-yellow: #facc15;
   --tone-indigo: #a3a4f0;
+  /* frosted glass: a translucent surface blurring the ambient glows */
+  --glass-bg: rgba(30, 33, 68, 0.52);
+  --glass-bg-hover: rgba(38, 41, 82, 0.6);
+  --glass-border: rgba(238, 238, 239, 0.09);
+  --glass-highlight: rgba(238, 238, 239, 0.07);
+  --glass-shadow: 0 12px 32px rgba(3, 4, 12, 0.35);
 }
 html.light {
-  --color-ink: #f2f2f4;   /* page background */
+  /* the light theme gets a real floor — a cool grey-blue, not white on
+     white — so the glass cards actually stand off the page */
+  --color-ink: #dfe2ec;   /* page background */
   --color-navy: #ffffff;  /* input surfaces (bg-navy/60) */
-  --color-mist: #5f6170;  /* secondary text */
+  --color-mist: #585a6b;  /* secondary text */
   --color-paper: #101223; /* primary text */
-  --color-panel: #ffffff; /* sidebar + cards */
+  --color-panel: #f7f8fc; /* solid fallback for the glass surfaces */
   --color-white: #0b0d1d; /* white-alpha utilities become ink-alpha */
   --tone-green: #15803d;
   --tone-yellow: #b45309;
   --tone-indigo: #4547b8;
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-hover: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(16, 18, 35, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 10px 28px rgba(30, 34, 60, 0.14);
 }
 
 body {
   color-scheme: dark;
   background-color: var(--color-ink);
+  /* soft brand glows for the glass to blur — this is what makes the
+     panels read as material instead of flat rectangles */
+  background-image:
+    radial-gradient(1100px 720px at 88% -12%, rgba(235, 50, 15, 0.14), transparent 60%),
+    radial-gradient(1000px 700px at -12% 18%, rgba(96, 98, 220, 0.2), transparent 55%),
+    radial-gradient(900px 620px at 55% 112%, rgba(44, 45, 131, 0.3), transparent 60%);
+  background-attachment: fixed;
   /* the typeface is a Settings choice, persisted in localStorage */
   font-family: var(--app-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
 }
 html.light body {
   color-scheme: light;
+  background-image:
+    radial-gradient(1100px 720px at 88% -12%, rgba(235, 50, 15, 0.09), transparent 60%),
+    radial-gradient(1000px 700px at -12% 18%, rgba(69, 71, 184, 0.12), transparent 55%),
+    radial-gradient(900px 620px at 55% 112%, rgba(44, 45, 131, 0.1), transparent 60%);
 }
 
 .brand-gradient {
@@ -67,17 +94,38 @@ html.light body {
 }
 
 .card {
-  background-color: var(--color-panel);
-  border: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
-  border-radius: 8px;
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+}
+/* browsers without backdrop-filter get the solid surface instead */
+@supports not (backdrop-filter: blur(1px)) {
+  .card {
+    background-color: var(--color-panel);
+  }
 }
 
 .card-hover {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .card-hover:hover {
-  border-color: color-mix(in srgb, var(--color-white) 20%, transparent);
-  background-color: color-mix(in srgb, var(--color-white) 3%, var(--color-panel));
+  border-color: color-mix(in srgb, var(--color-white) 22%, transparent);
+  background-color: var(--glass-bg-hover);
+}
+
+/* the sidebar is the same glass as the cards */
+.glass-panel {
+  background-color: var(--glass-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  backdrop-filter: blur(16px) saturate(1.35);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-panel {
+    background-color: var(--color-panel);
+  }
 }
 
 /* A bare number field. The browser's spinner arrows eat a third of the
@@ -96,10 +144,23 @@ html.light body {
    green now, blue ahead, grey done) paints the background, --series-c
    (the series its date starts) owns the left edge and the number chip. */
 .session-card {
-  background-color: color-mix(in srgb, var(--state-c) 12%, var(--color-panel));
-  border: 1px solid color-mix(in srgb, var(--state-c) 28%, transparent);
+  background-image: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--state-c) 28%, transparent) 0%,
+    color-mix(in srgb, var(--state-c) 10%, transparent) 55%,
+    color-mix(in srgb, var(--state-c) 3%, transparent) 100%
+  );
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--state-c) 32%, transparent);
   border-left: 3px solid var(--series-c);
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .session-card {
+    background-color: color-mix(in srgb, var(--state-c) 14%, var(--color-panel));
+  }
 }
 
 /* Tinted chip — set --chip-c (a hex) on the element. On light the text

@@ -150,7 +150,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-white/8 bg-panel py-4 transition-[width] duration-200 ${
+      className={`glass-panel sticky top-0 flex h-screen shrink-0 flex-col border-r border-white/8 py-4 transition-[width] duration-200 ${
         collapsed ? "w-14 px-2" : "w-56 px-3"
       }`}
     >
