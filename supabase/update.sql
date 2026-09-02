@@ -158,8 +158,41 @@ comment on column members.first_name is
   'What {{first_name}} in a lesson email becomes for this person.';
 
 
+-- ——— per-campaign email wording ———————————————————————————
+--
+-- Editing an email in a campaign's mailbox lands here, for that one
+-- campaign; the master lesson library is never touched by it.
+
+create table if not exists campaign_step_content (
+  campaign_id   text not null references campaigns (id) on delete cascade,
+  step_id       text not null references series_steps (id) on delete cascade,
+  variant       step_variant not null,
+  email_subject text,
+  email_body    text,
+  updated_at    timestamptz not null default now(),
+  primary key (campaign_id, step_id, variant)
+);
+
+comment on table campaign_step_content is
+  'Per-campaign wording of a lesson email. Null fields fall back to the master in step_contents.';
+
+alter table campaign_step_content enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+     where tablename = 'campaign_step_content'
+       and policyname = 'campaign_step_content_team_all'
+  ) then
+    create policy campaign_step_content_team_all on campaign_step_content
+      for all to authenticated using (true) with check (true);
+  end if;
+end $$;
+
+
 -- ——— check it landed ——————————————————————————————————————
--- Expect seven rows.
+-- Expect eight rows.
 
 select table_name, column_name
   from information_schema.columns
@@ -169,4 +202,5 @@ select table_name, column_name
     or (table_name = 'email_sends'       and column_name = 'shadow_to')
     or (table_name = 'invitations'       and column_name = 'name')
     or (table_name = 'app_settings'      and column_name = 'key')
+    or (table_name = 'campaign_step_content' and column_name = 'campaign_id')
  order by table_name, column_name;

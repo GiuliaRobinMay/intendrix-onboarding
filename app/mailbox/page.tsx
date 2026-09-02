@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Crown,
   ExternalLink,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { TestSendButton } from "@/components/test-send";
 import { EditableText } from "@/components/editable";
+import { useConfirm } from "@/components/confirm";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
 import { useData } from "@/lib/state";
 import {
@@ -99,6 +100,7 @@ function ContentLinks({ content }: { content: StepContent }) {
 /** The right pane: one email in full, like any email client. */
 function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
   const { dispatch } = useData();
+  const confirmReset = useConfirm();
   const [variant, setVariant] = useState<"participant" | "leader">("participant");
   const same =
     JSON.stringify(item.step.participant) === JSON.stringify(item.step.leader);
@@ -106,14 +108,25 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
   const status: SendStatus = paused ? "paused" : item.status;
 
   // Subject and text are edited right here, in the email being read.
-  // Changes go into the master lesson, so every campaign that sends this
-  // lesson sends the new wording.
-  const patchContent = (patch: Partial<StepContent>) => {
+  // Edits land on THIS campaign only — the master lesson in the library
+  // stays untouched, and other campaigns keep their own wording.
+  const activeVariant = same ? "participant" : variant;
+  const override = item.campaign.contentOverrides?.find(
+    (o) => o.stepId === item.step.id && o.variant === activeVariant
+  );
+  const shownSubject = override?.emailSubject ?? content.emailSubject;
+  const shownBody = override?.emailBody ?? content.emailBody;
+  const customised = Boolean(
+    override && (override.emailSubject != null || override.emailBody != null)
+  );
+
+  const patchContent = (patch: { emailSubject?: string; emailBody?: string }) => {
     const variants = same ? (["participant", "leader"] as const) : [variant];
     for (const v of variants)
       dispatch({
-        type: "updateStepContent",
-        templateId: item.series.id,
+        type: "overrideStepContent",
+        clientId: item.client.id,
+        campaignId: item.campaign.id,
         stepId: item.step.id,
         variant: v,
         patch,
@@ -124,12 +137,12 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
     <div className="flex min-h-full flex-col p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h2
-          data-tip="Click the subject to change it — saves when you click away, for every campaign using this lesson"
+          data-tip="Click the subject to change it — only this campaign's email changes, the master template stays untouched"
           data-tip-pos="bottom"
           className="min-w-0 flex-1 text-lg font-bold leading-snug"
         >
           <EditableText
-            value={content.emailSubject}
+            value={shownSubject}
             placeholder="Subject line"
             onCommit={(v) => patchContent({ emailSubject: v })}
             className="text-lg font-bold leading-snug"
@@ -206,6 +219,35 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
         </div>
       </dl>
 
+      {customised && (
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="rounded bg-[#a3a4f0]/15 px-2 py-0.5 font-semibold text-[var(--tone-indigo)]">
+            Own wording for this campaign
+          </span>
+          <button
+            data-tip="Throw away this campaign's wording and show the master template again"
+            onClick={async () => {
+              if (
+                await confirmReset({
+                  name: shownSubject || item.step.title,
+                  detail: `Drops the wording written for ${item.client.shortName}'s campaign and goes back to the master template. The master itself was never changed.`,
+                  verb: "Reset",
+                })
+              )
+                dispatch({
+                  type: "clearStepOverride",
+                  clientId: item.client.id,
+                  campaignId: item.campaign.id,
+                  stepId: item.step.id,
+                });
+            }}
+            className="cursor-pointer font-semibold text-mist underline transition-colors hover:text-paper"
+          >
+            Reset to master
+          </button>
+        </p>
+      )}
+
       {/* the two audience variants of this send */}
       {!same && (
         <div className="mt-4 flex w-fit divide-x divide-white/8 rounded-md border border-white/10">
@@ -244,12 +286,13 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
       {/* body */}
       <div
         className="mt-3 flex-1"
-        data-tip="Click the text to change it — saves when you click away, for every campaign using this lesson"
+        data-tip="Click the text to change it — only this campaign's email changes, the master template stays untouched"
         data-tip-pos="bottom"
       >
         <EditableText
           multiline
-          value={content.emailBody}
+          minRows={14}
+          value={shownBody}
           placeholder="The email text"
           onCommit={(v) => patchContent({ emailBody: v })}
           className="text-sm leading-relaxed text-paper/90"
@@ -305,6 +348,39 @@ export default function MailboxPage() {
   const [to, setTo] = useState("");
   const [query, setQuery] = useState("");
   const [openKey, setOpenKey] = useState<string | null>(null);
+  // the divider between list and reading pane is draggable, so a small
+  // screen can shrink the list and keep the email readable
+  const [listW, setListW] = useState(420);
+  const listWRef = useRef(420);
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem("intendrix-mailbox-split"));
+      if (saved >= 240) {
+        setListW(saved);
+        listWRef.current = saved;
+      }
+    } catch {}
+  }, []);
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const start = listWRef.current;
+    const move = (ev: PointerEvent) => {
+      const max = Math.max(320, window.innerWidth * 0.55);
+      const w = Math.min(Math.max(start + ev.clientX - startX, 240), max);
+      listWRef.current = w;
+      setListW(w);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      try {
+        localStorage.setItem("intendrix-mailbox-split", String(listWRef.current));
+      } catch {}
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   const items = useMemo(
     () => mailboxItems(clients, templates, staff, today),
@@ -551,8 +627,11 @@ export default function MailboxPage() {
           </p>
         </div>
       ) : (
-        <div className="card grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <ul className="border-b border-white/8 lg:border-b-0 lg:border-r">
+        <div
+          className="card flex flex-col lg:flex-row"
+          style={{ "--list-w": `${listW}px` } as React.CSSProperties}
+        >
+          <ul className="min-w-0 border-b border-white/8 lg:w-[var(--list-w)] lg:shrink-0 lg:border-b-0">
             {ordered.map((item) => {
               const k = keyOf(item);
               const on = selected !== null && keyOf(selected) === k;
@@ -602,7 +681,13 @@ export default function MailboxPage() {
             })}
           </ul>
 
-          <div className="min-h-96 self-start lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
+          <div
+            data-tip="Drag left or right to give the email more or less room"
+            data-tip-pos="right"
+            onPointerDown={startDrag}
+            className="hidden w-1.5 shrink-0 cursor-col-resize self-stretch bg-white/6 transition-colors hover:bg-white/25 active:bg-white/25 lg:block"
+          />
+          <div className="min-h-96 min-w-0 flex-1 self-start lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
             {selected && (
               <ReadingPane
                 key={keyOf(selected)}

@@ -178,8 +178,20 @@ export async function POST(req: Request) {
     .query(`select value from app_settings where key = 'signatureLogoUrl'`)
     .then((r) => r.rows)
     .catch(() => []);
+
+  // this campaign's own wording wins over the master lesson
+  const override = await pool
+    .query(
+      `select email_subject, email_body from campaign_step_content
+        where campaign_id = $1 and step_id = $2 and variant = $3`,
+      [campaign.id, stepId, content.variant]
+    )
+    .then((r) => r.rows[0])
+    .catch(() => undefined);
+  const wordedSubject = override?.email_subject ?? content.email_subject;
+  const wordedBody = override?.email_body ?? content.email_body;
   const html = renderLessonEmail({
-    body: personalize(content.email_body ?? "", merge),
+    body: personalize(wordedBody ?? "", merge),
     lesson:
       content.lesson_label || content.lesson_url
         ? { label: content.lesson_label ?? "Open the lesson", url: content.lesson_url }
@@ -192,7 +204,7 @@ export async function POST(req: Request) {
     logoUrl: campaign.sender_member_id ? null : (logoRows[0]?.value ?? null),
     test: true,
   });
-  const subject = `[TEST] ${personalize(content.email_subject || step.title, merge)}`;
+  const subject = `[TEST] ${personalize(wordedSubject || step.title, merge)}`;
 
   if (!emailConfigured)
     return NextResponse.json({

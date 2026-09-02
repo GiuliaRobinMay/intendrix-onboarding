@@ -9,12 +9,15 @@ export function EditableText({
   className = "",
   placeholder,
   multiline = false,
+  minRows,
 }: {
   value: string;
   onCommit: (v: string) => void;
   className?: string;
   placeholder?: string;
   multiline?: boolean;
+  /** never shrink below this many lines (multiline only) */
+  minRows?: number;
 }) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
@@ -30,7 +33,11 @@ export function EditableText({
         placeholder={placeholder}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => draft !== value && onCommit(draft)}
-        rows={Math.max(2, Math.ceil(draft.length / 90))}
+        rows={Math.max(
+          minRows ?? 2,
+          draft.split("\n").length + 1,
+          Math.ceil(draft.length / 90)
+        )}
         className={`${base} resize-none ${className}`}
       />
     );

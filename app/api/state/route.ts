@@ -67,6 +67,7 @@ export async function GET(req: Request) {
       contents,
       links,
       settingRows,
+      overrideRows,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
       q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
@@ -116,6 +117,8 @@ export async function GET(req: Request) {
            from step_links order by sort_order, id`),
       // tolerate a database from before app_settings existed
       q(`select key, value from app_settings`).catch(() => []),
+      q(`select campaign_id, step_id, variant, email_subject, email_body
+           from campaign_step_content`).catch(() => []),
     ]);
 
     const linksByContent = new Map<string, Array<{ label: string; url: string | null }>>();
@@ -196,6 +199,18 @@ export async function GET(req: Request) {
       sessionsByCampaign.set(s.campaign_id, list);
     }
 
+    const overridesByCampaign = new Map<string, any[]>();
+    for (const o of overrideRows) {
+      const list = overridesByCampaign.get(o.campaign_id) ?? [];
+      list.push({
+        stepId: o.step_id,
+        variant: o.variant,
+        emailSubject: o.email_subject,
+        emailBody: o.email_body,
+      });
+      overridesByCampaign.set(o.campaign_id, list);
+    }
+
     const seriesByCampaign = new Map<string, any[]>();
     for (const s of loadedSeries) {
       const list = seriesByCampaign.get(s.campaign_id) ?? [];
@@ -233,6 +248,7 @@ export async function GET(req: Request) {
         startDate: c.start_date,
         endDate: c.end_date,
         sessions: sessionsByCampaign.get(c.id) ?? [],
+        contentOverrides: overridesByCampaign.get(c.id) ?? [],
         series: seriesByCampaign.get(c.id) ?? [],
       };
       const list = campaignsByClient.get(c.client_id) ?? [];

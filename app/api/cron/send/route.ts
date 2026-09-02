@@ -102,7 +102,7 @@ export async function GET(req: Request) {
   const q = async (text: string, params: any[] = []) =>
     (await pool.query(text, params)).rows;
 
-  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows] =
+  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows] =
     await Promise.all([
       q(`select id, client_id, code, name, timezone, status_override,
                 sender_member_id, shadow_emails from campaigns`),
@@ -121,11 +121,26 @@ export async function GET(req: Request) {
       q(`select step_content_id, label, url from step_links order by sort_order`),
       q(`select campaign_id, step_id, member_id, shadow_to from email_sends`),
       q(`select value from app_settings where key = 'signatureLogoUrl'`).catch(() => []),
+      q(`select campaign_id, step_id, variant, email_subject, email_body
+           from campaign_step_content`).catch(() => []),
     ]);
 
   // the company logo under every Phoenix sign-off; client champions keep
   // their own plain block — their organisation is not Phoenix
   const logoUrl: string | null = logoRows[0]?.value ?? null;
+
+  // a campaign's own wording of a lesson, when it has one — it wins over
+  // the master, field by field
+  const overrideByKey = new Map<string, any>();
+  for (const o of overrideRows)
+    overrideByKey.set(`${o.campaign_id}|${o.step_id}|${o.variant}`, o);
+  const worded = (campaign: any, step: any, content: any) => {
+    const o = overrideByKey.get(`${campaign.id}|${step.id}|${content.variant}`);
+    return {
+      subject: o?.email_subject ?? content.email_subject,
+      body: o?.email_body ?? content.email_body,
+    };
+  };
 
   const clientById = new Map(clients.map((c: any) => [c.id, c]));
   const staffById = new Map(staff.map((s: any) => [s.id, s]));
@@ -349,8 +364,9 @@ export async function GET(req: Request) {
             client: clientById.get(campaign.client_id)?.name,
             sender: from.name,
           };
+          const text = worded(campaign, step, content);
           const html = renderLessonEmail({
-            body: personalize(content.email_body ?? "", merge),
+            body: personalize(text.body ?? "", merge),
             lesson: content.lesson_label || content.lesson_url
               ? { label: content.lesson_label ?? "Open the lesson", url: content.lesson_url }
               : null,
@@ -368,7 +384,7 @@ export async function GET(req: Request) {
             from: `${from.name} <${from.address}>`,
             to: member.email,
             replyTo: from.replyTo,
-            subject: personalize(content.email_subject || step.title, merge),
+            subject: personalize(text.subject || step.title, merge),
             html,
             attachments: content.attachment_url
               ? [{
@@ -407,8 +423,9 @@ export async function GET(req: Request) {
           }
 
           already.add(`${campaign.id}|${step.id}|${address}`);
+          const text = worded(campaign, step, content);
           const html = renderLessonEmail({
-            body: personalize(content.email_body ?? "", {
+            body: personalize(text.body ?? "", {
               firstName: "there",
               client: clientById.get(campaign.client_id)?.name,
               sender: from.name,
@@ -432,7 +449,7 @@ export async function GET(req: Request) {
             to: address,
             replyTo: from.replyTo,
             subject: `[${client?.name ?? campaign.code} · copy] ${
-              content.email_subject || step.title
+              text.subject || step.title
             }`,
             html,
             attachments: content.attachment_url

@@ -163,6 +163,15 @@ export interface ClientAssignment {
   role: ClientAssignmentRole;
 }
 
+/** A campaign's own wording of one lesson email. Missing fields fall
+ *  back to the master lesson, which stays untouched. */
+export interface ContentOverride {
+  stepId: string;
+  variant: "participant" | "leader";
+  emailSubject?: string | null;
+  emailBody?: string | null;
+}
+
 export interface Campaign {
   id: string;
   code: string; // e.g. TLE-E
@@ -194,6 +203,8 @@ export interface Campaign {
   endDate?: string | null;
   sessions: CampaignSession[];
   series: LoadedSeries[];
+  /** this campaign's own email wording, overriding the master lesson */
+  contentOverrides?: ContentOverride[];
 }
 
 export type ClientStatus = "active" | "onboarding" | "archived";

@@ -253,6 +253,25 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         mode: "mode",
       });
       return;
+    case "overrideStepContent":
+      await tx.query(
+        `insert into campaign_step_content
+           (campaign_id, step_id, variant, email_subject, email_body)
+         values ($1, $2, $3, $4, $5)
+         on conflict (campaign_id, step_id, variant) do update
+           set email_subject = coalesce(excluded.email_subject, campaign_step_content.email_subject),
+               email_body    = coalesce(excluded.email_body,    campaign_step_content.email_body),
+               updated_at    = now()`,
+        [a.campaignId, a.stepId, a.variant,
+         a.patch?.emailSubject ?? null, a.patch?.emailBody ?? null]
+      );
+      return;
+    case "clearStepOverride":
+      await tx.query(
+        `delete from campaign_step_content where campaign_id = $1 and step_id = $2`,
+        [a.campaignId, a.stepId]
+      );
+      return;
     case "fillSessionDates":
       await tx.query(
         `update campaign_sessions s

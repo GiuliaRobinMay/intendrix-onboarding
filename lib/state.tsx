@@ -263,6 +263,23 @@ export type Action =
       templateId: string;
       dir: -1 | 1;
     }
+  /** This campaign's own wording of a lesson email. The master lesson
+   *  stays untouched; missing fields keep falling back to it. */
+  | {
+      type: "overrideStepContent";
+      clientId: string;
+      campaignId: string;
+      stepId: string;
+      variant: "participant" | "leader";
+      patch: { emailSubject?: string; emailBody?: string };
+    }
+  /** Drop the campaign's own wording — back to the master lesson. */
+  | {
+      type: "clearStepOverride";
+      clientId: string;
+      campaignId: string;
+      stepId: string;
+    }
   /** drag-and-drop reorder: drop a series at an absolute position */
   | {
       type: "moveSeriesTo";
@@ -582,6 +599,37 @@ function reducer(db: DB, action: Action): DB {
         ...c,
         sessions: c.sessions.map((s) =>
           s.id === action.sessionId ? { ...s, ...action.patch } : s
+        ),
+      }));
+
+    case "overrideStepContent":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        const rest = (c.contentOverrides ?? []).filter(
+          (o) => !(o.stepId === action.stepId && o.variant === action.variant)
+        );
+        const existing = (c.contentOverrides ?? []).find(
+          (o) => o.stepId === action.stepId && o.variant === action.variant
+        );
+        return {
+          ...c,
+          contentOverrides: [
+            ...rest,
+            {
+              stepId: action.stepId,
+              variant: action.variant,
+              emailSubject: existing?.emailSubject ?? null,
+              emailBody: existing?.emailBody ?? null,
+              ...action.patch,
+            },
+          ],
+        };
+      });
+
+    case "clearStepOverride":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        contentOverrides: (c.contentOverrides ?? []).filter(
+          (o) => o.stepId !== action.stepId
         ),
       }));
 
