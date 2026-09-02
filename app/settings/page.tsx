@@ -174,6 +174,39 @@ export default function AppSettingsPage() {
         </div>
       </section>
 
+      {/* Every subject line carries this, so recipients always see which
+          programme the email belongs to */}
+      <section className="card p-5 xl:col-span-2">
+        <h2 className="text-base font-bold">Subject line prefix</h2>
+        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-mist">
+          Put in front of every lesson email&rsquo;s subject, so people
+          recognise the programme at a glance. Applies automatically to all
+          campaigns and to your test sends.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <input
+            type="text"
+            defaultValue={settings.subjectPrefix ?? ""}
+            placeholder="e.g.  Intendrix ·"
+            data-tip="A word or two. Leave empty for plain subjects."
+            onBlur={(e) => {
+              const next = e.target.value.trim();
+              if (next === (settings.subjectPrefix ?? "").trim()) return;
+              dispatch({ type: "setSetting", key: "subjectPrefix", value: next });
+            }}
+            className="w-64 rounded-md border border-white/10 bg-navy/60 px-2.5 py-2 text-sm focus:border-white/30 focus:outline-none"
+          />
+          <p className="min-w-0 text-xs text-mist">
+            Recipients see:{" "}
+            <span className="font-semibold text-paper">
+              {(settings.subjectPrefix ?? "").trim()
+                ? `${(settings.subjectPrefix ?? "").trim()} Start living by design, not default`
+                : "Start living by design, not default"}
+            </span>
+          </p>
+        </div>
+      </section>
+
       {/* Organization */}
       <section className="card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold">
