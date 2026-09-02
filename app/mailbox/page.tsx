@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { TestSendButton } from "@/components/test-send";
+import { EditableText } from "@/components/editable";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
 import { useData } from "@/lib/state";
 import {
@@ -97,17 +98,42 @@ function ContentLinks({ content }: { content: StepContent }) {
 
 /** The right pane: one email in full, like any email client. */
 function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
+  const { dispatch } = useData();
   const [variant, setVariant] = useState<"participant" | "leader">("participant");
   const same =
     JSON.stringify(item.step.participant) === JSON.stringify(item.step.leader);
   const content = same ? item.step.participant : item.step[variant];
   const status: SendStatus = paused ? "paused" : item.status;
 
+  // Subject and text are edited right here, in the email being read.
+  // Changes go into the master lesson, so every campaign that sends this
+  // lesson sends the new wording.
+  const patchContent = (patch: Partial<StepContent>) => {
+    const variants = same ? (["participant", "leader"] as const) : [variant];
+    for (const v of variants)
+      dispatch({
+        type: "updateStepContent",
+        templateId: item.series.id,
+        stepId: item.step.id,
+        variant: v,
+        patch,
+      });
+  };
+
   return (
     <div className="flex min-h-full flex-col p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h2 className="min-w-0 text-lg font-bold leading-snug">
-          {content.emailSubject}
+        <h2
+          data-tip="Click the subject to change it — saves when you click away, for every campaign using this lesson"
+          data-tip-pos="bottom"
+          className="min-w-0 flex-1 text-lg font-bold leading-snug"
+        >
+          <EditableText
+            value={content.emailSubject}
+            placeholder="Subject line"
+            onCommit={(v) => patchContent({ emailSubject: v })}
+            className="text-lg font-bold leading-snug"
+          />
         </h2>
         <StatusChip status={status} />
       </div>
@@ -216,10 +242,18 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
       )}
 
       {/* body */}
-      <div className="mt-3 flex-1">
-        <p className="whitespace-pre-line text-sm leading-relaxed text-paper/90">
-          {content.emailBody}
-        </p>
+      <div
+        className="mt-3 flex-1"
+        data-tip="Click the text to change it — saves when you click away, for every campaign using this lesson"
+        data-tip-pos="bottom"
+      >
+        <EditableText
+          multiline
+          value={content.emailBody}
+          placeholder="The email text"
+          onCommit={(v) => patchContent({ emailBody: v })}
+          className="text-sm leading-relaxed text-paper/90"
+        />
         {content.teamMeeting && (
           <p className="mt-3 w-fit rounded-md bg-[#facc15]/10 px-3 py-2 text-xs font-semibold text-[#facc15]">
             TEAM MEETING — {content.teamMeeting}
