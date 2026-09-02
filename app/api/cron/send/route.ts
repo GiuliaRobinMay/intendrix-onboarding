@@ -210,6 +210,22 @@ export async function GET(req: Request) {
       .map((s) => s.trim())
       .filter((s) => s.includes("@"));
 
+  // The provider allows roughly two requests per second; a launch-day
+  // batch of thirty-six fired back to back trips its rate limit. Pace
+  // every send, and give a rate-limited one a second chance.
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const sendPaced = async (
+    mail: Parameters<typeof sendEmail>[0]
+  ): Promise<Awaited<ReturnType<typeof sendEmail>>> => {
+    let result = await sendEmail(mail);
+    if (!result.ok && /429|rate_limit/i.test(result.error ?? "")) {
+      await sleep(1600);
+      result = await sendEmail(mail);
+    }
+    await sleep(550);
+    return result;
+  };
+
   let sent = 0;
   let failed = 0;
   let held = 0;
@@ -332,7 +348,7 @@ export async function GET(req: Request) {
             signature: from.signature,
             logoUrl: campaign.sender_member_id ? null : logoUrl,
           });
-          const result = await sendEmail({
+          const result = await sendPaced({
             from: `${from.name} <${from.address}>`,
             to: member.email,
             replyTo: from.replyTo,
@@ -395,7 +411,7 @@ export async function GET(req: Request) {
             logoUrl: campaign.sender_member_id ? null : logoUrl,
           });
           const client = clientById.get(campaign.client_id);
-          const result = await sendEmail({
+          const result = await sendPaced({
             from: `${from.name} <${from.address}>`,
             to: address,
             replyTo: from.replyTo,
