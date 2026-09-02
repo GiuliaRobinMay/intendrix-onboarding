@@ -117,10 +117,63 @@ const integrations = [
 
 export default function AppSettingsPage() {
   const confirmDelete = useConfirm();
-  const { backend, dispatch } = useData();
+  const { backend, settings, dispatch } = useData();
+  const sendingOn = settings.sendingEnabled === "on";
 
   return (
     <div className="grid gap-6 xl:grid-cols-2">
+      {/* The master switch — nothing automatic leaves the system while
+          this is off. Test sends to yourself always work. */}
+      <section
+        className="card p-5 xl:col-span-2"
+        style={{
+          borderColor: sendingOn ? "rgba(74,222,128,0.4)" : undefined,
+        }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold">
+              Email sending{" "}
+              <span
+                className={`ml-1 rounded px-2 py-0.5 text-xs font-bold ${
+                  sendingOn
+                    ? "bg-[#4ade80]/15 text-[#4ade80]"
+                    : "bg-white/8 text-mist"
+                }`}
+              >
+                {sendingOn ? "ON" : "OFF"}
+              </span>
+            </h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-mist">
+              {sendingOn
+                ? "The engine runs every morning at 8:15 US Eastern and sends every lesson that is due. Switch it off to stop all automatic email instantly."
+                : "Nothing goes out automatically — no lesson reaches any member, whatever is scheduled or overdue. \u201cSend me a test\u201d in the Mailbox still works; a test only ever goes to your own address. Turn this on when the campaigns are ready."}
+            </p>
+          </div>
+          <button
+            data-tip={
+              sendingOn
+                ? "Stop all automatic sending immediately"
+                : "From the next morning run, due lessons really go out to members"
+            }
+            onClick={() =>
+              dispatch({
+                type: "setSetting",
+                key: "sendingEnabled",
+                value: sendingOn ? "off" : "on",
+              })
+            }
+            className={`shrink-0 cursor-pointer rounded-md px-4 py-2 text-sm font-bold transition-colors ${
+              sendingOn
+                ? "border border-white/15 text-paper hover:border-white/30"
+                : "bg-[#eb320f] text-white hover:bg-[#c92a0c]"
+            }`}
+          >
+            {sendingOn ? "Switch sending OFF" : "Switch sending ON"}
+          </button>
+        </div>
+      </section>
+
       {/* Organization */}
       <section className="card p-5">
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold">

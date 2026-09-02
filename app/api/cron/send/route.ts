@@ -83,6 +83,22 @@ export async function GET(req: Request) {
     !emailConfigured || new URL(req.url).searchParams.get("dryrun") === "1";
 
   const pool = getPool();
+
+  // The master switch (Settings → Email sending). Until a human turns it
+  // on, the engine only ever reports — it delivers nothing and writes
+  // nothing, no matter what is due or verified.
+  const engineOn = await pool
+    .query(`select value from app_settings where key = 'sendingEnabled'`)
+    .then((r) => r.rows[0]?.value === "on")
+    .catch(() => false);
+  if (!engineOn && !dryRun)
+    return NextResponse.json({
+      enabled: false,
+      note: "email sending is switched OFF in Settings — nothing was sent, nothing was logged",
+      sent: 0,
+      failed: 0,
+      held: 0,
+    });
   const q = async (text: string, params: any[] = []) =>
     (await pool.query(text, params)).rows;
 
