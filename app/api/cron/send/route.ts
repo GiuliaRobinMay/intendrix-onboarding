@@ -120,18 +120,12 @@ export async function GET(req: Request) {
                 team_meeting from step_contents`),
       q(`select step_content_id, label, url from step_links order by sort_order`),
       q(`select campaign_id, step_id, member_id, shadow_to from email_sends`),
-      q(`select key, value from app_settings`).catch(() => []),
+      q(`select value from app_settings where key = 'signatureLogoUrl'`).catch(() => []),
     ]);
 
-  const appSettings: Record<string, string> = {};
-  for (const r of logoRows) appSettings[r.key] = r.value;
   // the company logo under every Phoenix sign-off; client champions keep
   // their own plain block — their organisation is not Phoenix
-  const logoUrl: string | null = appSettings.signatureLogoUrl ?? null;
-  // e.g. "Intendrix ·" — marks every subject as part of the programme
-  const subjectPrefix = (appSettings.subjectPrefix ?? "").trim();
-  const withPrefix = (subject: string) =>
-    subjectPrefix ? `${subjectPrefix} ${subject}` : subject;
+  const logoUrl: string | null = logoRows[0]?.value ?? null;
 
   const clientById = new Map(clients.map((c: any) => [c.id, c]));
   const staffById = new Map(staff.map((s: any) => [s.id, s]));
@@ -374,7 +368,7 @@ export async function GET(req: Request) {
             from: `${from.name} <${from.address}>`,
             to: member.email,
             replyTo: from.replyTo,
-            subject: withPrefix(personalize(content.email_subject || step.title, merge)),
+            subject: personalize(content.email_subject || step.title, merge),
             html,
             attachments: content.attachment_url
               ? [{
@@ -437,9 +431,9 @@ export async function GET(req: Request) {
             from: `${from.name} <${from.address}>`,
             to: address,
             replyTo: from.replyTo,
-            subject: `[${client?.name ?? campaign.code} · copy] ${withPrefix(
+            subject: `[${client?.name ?? campaign.code} · copy] ${
               content.email_subject || step.title
-            )}`,
+            }`,
             html,
             attachments: content.attachment_url
               ? [{
