@@ -16,7 +16,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, TriangleAlert } from "lucide-react";
 
 export interface ConfirmRequest {
   /** what is being deleted, quoted in the dialog */
@@ -76,7 +76,11 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             className="card w-full max-w-sm p-5 shadow-2xl shadow-black/50"
           >
             <p className="flex items-start gap-2.5 text-sm font-bold leading-snug">
-              <Trash2 size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
+              {(pending.req.action ?? "delete") === "delete" ? (
+                <Trash2 size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
+              ) : (
+                <TriangleAlert size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
+              )}
               <span>
                 Are you sure you want to {pending.req.action ?? "delete"}{" "}
                 <span className="text-[#ff7a55]">

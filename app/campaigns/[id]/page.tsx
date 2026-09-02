@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
+import { SendNowButton } from "@/components/send-now";
 import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
@@ -1854,6 +1855,15 @@ export default function CampaignDetailPage() {
                                       >
                                         Don&rsquo;t send this email
                                       </button>
+                                    )}
+                                    {item.status !== "cancelled" && (
+                                      <SendNowButton
+                                        small
+                                        campaignId={campaign.id}
+                                        stepId={item.step.id}
+                                        subject={subject || item.step.title}
+                                        clientName={client.shortName}
+                                      />
                                     )}
                                     <Link
                                       href="/mailbox"

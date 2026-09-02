@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { TestSendButton } from "@/components/test-send";
+import { SendNowButton } from "@/components/send-now";
 import { EditableText } from "@/components/editable";
 import { useConfirm } from "@/components/confirm";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
@@ -353,6 +354,14 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           stepId={item.step.id}
           variant={same ? "participant" : variant}
         />
+        {item.status !== "cancelled" && (
+          <SendNowButton
+            campaignId={item.campaign.id}
+            stepId={item.step.id}
+            subject={shownSubject || item.step.title}
+            clientName={item.client.shortName}
+          />
+        )}
         {cancellable && (
           <button
             data-tip="This campaign skips this lesson — it stays in the list as Cancelled, and can be restored"
