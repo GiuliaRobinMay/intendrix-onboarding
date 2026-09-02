@@ -30,7 +30,13 @@ import {
 import type { StepContent } from "@/lib/types";
 
 type Scope = "today" | "week" | "upcoming" | "sent" | "awaiting";
-type SendStatus = "sent" | "scheduled" | "unscheduled" | "paused";
+type SendStatus =
+  | "sent"
+  | "missed"
+  | "cancelled"
+  | "scheduled"
+  | "unscheduled"
+  | "paused";
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -39,7 +45,9 @@ function iso(d: Date): string {
 }
 
 const DOT: Record<SendStatus, { color: string; tip: string }> = {
-  sent: { color: "var(--tone-green)", tip: "Sent — this email has already gone out" },
+  sent: { color: "var(--tone-green)", tip: "Sent — really delivered, the send log has it" },
+  missed: { color: "#ff7a55", tip: "Not sent — the date passed but nothing went out" },
+  cancelled: { color: "var(--color-mist)", tip: "Cancelled — this campaign never sends this lesson" },
   scheduled: { color: "var(--tone-indigo)", tip: "Scheduled — sends automatically on its date" },
   unscheduled: { color: "var(--color-mist)", tip: "Awaiting date — its trigger session isn't planned yet" },
   paused: { color: "var(--tone-yellow)", tip: "Paused — on hold until the campaign reopens" },
@@ -105,7 +113,14 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
   const same =
     JSON.stringify(item.step.participant) === JSON.stringify(item.step.leader);
   const content = same ? item.step.participant : item.step[variant];
-  const status: SendStatus = paused ? "paused" : item.status;
+  const status: SendStatus =
+    item.status === "cancelled" || item.status === "sent"
+      ? item.status
+      : paused
+        ? "paused"
+        : item.status;
+  const cancellable =
+    item.status !== "sent" && item.status !== "cancelled";
 
   // Subject and text are edited right here, in the email being read.
   // Edits land on THIS campaign only — the master lesson in the library
@@ -219,6 +234,28 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
         </div>
       </dl>
 
+      {item.status === "cancelled" && (
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="rounded bg-white/8 px-2 py-0.5 font-semibold text-mist">
+            Cancelled — this email will not be sent
+          </span>
+          <button
+            data-tip="Put this email back on the schedule for this campaign"
+            onClick={() =>
+              dispatch({
+                type: "restoreStep",
+                clientId: item.client.id,
+                campaignId: item.campaign.id,
+                stepId: item.step.id,
+              })
+            }
+            className="cursor-pointer font-semibold text-mist underline transition-colors hover:text-paper"
+          >
+            Restore it
+          </button>
+        </p>
+      )}
+
       {customised && (
         <p className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
           <span className="rounded bg-[#a3a4f0]/15 px-2 py-0.5 font-semibold text-[var(--tone-indigo)]">
@@ -316,6 +353,30 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           stepId={item.step.id}
           variant={same ? "participant" : variant}
         />
+        {cancellable && (
+          <button
+            data-tip="This campaign skips this lesson — it stays in the list as Cancelled, and can be restored"
+            onClick={async () => {
+              if (
+                await confirmReset({
+                  action: "cancel",
+                  name: shownSubject || item.step.title,
+                  detail: `Nothing goes out for ${item.client.shortName}: the email stays in the list as Cancelled and the engine never sends it for this campaign. It can be restored any time.`,
+                  verb: "Don't send it",
+                })
+              )
+                dispatch({
+                  type: "skipStep",
+                  clientId: item.client.id,
+                  campaignId: item.campaign.id,
+                  stepId: item.step.id,
+                });
+            }}
+            className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-[#ff7a55]/50 hover:text-[#ff7a55]"
+          >
+            Don&rsquo;t send this email
+          </button>
+        )}
         <Link
           href={`/campaigns/${item.campaign.id}`}
           data-tip="Go to this campaign's page"
@@ -399,7 +460,9 @@ export default function MailboxPage() {
       (i) => i.date && i.date >= weekStart && i.date <= addDays(weekEnd, 1)
     ).length,
     upcoming: items.filter((i) => i.status === "scheduled").length,
-    sent: items.filter((i) => i.status === "sent").length,
+    sent: items.filter(
+      (i) => i.status === "sent" || i.status === "missed" || i.status === "cancelled"
+    ).length,
     awaiting: items.filter((i) => i.status === "unscheduled").length,
   };
 
@@ -437,7 +500,9 @@ export default function MailboxPage() {
       case "upcoming":
         return i.status === "scheduled";
       case "sent":
-        return i.status === "sent";
+        return (
+          i.status === "sent" || i.status === "missed" || i.status === "cancelled"
+        );
       case "awaiting":
         return i.status === "unscheduled";
     }
@@ -448,7 +513,9 @@ export default function MailboxPage() {
 
   const keyOf = (i: MailboxItem) => `${i.campaign.id}-${i.step.id}`;
   const isPaused = (i: MailboxItem) =>
-    i.status !== "sent" && campaignStatus(i.campaign, templates, today) === "paused";
+    i.status !== "sent" &&
+    i.status !== "cancelled" &&
+    campaignStatus(i.campaign, templates, today) === "paused";
   // the open email — falls back to the first in the list, like a mailbox
   const selected = ordered.find((i) => keyOf(i) === openKey) ?? ordered[0] ?? null;
 
@@ -483,7 +550,7 @@ export default function MailboxPage() {
                   today: "Emails going out today",
                   week: "Everything leaving this week",
                   upcoming: "All scheduled future sends",
-                  sent: "What has already gone out",
+                  sent: "What went out — and what didn't (Not sent, Cancelled)",
                   awaiting: "Sends whose trigger session has no date yet",
                 }[t.key]}
                 onClick={() => {

@@ -191,8 +191,38 @@ begin
 end $$;
 
 
+-- Intendrix — cancel one lesson email for one campaign
+--
+-- A row here means: this campaign never sends this lesson. The lesson
+-- stays visible with the status Cancelled; deleting the row restores it.
+
+create table if not exists campaign_step_skips (
+  campaign_id text not null references campaigns (id) on delete cascade,
+  step_id     text not null references series_steps (id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (campaign_id, step_id)
+);
+
+comment on table campaign_step_skips is
+  'Cancelled lesson emails, per campaign. A row = the engine never sends this lesson for this campaign.';
+
+alter table campaign_step_skips enable row level security;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+     where tablename = 'campaign_step_skips'
+       and policyname = 'campaign_step_skips_team_all'
+  ) then
+    create policy campaign_step_skips_team_all on campaign_step_skips
+      for all to authenticated using (true) with check (true);
+  end if;
+end $$;
+
+
 -- ——— check it landed ——————————————————————————————————————
--- Expect eight rows.
+-- Expect nine rows.
 
 select table_name, column_name
   from information_schema.columns
@@ -203,4 +233,5 @@ select table_name, column_name
     or (table_name = 'invitations'       and column_name = 'name')
     or (table_name = 'app_settings'      and column_name = 'key')
     or (table_name = 'campaign_step_content' and column_name = 'campaign_id')
+    or (table_name = 'campaign_step_skips'   and column_name = 'campaign_id')
  order by table_name, column_name;

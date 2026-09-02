@@ -137,13 +137,31 @@ export function computeSchedule(
   // step offsets count working days, so nothing ever lands on a weekend
   // or a US public holiday
   let cursor = session?.date ?? null;
+  // an email due later today is still "scheduled", not yet missed
+  const dayStart = new Date(today);
+  dayStart.setHours(0, 0, 0, 0);
   return series.steps.map((step) => {
+    // "Sent" is the send log speaking, never the calendar: only a lesson
+    // with a real delivery behind it may claim it went out
+    const delivered = (campaign.delivered?.[step.id] ?? 0) > 0;
+    const skipped = campaign.skippedStepIds?.includes(step.id) ?? false;
     if (!cursor) {
-      return { step, series, date: null, status: "unscheduled" as const };
+      const status = delivered
+        ? ("sent" as const)
+        : skipped
+          ? ("cancelled" as const)
+          : ("unscheduled" as const);
+      return { step, series, date: null, status };
     }
     cursor = addWorkdays(cursor, step.offsetDays);
     const date = new Date(`${cursor}T00:00:00`);
-    const status = date < today ? ("sent" as const) : ("scheduled" as const);
+    const status = delivered
+      ? ("sent" as const)
+      : skipped
+        ? ("cancelled" as const)
+        : date < dayStart
+          ? ("missed" as const)
+          : ("scheduled" as const);
     return { step, series, date, status };
   });
 }
@@ -276,7 +294,7 @@ export interface MailboxItem {
   series: SeriesTemplate;
   step: import("./types").SeriesStep;
   date: Date | null;
-  status: "sent" | "scheduled" | "unscheduled";
+  status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled";
   /** the Phoenix person responsible for this campaign (campaign manager,
    *  falling back to account manager, then the client-level responsibles) */
   sender?: StaffMember;

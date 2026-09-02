@@ -102,7 +102,7 @@ export async function GET(req: Request) {
   const q = async (text: string, params: any[] = []) =>
     (await pool.query(text, params)).rows;
 
-  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows] =
+  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows, skipRows] =
     await Promise.all([
       q(`select id, client_id, code, name, timezone, status_override,
                 sender_member_id, shadow_emails from campaigns`),
@@ -123,6 +123,7 @@ export async function GET(req: Request) {
       q(`select value from app_settings where key = 'signatureLogoUrl'`).catch(() => []),
       q(`select campaign_id, step_id, variant, email_subject, email_body
            from campaign_step_content`).catch(() => []),
+      q(`select campaign_id, step_id from campaign_step_skips`).catch(() => []),
     ]);
 
   // the company logo under every Phoenix sign-off; client champions keep
@@ -141,6 +142,12 @@ export async function GET(req: Request) {
       body: o?.email_body ?? content.email_body,
     };
   };
+
+  // lessons cancelled by hand — this campaign never sends them, to
+  // members or to the watching copies, and nothing is logged for them
+  const cancelled = new Set(
+    skipRows.map((r: any) => `${r.campaign_id}|${r.step_id}`)
+  );
 
   const clientById = new Map(clients.map((c: any) => [c.id, c]));
   const staffById = new Map(staff.map((s: any) => [s.id, s]));
@@ -311,6 +318,7 @@ export async function GET(req: Request) {
         const isDue =
           localDate < now.date || (localDate === now.date && time <= now.time);
         if (!isDue) break; // later steps in this series are even further out
+        if (cancelled.has(`${campaign.id}|${step.id}`)) continue;
         const age = daysBetween(localDate, now.date);
         const stale = age > GRACE_DAYS;
         const both = contentByStep.get(step.id) ?? {};

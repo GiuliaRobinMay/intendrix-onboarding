@@ -280,6 +280,21 @@ export type Action =
       campaignId: string;
       stepId: string;
     }
+  /** Cancel one lesson email for this campaign — it stays in the lists
+   *  as Cancelled and the engine never sends it. */
+  | {
+      type: "skipStep";
+      clientId: string;
+      campaignId: string;
+      stepId: string;
+    }
+  /** Undo a cancel — the lesson goes back on the schedule. */
+  | {
+      type: "restoreStep";
+      clientId: string;
+      campaignId: string;
+      stepId: string;
+    }
   /** drag-and-drop reorder: drop a series at an absolute position */
   | {
       type: "moveSeriesTo";
@@ -630,6 +645,23 @@ function reducer(db: DB, action: Action): DB {
         ...c,
         contentOverrides: (c.contentOverrides ?? []).filter(
           (o) => o.stepId !== action.stepId
+        ),
+      }));
+
+    case "skipStep":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        skippedStepIds: [
+          ...(c.skippedStepIds ?? []).filter((id) => id !== action.stepId),
+          action.stepId,
+        ],
+      }));
+
+    case "restoreStep":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        skippedStepIds: (c.skippedStepIds ?? []).filter(
+          (id) => id !== action.stepId
         ),
       }));
 

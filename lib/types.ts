@@ -205,6 +205,13 @@ export interface Campaign {
   series: LoadedSeries[];
   /** this campaign's own email wording, overriding the master lesson */
   contentOverrides?: ContentOverride[];
+  /** lessons cancelled by hand — the engine never sends these for this
+   *  campaign; they stay in the lists with the status Cancelled */
+  skippedStepIds?: string[];
+  /** per lesson id, how many member emails have REALLY been delivered,
+   *  straight from the send log. Only a lesson with a delivery behind it
+   *  may show as Sent — never the calendar alone. */
+  delivered?: Record<string, number>;
 }
 
 export type ClientStatus = "active" | "onboarding" | "archived";
@@ -251,5 +258,7 @@ export interface ScheduledStep {
   step: SeriesStep;
   series: SeriesTemplate;
   date: Date | null;
-  status: "sent" | "scheduled" | "unscheduled";
+  /** sent = the send log has a real delivery; missed = the date passed
+   *  with nothing delivered; cancelled = never send this one */
+  status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled";
 }

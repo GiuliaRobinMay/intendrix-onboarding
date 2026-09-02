@@ -68,6 +68,8 @@ export async function GET(req: Request) {
       links,
       settingRows,
       overrideRows,
+      skipRows,
+      deliveredRows,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
       q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
@@ -119,6 +121,12 @@ export async function GET(req: Request) {
       q(`select key, value from app_settings`).catch(() => []),
       q(`select campaign_id, step_id, variant, email_subject, email_body
            from campaign_step_content`).catch(() => []),
+      q(`select campaign_id, step_id from campaign_step_skips`).catch(() => []),
+      // what has REALLY been delivered — only these may show as Sent
+      q(`select campaign_id, step_id, count(*)::int as n
+           from email_sends
+          where status = 'sent' and shadow_to is null
+          group by campaign_id, step_id`).catch(() => []),
     ]);
 
     const linksByContent = new Map<string, Array<{ label: string; url: string | null }>>();
@@ -211,6 +219,20 @@ export async function GET(req: Request) {
       overridesByCampaign.set(o.campaign_id, list);
     }
 
+    const skipsByCampaign = new Map<string, string[]>();
+    for (const s of skipRows) {
+      const list = skipsByCampaign.get(s.campaign_id) ?? [];
+      list.push(s.step_id);
+      skipsByCampaign.set(s.campaign_id, list);
+    }
+
+    const deliveredByCampaign = new Map<string, Record<string, number>>();
+    for (const d of deliveredRows) {
+      const map = deliveredByCampaign.get(d.campaign_id) ?? {};
+      map[d.step_id] = d.n;
+      deliveredByCampaign.set(d.campaign_id, map);
+    }
+
     const seriesByCampaign = new Map<string, any[]>();
     for (const s of loadedSeries) {
       const list = seriesByCampaign.get(s.campaign_id) ?? [];
@@ -249,6 +271,8 @@ export async function GET(req: Request) {
         endDate: c.end_date,
         sessions: sessionsByCampaign.get(c.id) ?? [],
         contentOverrides: overridesByCampaign.get(c.id) ?? [],
+        skippedStepIds: skipsByCampaign.get(c.id) ?? [],
+        delivered: deliveredByCampaign.get(c.id) ?? {},
         series: seriesByCampaign.get(c.id) ?? [],
       };
       const list = campaignsByClient.get(c.client_id) ?? [];

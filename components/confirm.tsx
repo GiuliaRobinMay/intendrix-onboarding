@@ -25,6 +25,9 @@ export interface ConfirmRequest {
   detail?: string;
   /** the red button's word — "Delete" unless something fits better */
   verb?: string;
+  /** the question's verb — "delete" unless the act is something else,
+   *  e.g. "cancel" for an email that stays but never sends */
+  action?: string;
 }
 
 type Ask = (req: ConfirmRequest) => Promise<boolean>;
@@ -75,7 +78,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             <p className="flex items-start gap-2.5 text-sm font-bold leading-snug">
               <Trash2 size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
               <span>
-                Are you sure you want to delete{" "}
+                Are you sure you want to {pending.req.action ?? "delete"}{" "}
                 <span className="text-[#ff7a55]">
                   &ldquo;{pending.req.name}&rdquo;
                 </span>

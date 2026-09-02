@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
-import { TestSendButton } from "@/components/test-send";
 import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
@@ -132,6 +131,7 @@ export default function CampaignDetailPage() {
   const [pendingPhoenixRow, setPendingPhoenixRow] = useState(false);
   const [newMember, setNewMember] = useState({ first: "", last: "", title: "", email: "" });
   const [sessionView, setSessionView] = useState<"gallery" | "list">("gallery");
+  const [openLessonId, setOpenLessonId] = useState<string | null>(null);
   // set after a session is rescheduled, offering to carry the rest along
   const [shift, setShift] = useState<{
     sessionId: string;
@@ -1609,7 +1609,9 @@ export default function CampaignDetailPage() {
                           {p.scheduled
                             ? p.next
                               ? `· next send ${fmtDate(p.next.date!)}`
-                              : "· all sent"
+                              : p.sent === p.total
+                                ? "· all sent"
+                                : "· nothing left on the calendar"
                             : session
                               ? `· ${session.name} has no date yet`
                               : "· bind to a session to schedule"}
@@ -1705,53 +1707,167 @@ export default function CampaignDetailPage() {
                             />
                           </li>
                         )}
-                        {schedule.map((item, si) => (
-                          <li
-                            key={item.step.id}
-                            className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-white/4"
-                          >
-                            <span
-                              className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
-                              style={{ backgroundColor: series.color }}
-                            >
-                              {si + 1}
-                            </span>
-                            <span className="w-20 shrink-0 truncate text-xs font-bold text-mist">
-                              {item.step.code}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                              {item.step.title}
-                            </span>
-                            {item.step.leader.teamMeeting && (
-                              <Chip color="#ff7a55">team meeting</Chip>
-                            )}
-                            <span className="w-24 shrink-0 text-right text-[11px] tabular-nums text-mist">
-                              {item.date
-                                ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
-                                : "—"}
-                            </span>
-                            <span className="w-24 shrink-0 text-right">
-                              <StatusChip status={item.status} />
-                            </span>
-                            <span
-                              className="shrink-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <TestSendButton
-                                compact
-                                campaignId={campaign.id}
-                                stepId={item.step.id}
-                                variant="participant"
-                                variantLabel={
-                                  JSON.stringify(item.step.participant) ===
-                                  JSON.stringify(item.step.leader)
-                                    ? undefined
-                                    : "Participant"
-                                }
-                              />
-                            </span>
-                          </li>
-                        ))}
+                        {schedule.map((item, si) => {
+                          const open = openLessonId === item.step.id;
+                          const ov = campaign.contentOverrides?.find(
+                            (o) =>
+                              o.stepId === item.step.id &&
+                              o.variant === "participant"
+                          );
+                          const subject =
+                            ov?.emailSubject ?? item.step.participant.emailSubject;
+                          const body =
+                            ov?.emailBody ?? item.step.participant.emailBody;
+                          const leaderDiffers =
+                            JSON.stringify(item.step.participant) !==
+                            JSON.stringify(item.step.leader);
+                          return (
+                            <li key={item.step.id} className="rounded-md hover:bg-white/4">
+                              <div
+                                data-tip={open ? undefined : "Read this email right here"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenLessonId(open ? null : item.step.id);
+                                }}
+                                className="flex cursor-pointer items-center gap-3 px-2 py-1.5"
+                              >
+                                <span
+                                  className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
+                                  style={{ backgroundColor: series.color }}
+                                >
+                                  {si + 1}
+                                </span>
+                                <span className="w-20 shrink-0 truncate text-xs font-bold text-mist">
+                                  {item.step.code}
+                                </span>
+                                <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                                  {item.step.title}
+                                </span>
+                                {item.step.leader.teamMeeting && (
+                                  <Chip color="#ff7a55">team meeting</Chip>
+                                )}
+                                <span className="w-24 shrink-0 text-right text-[11px] tabular-nums text-mist">
+                                  {item.date
+                                    ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
+                                    : "—"}
+                                </span>
+                                <span className="w-24 shrink-0 text-right">
+                                  <StatusChip status={item.status} />
+                                </span>
+                                <ChevronDown
+                                  size={14}
+                                  className={`shrink-0 text-mist transition-transform ${
+                                    open ? "rotate-180" : ""
+                                  }`}
+                                />
+                              </div>
+
+                              {/* the email itself, right here in the list */}
+                              {open && (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mx-2 mb-2 rounded-md border border-white/8 bg-navy/40 px-4 py-3"
+                                >
+                                  <p className="text-sm font-bold leading-snug">
+                                    {subject || item.step.title}
+                                  </p>
+                                  {ov &&
+                                    (ov.emailSubject != null ||
+                                      ov.emailBody != null) && (
+                                      <p className="mt-1 text-[11px] font-semibold text-[var(--tone-indigo)]">
+                                        Own wording for this campaign — the master
+                                        template is untouched
+                                      </p>
+                                    )}
+                                  <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-paper/90">
+                                    {body}
+                                  </p>
+                                  {(item.step.participant.lesson ||
+                                    item.step.participant.attachment) && (
+                                    <p className="mt-2 text-[11px] text-mist">
+                                      Includes
+                                      {item.step.participant.lesson
+                                        ? ` the lesson “${item.step.participant.lesson.label}”`
+                                        : ""}
+                                      {item.step.participant.lesson &&
+                                      item.step.participant.attachment
+                                        ? " and"
+                                        : ""}
+                                      {item.step.participant.attachment
+                                        ? ` the attachment “${item.step.participant.attachment.label}”`
+                                        : ""}
+                                      .
+                                    </p>
+                                  )}
+                                  {leaderDiffers && (
+                                    <p className="mt-2 text-[11px] text-mist">
+                                      Leaders receive their own version — open the
+                                      Mailbox to read and edit both.
+                                    </p>
+                                  )}
+                                  <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-2.5">
+                                    {item.status === "cancelled" ? (
+                                      <>
+                                        <span className="text-[11px] font-semibold text-mist">
+                                          Cancelled — this email will not be sent.
+                                        </span>
+                                        <button
+                                          data-tip="Put this email back on the schedule for this campaign"
+                                          onClick={() =>
+                                            dispatch({
+                                              type: "restoreStep",
+                                              clientId: client.id,
+                                              campaignId: campaign.id,
+                                              stepId: item.step.id,
+                                            })
+                                          }
+                                          className="cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
+                                        >
+                                          Restore it
+                                        </button>
+                                      </>
+                                    ) : item.status === "sent" ? (
+                                      <span className="text-[11px] font-semibold text-[var(--tone-green)]">
+                                        Sent — the send log has real deliveries
+                                        behind this one.
+                                      </span>
+                                    ) : (
+                                      <button
+                                        data-tip="This campaign skips this lesson — it stays here as Cancelled, and can be restored"
+                                        onClick={async () => {
+                                          if (
+                                            await confirmDelete({
+                                              action: "cancel",
+                                              name: subject || item.step.title,
+                                              detail: `Nothing goes out for ${client.shortName}: the email stays in the list as Cancelled and the engine never sends it for this campaign. It can be restored any time.`,
+                                              verb: "Don't send it",
+                                            })
+                                          )
+                                            dispatch({
+                                              type: "skipStep",
+                                              clientId: client.id,
+                                              campaignId: campaign.id,
+                                              stepId: item.step.id,
+                                            });
+                                        }}
+                                        className="cursor-pointer rounded-md border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-mist transition-colors hover:border-[#ff7a55]/50 hover:text-[#ff7a55]"
+                                      >
+                                        Don&rsquo;t send this email
+                                      </button>
+                                    )}
+                                    <Link
+                                      href="/mailbox"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="ml-auto text-[11px] font-semibold text-mist transition-colors hover:text-paper"
+                                    >
+                                      Open in the Mailbox →
+                                    </Link>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
                         {schedule.length === 0 && (
                           <li className="px-2 py-2 text-xs text-mist">
                             No lessons in this series yet.

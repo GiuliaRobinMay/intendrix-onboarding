@@ -105,12 +105,20 @@ export function Chip({
 export function StatusChip({
   status,
 }: {
-  status: "sent" | "scheduled" | "unscheduled" | "paused" | "active" | "onboarding" | "archived";
+  status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled" | "paused" | "active" | "onboarding" | "archived";
 }) {
   const map: Record<string, { fg: string; label: string; tip: string }> = {
     sent: {
       fg: "#4ade80", label: "Sent",
-      tip: "This lesson has already gone out",
+      tip: "Really delivered — the send log has it",
+    },
+    missed: {
+      fg: "#ff7a55", label: "Not sent",
+      tip: "The date passed but nothing went out — sending is off, or the send was blocked",
+    },
+    cancelled: {
+      fg: "#aeb0b2", label: "Cancelled",
+      tip: "Cancelled by hand — this campaign never sends this lesson",
     },
     scheduled: {
       fg: "#a3a4f0", label: "Scheduled",
