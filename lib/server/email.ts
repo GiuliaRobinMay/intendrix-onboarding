@@ -21,7 +21,7 @@ export interface OutgoingEmail {
 
 export async function sendEmail(
   mail: OutgoingEmail
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; id?: string; error?: string }> {
   if (!apiKey) return { ok: false, error: "email sending not configured" };
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -43,7 +43,13 @@ export async function sendEmail(
       const body = await res.text().catch(() => "");
       return { ok: false, error: `provider ${res.status}: ${body.slice(0, 200)}` };
     }
-    return { ok: true };
+    // the provider's id for this email — the key that delivery webhooks
+    // (delivered / opened / clicked / bounced) use to find the row again
+    const id = await res
+      .json()
+      .then((j: { id?: string }) => j?.id)
+      .catch(() => undefined);
+    return { ok: true, ...(id ? { id } : {}) };
   } catch (err) {
     return { ok: false, error: `provider unreachable: ${String(err).slice(0, 150)}` };
   }

@@ -265,20 +265,31 @@ export async function POST(req: Request) {
     return result;
   };
 
+  // a database from before the delivery-status columns still logs fine
+  const hasProviderCol = await pool
+    .query(
+      `select 1 from information_schema.columns
+        where table_name = 'email_sends' and column_name = 'provider_id'`
+    )
+    .then((r) => r.rows.length > 0)
+    .catch(() => false);
+
   const logRow = (
     memberId: string | null,
     variant: string,
     status: string,
     error: string | null,
-    shadowTo: string | null = null
+    shadowTo: string | null = null,
+    providerId: string | null = null
   ) =>
     pool.query(
       `insert into email_sends
          (campaign_id, step_id, member_id, variant, sender_id,
-          scheduled_for, sent_at, status, error, shadow_to)
+          scheduled_for, sent_at, status, error, shadow_to${hasProviderCol ? ", provider_id" : ""})
        values ($1, $2, $3, $4, $5, now(),
-               case when $6 = 'sent' then now() end, $6, $7, $8)`,
-      [campaignId, stepId, memberId, variant, senderStaffId, status, error, shadowTo]
+               case when $6 = 'sent' then now() end, $6, $7, $8${hasProviderCol ? ", $9" : ""})`,
+      [campaignId, stepId, memberId, variant, senderStaffId, status, error, shadowTo,
+       ...(hasProviderCol ? [providerId] : [])]
     );
 
   const renderFor = (content: any, mergeBody: Record<string, any>) =>
@@ -337,7 +348,9 @@ export async function POST(req: Request) {
       member.id,
       variant,
       result.ok ? "sent" : "failed",
-      result.ok ? null : (result.error ?? "unknown error")
+      result.ok ? null : (result.error ?? "unknown error"),
+      null,
+      result.id ?? null
     );
     if (result.ok) sent++;
     else failed++;
@@ -364,7 +377,8 @@ export async function POST(req: Request) {
       "participant",
       result.ok ? "sent" : "failed",
       result.ok ? null : (result.error ?? "unknown error"),
-      address
+      address,
+      result.id ?? null
     );
     if (result.ok) sent++;
     else failed++;

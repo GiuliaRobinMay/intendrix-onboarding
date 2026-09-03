@@ -122,11 +122,22 @@ export async function GET(req: Request) {
       q(`select campaign_id, step_id, variant, email_subject, email_body
            from campaign_step_content`).catch(() => []),
       q(`select campaign_id, step_id from campaign_step_skips`).catch(() => []),
-      // what has REALLY been delivered — only these may show as Sent
-      q(`select campaign_id, step_id, count(*)::int as n
+      // what has REALLY been delivered — only these may show as Sent —
+      // with the provider's delivery reports when those columns exist
+      q(`select campaign_id, step_id, count(*)::int as n,
+                count(*) filter (where last_event in ('delivered','opened','clicked'))::int as delivered,
+                count(*) filter (where last_event in ('opened','clicked'))::int as opened,
+                count(*) filter (where last_event = 'clicked')::int as clicked,
+                count(*) filter (where last_event in ('bounced','complained','failed'))::int as bounced
            from email_sends
           where status = 'sent' and shadow_to is null
-          group by campaign_id, step_id`).catch(() => []),
+          group by campaign_id, step_id`)
+        .catch(() =>
+          q(`select campaign_id, step_id, count(*)::int as n
+               from email_sends
+              where status = 'sent' and shadow_to is null
+              group by campaign_id, step_id`).catch(() => [])
+        ),
     ]);
 
     const linksByContent = new Map<string, Array<{ label: string; url: string | null }>>();
@@ -227,10 +238,20 @@ export async function GET(req: Request) {
     }
 
     const deliveredByCampaign = new Map<string, Record<string, number>>();
+    const deliveryByCampaign = new Map<string, Record<string, any>>();
     for (const d of deliveredRows) {
       const map = deliveredByCampaign.get(d.campaign_id) ?? {};
       map[d.step_id] = d.n;
       deliveredByCampaign.set(d.campaign_id, map);
+      const rep = deliveryByCampaign.get(d.campaign_id) ?? {};
+      rep[d.step_id] = {
+        sent: d.n,
+        delivered: d.delivered ?? 0,
+        opened: d.opened ?? 0,
+        clicked: d.clicked ?? 0,
+        bounced: d.bounced ?? 0,
+      };
+      deliveryByCampaign.set(d.campaign_id, rep);
     }
 
     const seriesByCampaign = new Map<string, any[]>();
@@ -273,6 +294,7 @@ export async function GET(req: Request) {
         contentOverrides: overridesByCampaign.get(c.id) ?? [],
         skippedStepIds: skipsByCampaign.get(c.id) ?? [],
         delivered: deliveredByCampaign.get(c.id) ?? {},
+        delivery: deliveryByCampaign.get(c.id) ?? {},
         series: seriesByCampaign.get(c.id) ?? [],
       };
       const list = campaignsByClient.get(c.client_id) ?? [];

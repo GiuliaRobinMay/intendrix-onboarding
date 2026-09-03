@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { TestSendButton } from "@/components/test-send";
 import { SendNowButton } from "@/components/send-now";
+import { authHeaders } from "@/lib/supabase-browser";
 import { EditableText } from "@/components/editable";
 import { useConfirm } from "@/components/confirm";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
@@ -101,6 +102,125 @@ function ContentLinks({ content }: { content: StepContent }) {
             <ExternalLink size={11} /> {x.label}
           </a>
         ) : null
+      )}
+    </div>
+  );
+}
+
+/** What the provider reported for one delivery event, as a short label. */
+const EVENT_LABEL: Record<string, { text: string; color: string }> = {
+  clicked: { text: "clicked", color: "var(--tone-green)" },
+  opened: { text: "opened", color: "var(--tone-green)" },
+  delivered: { text: "delivered", color: "var(--color-mist)" },
+  delivery_delayed: { text: "delayed", color: "var(--tone-yellow)" },
+  bounced: { text: "bounced", color: "#ff7a55" },
+  complained: { text: "marked as spam", color: "#ff7a55" },
+  failed: { text: "failed", color: "#ff7a55" },
+  sent: { text: "sent", color: "var(--color-mist)" },
+};
+
+/** The provider's delivery reports for a sent lesson: the counts, and on
+ *  demand the person-by-person list behind them. */
+function DeliveryPanel({ item }: { item: MailboxItem }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<Array<{
+    name: string | null;
+    email: string | null;
+    copy: boolean;
+    status: string;
+    error: string | null;
+    event: string | null;
+  }> | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const rep = item.campaign.delivery?.[item.step.id];
+  if (!rep) return null;
+  const anyReports = rep.delivered + rep.opened + rep.clicked + rep.bounced > 0;
+
+  const toggle = async () => {
+    setOpen((o) => !o);
+    if (rows || err) return;
+    try {
+      const res = await fetch(
+        `/api/delivery?campaignId=${encodeURIComponent(item.campaign.id)}&stepId=${encodeURIComponent(item.step.id)}`,
+        { headers: await authHeaders() }
+      );
+      const out = await res.json();
+      if (out.rows) setRows(out.rows);
+      else setErr(out.error ?? "could not load the list");
+    } catch {
+      setErr("could not reach the server");
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-md border border-white/8 bg-white/3 px-3 py-2 text-[11px]">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-bold text-mist/80">Delivery</span>
+        <span className="font-semibold">{rep.sent} sent</span>
+        {anyReports ? (
+          <>
+            <span className="text-mist">{rep.delivered} delivered</span>
+            <span
+              className="text-mist"
+              data-tip="Opens undercount — many mail programs block the tracking image. Clicks are the reliable number."
+            >
+              {rep.opened} opened
+            </span>
+            <span className="font-semibold text-[var(--tone-green)]">
+              {rep.clicked} clicked
+            </span>
+            {rep.bounced > 0 && (
+              <span className="font-semibold text-[#ff7a55]">
+                {rep.bounced} bounced
+              </span>
+            )}
+          </>
+        ) : (
+          <span
+            className="text-mist/70"
+            data-tip="Delivered / opened / clicked appear here once the provider's delivery reports are connected"
+          >
+            no reports from the provider yet
+          </span>
+        )}
+        <button
+          onClick={toggle}
+          className="cursor-pointer font-semibold text-mist underline transition-colors hover:text-paper"
+        >
+          {open ? "Hide the list" : "Who?"}
+        </button>
+      </div>
+      {open && (
+        <div className="mt-2 border-t border-white/8 pt-2">
+          {err && <p className="font-semibold text-[#ff7a55]">{err}</p>}
+          {!rows && !err && <p className="text-mist">Loading…</p>}
+          {rows && (
+            <ul className="grid gap-x-4 gap-y-0.5 sm:grid-cols-2">
+              {rows.map((r, i) => {
+                const label =
+                  r.status === "sent"
+                    ? EVENT_LABEL[r.event ?? "sent"] ?? EVENT_LABEL.sent
+                    : { text: r.status, color: "#ff7a55" };
+                return (
+                  <li key={i} className="flex items-baseline justify-between gap-2">
+                    <span className="min-w-0 truncate text-paper/90">
+                      {r.name ?? r.email}
+                      {r.copy && <span className="text-mist/60"> · copy</span>}
+                    </span>
+                    <span
+                      className="shrink-0 font-semibold"
+                      style={{ color: label.color }}
+                      title={r.error ?? undefined}
+                    >
+                      {label.text}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
@@ -234,6 +354,8 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           </dd>
         </div>
       </dl>
+
+      {item.status === "sent" && <DeliveryPanel item={item} />}
 
       {item.status === "cancelled" && (
         <p className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">

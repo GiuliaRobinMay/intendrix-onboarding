@@ -212,6 +212,12 @@ export interface Campaign {
    *  straight from the send log. Only a lesson with a delivery behind it
    *  may show as Sent — never the calendar alone. */
   delivered?: Record<string, number>;
+  /** per lesson id, the provider's delivery reports for the real sends.
+   *  Opens undercount by nature (image blocking); clicks are reliable. */
+  delivery?: Record<
+    string,
+    { sent: number; delivered: number; opened: number; clicked: number; bounced: number }
+  >;
 }
 
 export type ClientStatus = "active" | "onboarding" | "archived";

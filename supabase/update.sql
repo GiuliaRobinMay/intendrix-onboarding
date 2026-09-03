@@ -221,8 +221,27 @@ begin
 end $$;
 
 
+-- Intendrix — what happened to each email after it left
+
+alter table email_sends
+  add column if not exists provider_id text;
+
+alter table email_sends
+  add column if not exists last_event text;
+
+alter table email_sends
+  add column if not exists last_event_at timestamptz;
+
+create index if not exists email_sends_provider_id
+  on email_sends (provider_id);
+
+comment on column email_sends.provider_id is
+  'The provider''s id for this email — how delivery webhooks find the row.';
+comment on column email_sends.last_event is
+  'Latest delivery event: sent, delivered, opened, clicked, bounced, complained, failed.';
+
 -- ——— check it landed ——————————————————————————————————————
--- Expect nine rows.
+-- Expect ten rows.
 
 select table_name, column_name
   from information_schema.columns
@@ -230,6 +249,7 @@ select table_name, column_name
     or (table_name = 'campaign_sessions' and column_name = 'offset_days')
     or (table_name = 'staff'             and column_name = 'signature')
     or (table_name = 'email_sends'       and column_name = 'shadow_to')
+    or (table_name = 'email_sends'       and column_name = 'provider_id')
     or (table_name = 'invitations'       and column_name = 'name')
     or (table_name = 'app_settings'      and column_name = 'key')
     or (table_name = 'campaign_step_content' and column_name = 'campaign_id')

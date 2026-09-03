@@ -1829,8 +1829,16 @@ export default function CampaignDetailPage() {
                                       </>
                                     ) : item.status === "sent" ? (
                                       <span className="text-[11px] font-semibold text-[var(--tone-green)]">
-                                        Sent — the send log has real deliveries
-                                        behind this one.
+                                        {(() => {
+                                          const rep = campaign.delivery?.[item.step.id];
+                                          if (!rep) return "Sent.";
+                                          const bits = [`Sent to ${rep.sent}`];
+                                          if (rep.delivered) bits.push(`${rep.delivered} delivered`);
+                                          if (rep.opened) bits.push(`${rep.opened} opened`);
+                                          if (rep.clicked) bits.push(`${rep.clicked} clicked`);
+                                          if (rep.bounced) bits.push(`${rep.bounced} bounced`);
+                                          return bits.join(" · ") + " — details in the Mailbox.";
+                                        })()}
                                       </span>
                                     ) : (
                                       <button
