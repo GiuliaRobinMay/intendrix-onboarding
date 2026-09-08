@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type CSSProperties } from "react";
+import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import { CalendarDays, ChevronRight, Layers, Search, Users } from "lucide-react";
 import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
 import { NewCampaignForm } from "@/components/campaign-form";
@@ -145,6 +145,16 @@ export default function CampaignsPage() {
     return true;
   });
 
+  // the list reads top to bottom in order of attention: what is running,
+  // what lies ahead, what is on hold, and finally what is finished
+  const GROUP_ORDER: CampaignStatus[] = ["active", "upcoming", "paused", "closed"];
+  const groups = GROUP_ORDER.map((st) => ({
+    st,
+    rows: filtered
+      .filter((r) => r.status === st)
+      .sort((a, b) => a.client.name.localeCompare(b.client.name)),
+  })).filter((g) => g.rows.length > 0);
+
   const staffOptions = [
     { value: "all", label: "Anyone" },
     ...staff.map((t) => ({ value: t.id, label: t.name })),
@@ -275,7 +285,21 @@ export default function CampaignsPage() {
         </div>
 
         <ul className="divide-y divide-white/5">
-          {filtered.map(({ client, campaign, status: st, completion }) => {
+          {groups.map((g) => (
+            <Fragment key={g.st}>
+              {/* subdivision header — one per status, in reading order */}
+              <li className="bg-white/3 px-5 py-2">
+                <span
+                  className="text-[11px] font-bold uppercase tracking-wider"
+                  style={{ color: STATUS_STYLE[g.st].fg }}
+                >
+                  {STATUS_STYLE[g.st].label}
+                </span>
+                <span className="ml-2 text-[11px] font-semibold text-mist">
+                  {g.rows.length}
+                </span>
+              </li>
+              {g.rows.map(({ client, campaign, status: st, completion }) => {
             const next = campaign.sessions
               .filter((s) => s.date && new Date(`${s.date}T00:00:00`) >= today)
               .sort((a, b) => a.date!.localeCompare(b.date!))[0];
@@ -337,6 +361,8 @@ export default function CampaignsPage() {
               </li>
             );
           })}
+            </Fragment>
+          ))}
 
           {filtered.length === 0 && (
             <li className="px-5 py-12 text-center text-sm text-mist">
