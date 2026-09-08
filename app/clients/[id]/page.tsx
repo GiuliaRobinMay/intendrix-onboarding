@@ -12,6 +12,7 @@ import {
   ExternalLink,
   CircleCheck,
   CircleDashed,
+  Info,
   Layers,
   Plus,
   Trash2,
@@ -263,6 +264,7 @@ export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { clients, templates, dispatch } = useData();
   const [addingMember, setAddingMember] = useState(false);
+  const [openMemberInfo, setOpenMemberInfo] = useState<string | null>(null);
   const [addingCampaign, setAddingCampaign] = useState(false);
 
   const client = clients.find((c) => c.id === id);
@@ -535,115 +537,147 @@ export default function ClientDetailPage() {
             {[...client.members]
               .sort((x, y) => x.name.localeCompare(y.name))
               .map((m) => (
-              <li
-                key={m.id}
-                className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-white/4"
-              >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-bold text-mist">
-                  {m.name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join("")}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1 text-sm font-semibold">
-                    <EditableText
-                      value={m.firstName ?? m.name}
-                      placeholder="First"
-                      onCommit={(v) =>
-                        dispatch({
-                          type: "updateMember",
-                          clientId: client.id,
-                          memberId: m.id,
-                          patch: { firstName: v.trim() },
-                        })
-                      }
-                      className="text-sm font-semibold"
-                    />
-                    <EditableText
-                      value={m.lastName ?? ""}
-                      placeholder="Last"
-                      onCommit={(v) =>
-                        dispatch({
-                          type: "updateMember",
-                          clientId: client.id,
-                          memberId: m.id,
-                          patch: { lastName: v.trim() },
-                        })
-                      }
-                      className="text-sm font-semibold"
-                    />
+              <li key={m.id} className="rounded-md transition-colors hover:bg-white/4">
+                <div className="flex items-center gap-2.5 px-2 py-1.5">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-bold text-mist">
+                    {m.name
+                      .split(" ")
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </div>
+                  <p className="min-w-0 flex-1 truncate text-sm">
+                    <span className="font-semibold">{m.name}</span>
                     {m.role === "leader" && (
-                      <span data-tip="Receives the Leader series, with the Leaders Guides">
-                        <Crown size={12} className="shrink-0 text-[#ff7a55]" />
+                      <span
+                        data-tip="Receives the Leader series, with the Leaders Guides"
+                        className="ml-1.5 inline-flex align-baseline"
+                      >
+                        <Crown size={11} className="text-[#ff7a55]" />
                       </span>
                     )}
+                    {m.title && (
+                      <span className="ml-2 text-[11px] text-mist">{m.title}</span>
+                    )}
                   </p>
-                  <div className="flex items-center gap-1 text-[11px] text-mist">
-                    <EditableText
-                      value={m.title ?? ""}
-                      placeholder="Title"
-                      onCommit={(v) =>
-                        dispatch({
-                          type: "updateMember",
-                          clientId: client.id,
-                          memberId: m.id,
-                          patch: { title: v.trim() },
-                        })
-                      }
-                      className="text-[11px] text-mist"
-                    />
-                    <span>·</span>
-                    <EditableText
-                      value={m.email}
-                      placeholder="email@company.com"
-                      onCommit={(v) =>
-                        v.includes("@") &&
-                        dispatch({
-                          type: "updateMember",
-                          clientId: client.id,
-                          memberId: m.id,
-                          patch: { email: v.trim() },
-                        })
-                      }
-                      className="text-[11px] text-mist"
-                    />
-                  </div>
-                </div>
-                <select
-                  data-tip="Which series they receive — Leader gets the Leaders Guides, Coach gets a copy of every send"
-                  value={m.role}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "updateMember",
-                      clientId: client.id,
-                      memberId: m.id,
-                      patch: { role: e.target.value as MemberRole },
-                    })
-                  }
-                  className="shrink-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-[10px] font-medium text-mist/70 transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:outline-none"
-                >
-                  <option value="participant">Participant</option>
-                  <option value="leader">Leader series</option>
-                  <option value="coach">Coach</option>
-                </select>
-                <button
-                  data-tip="Remove this member"
-                  onClick={async () => {
-                    if (
-                      await confirmDelete({
-                        name: m.name,
-                        detail: `They stop receiving emails from every ${client.shortName} campaign, from the next send on. What they already received stays in the log.`,
-                        verb: "Remove",
+                  <select
+                    data-tip="Which series they receive — Leader gets the Leaders Guides, Coach gets a copy of every send"
+                    value={m.role}
+                    onChange={(e) =>
+                      dispatch({
+                        type: "updateMember",
+                        clientId: client.id,
+                        memberId: m.id,
+                        patch: { role: e.target.value as MemberRole },
                       })
-                    )
-                      dispatch({ type: "removeMember", clientId: client.id, memberId: m.id });
-                  }}
-                  className="hidden shrink-0 cursor-pointer rounded-md p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
-                >
-                  <Trash2 size={13} />
-                </button>
+                    }
+                    className="shrink-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-[10px] font-medium text-mist/70 transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:outline-none"
+                  >
+                    <option value="participant">Participant</option>
+                    <option value="leader">Leader series</option>
+                    <option value="coach">Coach</option>
+                  </select>
+                  <button
+                    data-tip="Email address and details — click to change them"
+                    onClick={() =>
+                      setOpenMemberInfo(openMemberInfo === m.id ? null : m.id)
+                    }
+                    className={`shrink-0 cursor-pointer rounded-md p-1 transition-colors ${
+                      openMemberInfo === m.id
+                        ? "bg-white/10 text-paper"
+                        : "text-mist hover:bg-white/8 hover:text-paper"
+                    }`}
+                  >
+                    <Info size={13} />
+                  </button>
+                  <button
+                    data-tip="Remove this member"
+                    onClick={async () => {
+                      if (
+                        await confirmDelete({
+                          name: m.name,
+                          detail: `They stop receiving emails from every ${client.shortName} campaign, from the next send on. What they already received stays in the log.`,
+                          verb: "Remove",
+                        })
+                      )
+                        dispatch({ type: "removeMember", clientId: client.id, memberId: m.id });
+                    }}
+                    className="shrink-0 cursor-pointer rounded-md p-1 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+
+                {/* the details behind the info button — where editing lives */}
+                {openMemberInfo === m.id && (
+                  <div className="mx-2 mb-2 grid gap-x-4 gap-y-2 rounded-md border border-white/8 bg-navy/40 px-3 py-2.5 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-mist">First name</span>
+                      <EditableText
+                        value={m.firstName ?? ""}
+                        placeholder="First"
+                        onCommit={(v) =>
+                          dispatch({
+                            type: "updateMember",
+                            clientId: client.id,
+                            memberId: m.id,
+                            patch: { firstName: v.trim() },
+                          })
+                        }
+                        className="text-xs font-semibold"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-mist">Last name</span>
+                      <EditableText
+                        value={m.lastName ?? ""}
+                        placeholder="Last"
+                        onCommit={(v) =>
+                          dispatch({
+                            type: "updateMember",
+                            clientId: client.id,
+                            memberId: m.id,
+                            patch: { lastName: v.trim() },
+                          })
+                        }
+                        className="text-xs font-semibold"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-mist">Title</span>
+                      <EditableText
+                        value={m.title ?? ""}
+                        placeholder="Title"
+                        onCommit={(v) =>
+                          dispatch({
+                            type: "updateMember",
+                            clientId: client.id,
+                            memberId: m.id,
+                            patch: { title: v.trim() },
+                          })
+                        }
+                        className="text-xs"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-mist">Email</span>
+                      <EditableText
+                        value={m.email}
+                        placeholder="email@company.com"
+                        onCommit={(v) =>
+                          v.includes("@") &&
+                          dispatch({
+                            type: "updateMember",
+                            clientId: client.id,
+                            memberId: m.id,
+                            patch: { email: v.trim() },
+                          })
+                        }
+                        className="text-xs"
+                      />
+                    </label>
+                  </div>
+                )}
               </li>
             ))}
             {client.members.length === 0 && (
