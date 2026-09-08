@@ -119,7 +119,18 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       );
       return;
     case "removeClient":
-      await tx.query(`delete from clients where id = $1`, [a.clientId]);
+      // a client with real deliveries behind it must keep its history —
+      // the send log dies with the client, so this only removes clients
+      // nothing has ever been sent for
+      await tx.query(
+        `delete from clients
+          where id = $1
+            and not exists (select 1 from email_sends e
+                              join campaigns c2 on c2.id = e.campaign_id
+                             where c2.client_id = $1
+                               and e.status = 'sent')`,
+        [a.clientId]
+      );
       return;
     case "updateClient":
       await patchRow(tx, "clients", a.clientId, a.patch, {

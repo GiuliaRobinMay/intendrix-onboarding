@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, Megaphone, Search, Users, X } from "lucide-react";
+import { ChevronRight, Megaphone, Search, Trash2, Users, X } from "lucide-react";
 import { PageHeader, StatusChip, GradientButton } from "@/components/ui";
 import { Field } from "@/components/editable";
+import { useConfirm } from "@/components/confirm";
 import { useData } from "@/lib/state";
 import { campaignStatus, findStaff } from "@/lib/store";
 
@@ -60,7 +61,8 @@ function ResponsibleName({ id }: { id?: string }) {
 }
 
 function ClientsContent() {
-  const { clients, templates, staff } = useData();
+  const { clients, templates, staff, dispatch } = useData();
+  const confirmDelete = useConfirm();
   const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(searchParams.get("new") === "1");
   const [responsible, setResponsible] = useState("all");
@@ -166,7 +168,7 @@ function ClientsContent() {
 
       {/* List */}
       <div className="card overflow-hidden">
-        <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client</span>
           <span>Status</span>
           <span>Active campaigns</span>
@@ -183,7 +185,7 @@ function ClientsContent() {
                 href={`/clients/${client.id}`}
                 data-tip="Open this client"
                 data-tip-pos="bottom"
-                className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] lg:gap-4"
+                className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] lg:gap-4"
               >
                 <p className="truncate text-sm font-bold">{client.name}</p>
 
@@ -217,7 +219,45 @@ function ClientsContent() {
                 <ResponsibleName id={client.phoenixLeaderId} />
                 <ResponsibleName id={client.phoenixCoachId} />
 
-                <ChevronRight size={16} className="hidden text-mist lg:block" />
+                <span className="hidden items-center gap-1 lg:flex">
+                  {(() => {
+                    // real deliveries protect a client: its send log would
+                    // die with it, so the delete button refuses
+                    const hasHistory = client.campaigns.some((cp) =>
+                      Object.values(cp.delivered ?? {}).some((n) => n > 0)
+                    );
+                    return (
+                      <button
+                        data-tip={
+                          hasHistory
+                            ? "Cannot be deleted — emails have really been sent for this client, and that history must survive"
+                            : "Delete this client, with its members and campaigns"
+                        }
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (hasHistory) return;
+                          if (
+                            await confirmDelete({
+                              name: client.name,
+                              detail: `Removes ${client.name} with its ${client.members.length} member${client.members.length === 1 ? "" : "s"} and ${client.campaigns.length} campaign${client.campaigns.length === 1 ? "" : "s"}, including their schedules. Nothing has ever been sent for this client, so no sending history is lost. This cannot be undone.`,
+                              verb: "Delete",
+                            })
+                          )
+                            dispatch({ type: "removeClient", clientId: client.id });
+                        }}
+                        className={
+                          hasHistory
+                            ? "rounded p-1.5 text-mist/30"
+                            : "cursor-pointer rounded p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+                        }
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    );
+                  })()}
+                  <ChevronRight size={16} className="text-mist" />
+                </span>
               </Link>
             </li>
           ))}
