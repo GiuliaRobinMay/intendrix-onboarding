@@ -36,6 +36,7 @@ import {
   campaignStatus,
   triggerSession,
   fmtDate,
+  fmtSendTime,
   fmtDateShort,
   fmtWeekday,
 } from "@/lib/store";
@@ -1840,7 +1841,7 @@ export default function CampaignDetailPage() {
                                           }
                                           className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
                                         />
-                                        at {item.step.sendTime}
+                                        at {fmtSendTime(item.step.sendTime, campaign.timezone)}
                                         {item.dateOverridden && (
                                           <>
                                             <span className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#facc15]">

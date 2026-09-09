@@ -26,6 +26,7 @@ import {
   addDays,
   fmtDate,
   fmtDateShort,
+  fmtSendTime,
   fmtWeekday,
   type MailboxItem,
 } from "@/lib/store";
@@ -355,7 +356,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
                   }
                   className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
                 />
-                <span>at {item.step.sendTime}</span>
+                <span>at {fmtSendTime(item.step.sendTime, item.campaign.timezone)}</span>
                 {item.dateOverridden && (
                   <>
                     <span
@@ -386,7 +387,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
                 )}
               </>
             ) : item.date ? (
-              `${fmtWeekday(item.date)} ${fmtDate(item.date)} at ${item.step.sendTime}`
+              `${fmtWeekday(item.date)} ${fmtDate(item.date)} at ${fmtSendTime(item.step.sendTime, item.campaign.timezone)}`
             ) : (
               "No date yet — the trigger session isn't planned"
             )}
