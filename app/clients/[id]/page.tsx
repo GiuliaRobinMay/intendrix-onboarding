@@ -15,6 +15,7 @@ import {
   Info,
   Layers,
   Plus,
+  Search,
   Trash2,
 } from "lucide-react";
 import {
@@ -265,6 +266,7 @@ export default function ClientDetailPage() {
   const { clients, templates, dispatch } = useData();
   const [addingMember, setAddingMember] = useState(false);
   const [openMemberInfo, setOpenMemberInfo] = useState<string | null>(null);
+  const [memberQuery, setMemberQuery] = useState("");
   const [addingCampaign, setAddingCampaign] = useState(false);
 
   const client = clients.find((c) => c.id === id);
@@ -513,9 +515,22 @@ export default function ClientDetailPage() {
 
         {/* Members */}
         <section className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-bold">Members</h2>
             <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search
+                  size={12}
+                  className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-mist"
+                />
+                <input
+                  value={memberQuery}
+                  onChange={(e) => setMemberQuery(e.target.value)}
+                  placeholder="Search…"
+                  title="Find a person by name, email or title"
+                  className="w-32 rounded-md border border-white/10 bg-navy/60 py-1 pl-6.5 pr-2 text-xs focus:w-44 focus:border-white/30 focus:outline-none"
+                />
+              </div>
               <span className="text-xs font-semibold text-mist">
                 {client.members.length}
               </span>
@@ -536,6 +551,13 @@ export default function ClientDetailPage() {
           <ul className="flex max-h-130 flex-col gap-1 overflow-y-auto pr-1">
             {[...client.members]
               .sort((x, y) => x.name.localeCompare(y.name))
+              .filter((m) =>
+                memberQuery.trim()
+                  ? `${m.name} ${m.email} ${m.title ?? ""}`
+                      .toLowerCase()
+                      .includes(memberQuery.trim().toLowerCase())
+                  : true
+              )
               .map((m) => (
               <li key={m.id} className="rounded-md transition-colors hover:bg-white/4">
                 <div className="flex items-center gap-2.5 px-2 py-1.5">
@@ -685,6 +707,23 @@ export default function ClientDetailPage() {
                 No members yet — add the team with the + button.
               </li>
             )}
+            {client.members.length > 0 &&
+              memberQuery.trim() !== "" &&
+              !client.members.some((m) =>
+                `${m.name} ${m.email} ${m.title ?? ""}`
+                  .toLowerCase()
+                  .includes(memberQuery.trim().toLowerCase())
+              ) && (
+                <li className="py-4 text-sm text-mist">
+                  Nobody matches &ldquo;{memberQuery.trim()}&rdquo;.{" "}
+                  <button
+                    onClick={() => setMemberQuery("")}
+                    className="cursor-pointer font-semibold underline hover:text-paper"
+                  >
+                    Clear the search
+                  </button>
+                </li>
+              )}
           </ul>
           <div className="mt-4 border-t border-white/5 pt-4 text-xs leading-relaxed text-mist">
             <p className="flex items-center gap-1.5">
