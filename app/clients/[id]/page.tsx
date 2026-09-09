@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -20,6 +20,92 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { US_STATES, stateByCode } from "@/lib/us-states";
+import { authHeaders } from "@/lib/supabase-browser";
+
+/** what the send log + the provider say about one email to one person */
+const HISTORY_LABEL: Record<string, { text: string; color: string }> = {
+  clicked: { text: "clicked", color: "var(--tone-green)" },
+  opened: { text: "opened", color: "var(--tone-green)" },
+  delivered: { text: "delivered", color: "var(--color-mist)" },
+  delivery_delayed: { text: "delayed", color: "var(--tone-yellow)" },
+  bounced: { text: "bounced", color: "#ff7a55" },
+  complained: { text: "marked as spam", color: "#ff7a55" },
+  failed: { text: "failed", color: "#ff7a55" },
+  held: { text: "held", color: "var(--tone-yellow)" },
+  sent: { text: "sent", color: "var(--color-mist)" },
+};
+
+/** Every email one person was sent, newest first — the individual-level
+ *  answer to "did they get it?". Loaded when the info panel opens. */
+function MemberHistory({ memberId }: { memberId: string }) {
+  const [rows, setRows] = useState<Array<{
+    title: string;
+    campaign: string;
+    status: string;
+    error: string | null;
+    event: string | null;
+    at: string | null;
+  }> | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/member-history?memberId=${encodeURIComponent(memberId)}`,
+          { headers: await authHeaders() }
+        );
+        const out = await res.json();
+        if (cancelled) return;
+        if (out.rows) setRows(out.rows);
+        else setErr(out.error ?? "could not load the history");
+      } catch {
+        if (!cancelled) setErr("could not reach the server");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [memberId]);
+
+  if (err) return <p className="text-[11px] font-semibold text-[#ff7a55]">{err}</p>;
+  if (!rows) return <p className="text-[11px] text-mist">Loading…</p>;
+  if (rows.length === 0)
+    return <p className="text-[11px] text-mist">No emails yet.</p>;
+  return (
+    <ul className="flex max-h-40 flex-col gap-0.5 overflow-y-auto pr-1">
+      {rows.map((r, i) => {
+        const label =
+          r.status === "sent"
+            ? HISTORY_LABEL[r.event ?? "sent"] ?? HISTORY_LABEL.sent
+            : HISTORY_LABEL[r.status] ?? { text: r.status, color: "#ff7a55" };
+        return (
+          <li key={i} className="flex items-baseline justify-between gap-2 text-[11px]">
+            <span className="min-w-0 truncate text-paper/90">
+              {r.title}
+              <span className="ml-1.5 text-mist/60">{r.campaign}</span>
+            </span>
+            <span className="flex shrink-0 items-baseline gap-2">
+              {r.at && (
+                <span className="tabular-nums text-mist/70">
+                  {fmtDate(new Date(r.at))}
+                </span>
+              )}
+              <span
+                className="font-semibold"
+                style={{ color: label.color }}
+                title={r.error ?? undefined}
+              >
+                {label.text}
+              </span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 import {
   PageHeader,
   Chip,
@@ -772,6 +858,12 @@ export default function ClientDetailPage() {
                         className="text-xs"
                       />
                     </label>
+                    <div className="border-t border-white/8 pt-2 sm:col-span-2">
+                      <p className="mb-1 text-[10px] font-medium text-mist">
+                        Emails received
+                      </p>
+                      <MemberHistory memberId={m.id} />
+                    </div>
                   </div>
                 )}
               </li>

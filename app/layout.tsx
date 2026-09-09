@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/sidebar";
 import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
 import { ConfirmProvider } from "@/components/confirm";
+import { HelpButton } from "@/components/help";
 
 export const metadata: Metadata = {
   title: "Intendrix · Team Backend",
@@ -48,6 +49,7 @@ export default function RootLayout({
                 </div>
               </main>
             </div>
+            <HelpButton />
             </ConfirmProvider>
           </DataProvider>
         </AuthGate>
