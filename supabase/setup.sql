@@ -759,6 +759,17 @@ begin
   end if;
 end $$;
 
+-- Intendrix — where a client actually is
+
+alter table clients
+  add column if not exists state text;
+
+alter table clients
+  add column if not exists city text;
+
+comment on column clients.state is
+  'Two-letter US state code — drives the default timezone of new campaigns.';
+
 -- ═══ seed data ═══
 
 -- Intendrix Team Backend — seed data

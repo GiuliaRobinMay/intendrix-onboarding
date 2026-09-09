@@ -83,10 +83,16 @@ export async function GET(req: Request) {
                   else 'none'
                 end as access
            from staff s order by s.created_at, s.id`),
-      q(`select id, name, short_name, location, sector, status,
+      q(`select id, name, short_name, location, state, city, sector, status,
                 phoenix_leader_id, phoenix_coach_id, project_manager_id,
                 space_url, invite_url
-           from clients order by created_at, id`),
+           from clients order by created_at, id`)
+        .catch(() =>
+          q(`select id, name, short_name, location, sector, status,
+                    phoenix_leader_id, phoenix_coach_id, project_manager_id,
+                    space_url, invite_url
+               from clients order by created_at, id`)
+        ),
       q(`select id, client_id, name, first_name, last_name, email, role, title
            from members order by created_at, id`),
       q(`select id, client_id, template_id, code, name, timezone,
@@ -333,6 +339,8 @@ export async function GET(req: Request) {
       name: c.name,
       shortName: c.short_name,
       location: c.location,
+      ...(c.state ? { state: c.state } : {}),
+      ...(c.city ? { city: c.city } : {}),
       sector: c.sector,
       status: c.status,
       ...(c.phoenix_leader_id ? { phoenixLeaderId: c.phoenix_leader_id } : {}),

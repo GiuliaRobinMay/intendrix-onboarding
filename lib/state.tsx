@@ -137,6 +137,8 @@ export type Action =
           Client,
           | "name"
           | "location"
+          | "state"
+          | "city"
           | "sector"
           | "status"
           | "phoenixLeaderId"

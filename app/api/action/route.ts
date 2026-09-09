@@ -136,6 +136,8 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       await patchRow(tx, "clients", a.clientId, a.patch, {
         name: "name",
         location: "location",
+        state: "state",
+        city: "city",
         sector: "sector",
         status: "status",
         phoenixLeaderId: "phoenix_leader_id",

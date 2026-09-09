@@ -6,6 +6,7 @@ import { GradientButton, GhostButton, Chip } from "@/components/ui";
 import { Field } from "@/components/editable";
 import { useData } from "@/lib/state";
 import { seriesOfCampaignTemplate } from "@/lib/store";
+import { stateByCode } from "@/lib/us-states";
 
 /** Create a campaign for a client, from a campaign blueprint.
  *  A client can have as many campaigns as they need. */
@@ -16,7 +17,9 @@ export function NewCampaignForm({
   clientId: string;
   onClose: () => void;
 }) {
-  const { campaignTemplates, templates, dispatch } = useData();
+  const { campaignTemplates, templates, clients, dispatch } = useData();
+  // new campaigns wake up in the client's own timezone, when the state is set
+  const clientState = clients.find((c) => c.id === clientId)?.state;
   const [templateId, setTemplateId] = useState(campaignTemplates[0]?.id ?? "");
   const [name, setName] = useState(campaignTemplates[0]?.name ?? "");
   const [code, setCode] = useState(campaignTemplates[0]?.code ?? "");
@@ -175,6 +178,7 @@ export function NewCampaignForm({
               fromTemplateId: templateId || undefined,
               withStandardSessions,
               templateIds: picked,
+              timezone: stateByCode(clientState)?.tz,
             });
             onClose();
           }}

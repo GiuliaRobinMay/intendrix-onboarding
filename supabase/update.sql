@@ -267,8 +267,19 @@ begin
   end if;
 end $$;
 
+-- Intendrix — where a client actually is
+
+alter table clients
+  add column if not exists state text;
+
+alter table clients
+  add column if not exists city text;
+
+comment on column clients.state is
+  'Two-letter US state code — drives the default timezone of new campaigns.';
+
 -- ——— check it landed ——————————————————————————————————————
--- Expect eleven rows.
+-- Expect twelve rows.
 
 select table_name, column_name
   from information_schema.columns
@@ -282,4 +293,5 @@ select table_name, column_name
     or (table_name = 'campaign_step_content' and column_name = 'campaign_id')
     or (table_name = 'campaign_step_skips'   and column_name = 'campaign_id')
     or (table_name = 'campaign_step_dates'   and column_name = 'campaign_id')
+    or (table_name = 'clients'           and column_name = 'state')
  order by table_name, column_name;

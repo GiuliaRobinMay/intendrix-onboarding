@@ -17,7 +17,9 @@ import {
   Plus,
   Search,
   Trash2,
+  TriangleAlert,
 } from "lucide-react";
+import { US_STATES, stateByCode } from "@/lib/us-states";
 import {
   PageHeader,
   Chip,
@@ -29,7 +31,7 @@ import { EditableText, Field } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
-import { findTemplate, campaignCompletion, seriesProgress, fmtDate } from "@/lib/store";
+import { findTemplate, campaignCompletion, seriesProgress, fmtDate, fmtSendTime } from "@/lib/store";
 import type { Client, ClientStatus, MemberRole } from "@/lib/types";
 
 /** The three Phoenix roles at client level — one person each. */
@@ -294,7 +296,13 @@ export default function ClientDetailPage() {
 
       <PageHeader
         title={client.name}
-        subtitle={`${client.sector} · ${client.location}`}
+        subtitle={`${client.sector} · ${
+          client.city || client.state
+            ? [client.city, stateByCode(client.state)?.name]
+                .filter(Boolean)
+                .join(", ")
+            : client.location
+        }`}
         action={
           <div className="flex items-center gap-3">
             <select
@@ -448,6 +456,72 @@ export default function ClientDetailPage() {
         {/* Right column */}
         <div className="flex flex-col gap-6">
         <ResponsiblesCard client={client} />
+
+        {/* Where the client is — the state drives new campaigns' timezone */}
+        <section className="card p-5">
+          <h2 className="mb-1 text-base font-bold">Location</h2>
+          <p className="mb-4 text-xs text-mist">
+            The state decides which timezone new campaigns start with, so
+            emails land at 8:00 AM in the client&rsquo;s own morning.
+          </p>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
+                State
+              </span>
+              <select
+                data-tip="The client's US state — new campaigns default to its timezone"
+                value={client.state ?? ""}
+                onChange={(e) =>
+                  dispatch({
+                    type: "updateClient",
+                    clientId: client.id,
+                    patch: { state: e.target.value },
+                  })
+                }
+                className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+              >
+                <option value="">— choose a state —</option>
+                {US_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
+                City
+              </span>
+              <EditableText
+                value={client.city ?? ""}
+                placeholder="e.g. Ann Arbor"
+                onCommit={(v) =>
+                  dispatch({
+                    type: "updateClient",
+                    clientId: client.id,
+                    patch: { city: v.trim() },
+                  })
+                }
+                className="text-xs"
+              />
+            </div>
+            {client.state ? (
+              <p className="text-[11px] text-mist">
+                New campaigns for this client start in{" "}
+                <span className="font-semibold text-paper">
+                  {fmtSendTime("08:00", stateByCode(client.state)!.tz).replace("8:00 AM ", "")}
+                </span>{" "}
+                time.
+              </p>
+            ) : (
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#ff7a55]">
+                <TriangleAlert size={12} className="shrink-0" />
+                No state chosen — new campaigns fall back to Eastern time.
+              </p>
+            )}
+          </div>
+        </section>
 
         {/* Mighty Networks */}
         <section className="card p-5">
