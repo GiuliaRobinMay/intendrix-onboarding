@@ -145,7 +145,10 @@ export function computeSchedule(
     // with a real delivery behind it may claim it went out
     const delivered = (campaign.delivered?.[step.id] ?? 0) > 0;
     const skipped = campaign.skippedStepIds?.includes(step.id) ?? false;
-    if (!cursor) {
+    // a hand-picked date moves exactly this email; the chain for the
+    // later steps keeps computing from the automatic dates
+    const pinned = campaign.stepDates?.[step.id];
+    if (!cursor && !pinned) {
       const status = delivered
         ? ("sent" as const)
         : skipped
@@ -153,8 +156,9 @@ export function computeSchedule(
           : ("unscheduled" as const);
       return { step, series, date: null, status };
     }
-    cursor = addWorkdays(cursor, step.offsetDays);
-    const date = new Date(`${cursor}T00:00:00`);
+    if (cursor) cursor = addWorkdays(cursor, step.offsetDays);
+    const iso = pinned ?? cursor!;
+    const date = new Date(`${iso}T00:00:00`);
     const status = delivered
       ? ("sent" as const)
       : skipped
@@ -162,7 +166,7 @@ export function computeSchedule(
         : date < dayStart
           ? ("missed" as const)
           : ("scheduled" as const);
-    return { step, series, date, status };
+    return { step, series, date, status, ...(pinned ? { dateOverridden: true } : {}) };
   });
 }
 
@@ -295,6 +299,8 @@ export interface MailboxItem {
   step: import("./types").SeriesStep;
   date: Date | null;
   status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled";
+  /** true when the date was picked by hand instead of computed */
+  dateOverridden?: boolean;
   /** the Phoenix person responsible for this campaign (campaign manager,
    *  falling back to account manager, then the client-level responsibles) */
   sender?: StaffMember;
@@ -386,6 +392,7 @@ export function mailboxItems(
             step: item.step,
             date: item.date,
             status: item.status,
+            ...(item.dateOverridden ? { dateOverridden: true } : {}),
             sender,
             from,
           });

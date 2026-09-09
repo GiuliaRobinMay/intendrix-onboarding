@@ -208,6 +208,9 @@ export interface Campaign {
   /** lessons cancelled by hand — the engine never sends these for this
    *  campaign; they stay in the lists with the status Cancelled */
   skippedStepIds?: string[];
+  /** hand-picked send dates per lesson id (ISO date). Only that email
+   *  moves; the rest of the series keeps its automatic chain. */
+  stepDates?: Record<string, string>;
   /** per lesson id, how many member emails have REALLY been delivered,
    *  straight from the send log. Only a lesson with a delivery behind it
    *  may show as Sent — never the calendar alone. */
@@ -267,4 +270,6 @@ export interface ScheduledStep {
   /** sent = the send log has a real delivery; missed = the date passed
    *  with nothing delivered; cancelled = never send this one */
   status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled";
+  /** true when the date was picked by hand instead of computed */
+  dateOverridden?: boolean;
 }

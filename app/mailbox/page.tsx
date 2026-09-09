@@ -336,10 +336,60 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           <dt className="w-12 shrink-0 font-bold text-mist/70">
             Date
           </dt>
-          <dd className="min-w-0 text-mist">
-            {item.date
-              ? `${fmtWeekday(item.date)} ${fmtDate(item.date)} at ${item.step.sendTime}`
-              : "No date yet — the trigger session isn't planned"}
+          <dd className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-mist">
+            {item.status !== "sent" && item.status !== "cancelled" ? (
+              <>
+                <input
+                  type="date"
+                  value={item.date ? iso(item.date) : ""}
+                  data-tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
+                  onChange={(e) =>
+                    e.target.value &&
+                    dispatch({
+                      type: "setStepDate",
+                      clientId: item.client.id,
+                      campaignId: item.campaign.id,
+                      stepId: item.step.id,
+                      date: e.target.value,
+                    })
+                  }
+                  className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                />
+                <span>at {item.step.sendTime}</span>
+                {item.dateOverridden && (
+                  <>
+                    <span
+                      data-tip="This email's date was picked by hand — the rest of the series stayed on its automatic schedule"
+                      className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#facc15]"
+                    >
+                      moved by hand
+                    </span>
+                    <button
+                      data-tip="Drop the hand-picked date — the automatic schedule decides again"
+                      onClick={() =>
+                        dispatch({
+                          type: "setStepDate",
+                          clientId: item.client.id,
+                          campaignId: item.campaign.id,
+                          stepId: item.step.id,
+                          date: null,
+                        })
+                      }
+                      className="cursor-pointer font-semibold text-mist underline transition-colors hover:text-paper"
+                    >
+                      Back to automatic
+                    </button>
+                  </>
+                )}
+                {!item.date && (
+                  <span>no date yet — pick one, or plan the trigger session</span>
+                )}
+              </>
+            ) : item.date ? (
+              `${fmtWeekday(item.date)} ${fmtDate(item.date)} at ${item.step.sendTime}`
+            ) : (
+              "No date yet — the trigger session isn't planned"
+            )}
           </dd>
         </div>
         <div className="flex gap-2">

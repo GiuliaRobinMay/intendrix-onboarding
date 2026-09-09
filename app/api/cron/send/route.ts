@@ -102,7 +102,7 @@ export async function GET(req: Request) {
   const q = async (text: string, params: any[] = []) =>
     (await pool.query(text, params)).rows;
 
-  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows, skipRows] =
+  const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows, skipRows, dateRows] =
     await Promise.all([
       q(`select id, client_id, code, name, timezone, status_override,
                 sender_member_id, shadow_emails from campaigns`),
@@ -124,6 +124,8 @@ export async function GET(req: Request) {
       q(`select campaign_id, step_id, variant, email_subject, email_body
            from campaign_step_content`).catch(() => []),
       q(`select campaign_id, step_id from campaign_step_skips`).catch(() => []),
+      q(`select campaign_id, step_id, send_on::text as send_on
+           from campaign_step_dates`).catch(() => []),
     ]);
 
   // the company logo under every Phoenix sign-off; client champions keep
@@ -147,6 +149,12 @@ export async function GET(req: Request) {
   // members or to the watching copies, and nothing is logged for them
   const cancelled = new Set(
     skipRows.map((r: any) => `${r.campaign_id}|${r.step_id}`)
+  );
+
+  // hand-picked send dates: exactly that email moves, the chain for the
+  // later steps keeps computing from the automatic dates
+  const pinnedDate = new Map<string, string>(
+    dateRows.map((r: any) => [`${r.campaign_id}|${r.step_id}`, r.send_on])
   );
 
   const clientById = new Map(clients.map((c: any) => [c.id, c]));
@@ -319,16 +327,21 @@ export async function GET(req: Request) {
       const baseDate = ls.trigger_session_id
         ? sessionDate.get(ls.trigger_session_id)
         : null;
-      if (!baseDate) continue;
-      // offsets count working days — the same rule the app shows
-      let cursor = baseDate as string;
+      // offsets count working days — the same rule the app shows. A
+      // series without a trigger date still walks its steps: a pinned
+      // email has its own date and must send on it.
+      let cursor = (baseDate as string) ?? null;
       for (const step of stepsBySeries.get(ls.series_template_id) ?? []) {
-        cursor = addWorkdays(cursor, step.offset_days);
-        const localDate = cursor;
+        if (cursor) cursor = addWorkdays(cursor, step.offset_days);
+        const localDate =
+          pinnedDate.get(`${campaign.id}|${step.id}`) ?? cursor;
+        if (!localDate) continue;
         const time = step.send_time as string;
         const isDue =
           localDate < now.date || (localDate === now.date && time <= now.time);
-        if (!isDue) break; // later steps in this series are even further out
+        // no early break: a pinned date can put a later step before an
+        // earlier one, so every step decides for itself
+        if (!isDue) continue;
         if (cancelled.has(`${campaign.id}|${step.id}`)) continue;
         const age = daysBetween(localDate, now.date);
         const stale = age > GRACE_DAYS;

@@ -296,6 +296,21 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         [a.campaignId, a.stepId]
       );
       return;
+    case "setStepDate":
+      if (a.date)
+        await tx.query(
+          `insert into campaign_step_dates (campaign_id, step_id, send_on)
+           values ($1, $2, $3)
+           on conflict (campaign_id, step_id) do update
+             set send_on = excluded.send_on`,
+          [a.campaignId, a.stepId, a.date]
+        );
+      else
+        await tx.query(
+          `delete from campaign_step_dates where campaign_id = $1 and step_id = $2`,
+          [a.campaignId, a.stepId]
+        );
+      return;
     case "fillSessionDates":
       await tx.query(
         `update campaign_sessions s

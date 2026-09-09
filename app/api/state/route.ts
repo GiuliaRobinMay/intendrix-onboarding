@@ -69,6 +69,7 @@ export async function GET(req: Request) {
       settingRows,
       overrideRows,
       skipRows,
+      dateRows,
       deliveredRows,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
@@ -122,6 +123,8 @@ export async function GET(req: Request) {
       q(`select campaign_id, step_id, variant, email_subject, email_body
            from campaign_step_content`).catch(() => []),
       q(`select campaign_id, step_id from campaign_step_skips`).catch(() => []),
+      q(`select campaign_id, step_id, send_on::text as send_on
+           from campaign_step_dates`).catch(() => []),
       // what has REALLY been delivered — only these may show as Sent —
       // with the provider's delivery reports when those columns exist
       q(`select campaign_id, step_id, count(*)::int as n,
@@ -237,6 +240,13 @@ export async function GET(req: Request) {
       skipsByCampaign.set(s.campaign_id, list);
     }
 
+    const datesByCampaign = new Map<string, Record<string, string>>();
+    for (const d of dateRows) {
+      const map = datesByCampaign.get(d.campaign_id) ?? {};
+      map[d.step_id] = d.send_on;
+      datesByCampaign.set(d.campaign_id, map);
+    }
+
     const deliveredByCampaign = new Map<string, Record<string, number>>();
     const deliveryByCampaign = new Map<string, Record<string, any>>();
     for (const d of deliveredRows) {
@@ -293,6 +303,7 @@ export async function GET(req: Request) {
         sessions: sessionsByCampaign.get(c.id) ?? [],
         contentOverrides: overridesByCampaign.get(c.id) ?? [],
         skippedStepIds: skipsByCampaign.get(c.id) ?? [],
+        stepDates: datesByCampaign.get(c.id) ?? {},
         delivered: deliveredByCampaign.get(c.id) ?? {},
         delivery: deliveryByCampaign.get(c.id) ?? {},
         series: seriesByCampaign.get(c.id) ?? [],

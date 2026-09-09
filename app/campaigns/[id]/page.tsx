@@ -56,6 +56,11 @@ const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: stri
 const STATUS_ORDER: CampaignStatus[] = ["upcoming", "active", "paused", "closed"];
 
 /** Where a session sits in time. One colour each, nothing else. */
+const isoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+
 const SESSION_STATE = {
   past: { color: "#7c7e8c", label: "Done", tip: "Already happened" },
   next: { color: "#4ade80", label: "Next", tip: "The next session — this is what's coming up" },
@@ -1747,7 +1752,16 @@ export default function CampaignDetailPage() {
                                 {item.step.leader.teamMeeting && (
                                   <Chip color="#ff7a55">team meeting</Chip>
                                 )}
-                                <span className="w-24 shrink-0 text-right text-[11px] tabular-nums text-mist">
+                                <span
+                                  data-tip={
+                                    item.dateOverridden
+                                      ? "This email's date was picked by hand"
+                                      : undefined
+                                  }
+                                  className={`w-24 shrink-0 text-right text-[11px] tabular-nums ${
+                                    item.dateOverridden ? "font-semibold text-[#facc15]" : "text-mist"
+                                  }`}
+                                >
                                   {item.date
                                     ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
                                     : "—"}
@@ -1806,6 +1820,51 @@ export default function CampaignDetailPage() {
                                       Mailbox to read and edit both.
                                     </p>
                                   )}
+                                  {item.status !== "sent" &&
+                                    item.status !== "cancelled" && (
+                                      <p className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-mist">
+                                        Sends on
+                                        <input
+                                          type="date"
+                                          value={item.date ? isoDate(item.date) : ""}
+                                          data-tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
+                                          onChange={(e) =>
+                                            e.target.value &&
+                                            dispatch({
+                                              type: "setStepDate",
+                                              clientId: client.id,
+                                              campaignId: campaign.id,
+                                              stepId: item.step.id,
+                                              date: e.target.value,
+                                            })
+                                          }
+                                          className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                                        />
+                                        at {item.step.sendTime}
+                                        {item.dateOverridden && (
+                                          <>
+                                            <span className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#facc15]">
+                                              moved by hand
+                                            </span>
+                                            <button
+                                              data-tip="Drop the hand-picked date — the automatic schedule decides again"
+                                              onClick={() =>
+                                                dispatch({
+                                                  type: "setStepDate",
+                                                  clientId: client.id,
+                                                  campaignId: campaign.id,
+                                                  stepId: item.step.id,
+                                                  date: null,
+                                                })
+                                              }
+                                              className="cursor-pointer font-semibold underline transition-colors hover:text-paper"
+                                            >
+                                              Back to automatic
+                                            </button>
+                                          </>
+                                        )}
+                                      </p>
+                                    )}
                                   <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-2.5">
                                     {item.status === "cancelled" ? (
                                       <>

@@ -295,6 +295,15 @@ export type Action =
       campaignId: string;
       stepId: string;
     }
+  /** Pin one email of this campaign to a hand-picked send date (ISO).
+   *  null returns it to the automatic schedule. Only this email moves. */
+  | {
+      type: "setStepDate";
+      clientId: string;
+      campaignId: string;
+      stepId: string;
+      date: string | null;
+    }
   /** drag-and-drop reorder: drop a series at an absolute position */
   | {
       type: "moveSeriesTo";
@@ -664,6 +673,14 @@ function reducer(db: DB, action: Action): DB {
           (id) => id !== action.stepId
         ),
       }));
+
+    case "setStepDate":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => {
+        const next = { ...(c.stepDates ?? {}) };
+        if (action.date) next[action.stepId] = action.date;
+        else delete next[action.stepId];
+        return { ...c, stepDates: next };
+      });
 
     case "fillSessionDates":
       return mapCampaign(db, action.clientId, action.campaignId, (c) => {
