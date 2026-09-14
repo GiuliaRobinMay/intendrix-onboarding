@@ -12,9 +12,12 @@ import { authEnforced, verifyUser } from "@/lib/server/auth";
 import {
   emailConfigured,
   personalize,
+  renderAgreementEmail,
+  renderInviteEmail,
   renderLessonEmail,
   sendEmail,
 } from "@/lib/server/email";
+import { campaignContext } from "@/lib/server/onboarding";
 import { FALLBACK_SENDING_ADDRESS as DEFAULT_SENDING_ADDRESS } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +49,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ sent: false, reason: "invalid body" }, { status: 400 });
   }
   const { campaignId, stepId, variant } = body ?? {};
-  if (!campaignId || !stepId)
+  // what to test: a lesson, or one of the two onboarding emails
+  const kind: "lesson" | "agreement" | "invite" =
+    body?.kind === "agreement" || body?.kind === "invite" ? body.kind : "lesson";
+  if (!campaignId || (kind === "lesson" && !stepId))
     return NextResponse.json(
       { sent: false, reason: "campaign and lesson are required" },
       { status: 400 }
@@ -67,6 +73,81 @@ export async function POST(req: Request) {
       [who.userId]
     );
     to = rows[0]?.email ?? null;
+  }
+
+  // ——— the onboarding emails: same sender, same look, test banner ———
+  if (kind !== "lesson") {
+    const ctx = await campaignContext(pool, campaignId);
+    if ("error" in ctx) return NextResponse.json({ sent: false, reason: ctx.error });
+    const { campaign, from, logoUrl } = ctx;
+    if (kind === "invite" && !campaign.invite_url)
+      return NextResponse.json({
+        sent: false,
+        reason:
+          "this client has no community invitation link yet — paste their plan link into the Invite field on the client page first",
+      });
+
+    if (!to && !authEnforced) to = from.replyTo;
+    if (!to)
+      return NextResponse.json({
+        sent: false,
+        reason: "no address on your account — add your email on the Team page",
+      });
+
+    const firstName = to
+      .split("@")[0]
+      .split(/[._-]/)[0]
+      .replace(/^./, (c) => c.toUpperCase());
+    const common = {
+      firstName,
+      clientName: campaign.client_name,
+      senderName: from.name,
+      senderRole: from.role,
+      signature: from.signature,
+      logoUrl: campaign.sender_member_id ? null : logoUrl,
+      test: true,
+    };
+    // the test's button opens the read-only preview of the agreement
+    // page — real accept links are personal, one per member
+    const html =
+      kind === "agreement"
+        ? renderAgreementEmail({
+            ...common,
+            agreeUrl: `${new URL(req.url).origin}/agree/preview`,
+            thenCommunity: Boolean(campaign.invite_url),
+          })
+        : renderInviteEmail({ ...common, inviteUrl: campaign.invite_url });
+    const subject =
+      kind === "agreement"
+        ? "[TEST] One click before your Intendrix journey starts"
+        : `[TEST] Your seat in the ${campaign.client_name} community is ready`;
+
+    if (!emailConfigured)
+      return NextResponse.json({
+        sent: false,
+        reason: "email sending is not switched on yet (no RESEND_API_KEY)",
+        preview: { to, from: `${from.name} <${from.address}>`, subject },
+      });
+
+    const mail = { to, replyTo: from.replyTo, subject, html };
+    const result = await sendEmail({ from: `${from.name} <${from.address}>`, ...mail });
+    if (result.ok) return NextResponse.json({ sent: true, to });
+    if (/not verified|domain is not/i.test(result.error ?? "")) {
+      const relayed = await sendEmail({
+        from: `${from.name} (via Intendrix) <${TEST_RELAY_ADDRESS}>`,
+        ...mail,
+      });
+      if (relayed.ok)
+        return NextResponse.json({
+          sent: true,
+          to,
+          note: `Sent from the test address — ${from.address.split("@")[1]} is not verified with the provider yet, so real sends still cannot go out.`,
+        });
+    }
+    return NextResponse.json(
+      { sent: false, reason: result.error ?? "unknown error" },
+      { status: 502 }
+    );
   }
 
   const [campaignRows, stepRows] = await Promise.all([

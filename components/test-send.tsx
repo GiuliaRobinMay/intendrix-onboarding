@@ -13,23 +13,30 @@ export type TestVariant = "participant" | "leader";
 
 interface Props {
   campaignId: string;
-  stepId: string;
-  variant: TestVariant;
+  /** the lesson to test — not needed for the onboarding emails */
+  stepId?: string;
+  variant?: TestVariant;
+  /** which email: a lesson (default), or one of the onboarding two */
+  kind?: "lesson" | "agreement" | "invite";
   /** icon only, for a table row; full label elsewhere */
   compact?: boolean;
   /** where the tooltip should open */
   tipPos?: "top" | "bottom" | "right";
   /** names the variant in the tooltip when both versions exist */
   variantLabel?: string;
+  /** the button's own words, when "Send me a test" is not enough */
+  label?: string;
 }
 
 export function TestSendButton({
   campaignId,
   stepId,
-  variant,
+  variant = "participant",
+  kind = "lesson",
   compact = false,
   tipPos = "top",
   variantLabel,
+  label,
 }: Props) {
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +51,7 @@ export function TestSendButton({
       const res = await fetch("/api/test-email", {
         method: "POST",
         headers: { "content-type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ campaignId, stepId, variant }),
+        body: JSON.stringify({ campaignId, stepId, variant, kind }),
       });
       const out = await res.json();
       if (out.sent) {
@@ -105,9 +112,8 @@ export function TestSendButton({
           ? "Sending…"
           : state === "sent"
             ? "Sent to you"
-            : variantLabel
-              ? `Test the ${variantLabel} version`
-              : "Send me a test"}
+            : (label ??
+              (variantLabel ? `Test the ${variantLabel} version` : "Send me a test"))}
       </button>
       {error && (
         <span className="max-w-md text-[11px] font-semibold text-[#ff7a55]">{error}</span>

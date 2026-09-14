@@ -63,6 +63,8 @@ interface LessonLinkLike {
 const escHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+const TEST_BANNER = `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the programme received it.</p>`;
+
 /** shared shell for the onboarding emails — same look as the lessons */
 function renderShell(inner: string, signOffBlock: string): string {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f6;">
@@ -118,8 +120,11 @@ export function renderAgreementEmail(opts: {
   senderRole?: string | null;
   signature?: string | null;
   logoUrl?: string | null;
+  /** marks a test send, so nobody mistakes one for the real thing */
+  test?: boolean;
 }): string {
   const inner = [
+    opts.test ? TEST_BANNER : "",
     P(`Hi ${escHtml(opts.firstName)},`),
     P(
       `Welcome to Intendrix. Before your ${escHtml(opts.clientName)} programme opens up, there is one short piece of paperwork: the Intendrix user agreement. In plain words, it says three things:`
@@ -150,8 +155,11 @@ export function renderInviteEmail(opts: {
   senderRole?: string | null;
   signature?: string | null;
   logoUrl?: string | null;
+  /** marks a test send, so nobody mistakes one for the real thing */
+  test?: boolean;
 }): string {
   const inner = [
+    opts.test ? TEST_BANNER : "",
     P(`Hi ${escHtml(opts.firstName)},`),
     P(
       `Your seat in the Intendrix community is ready. This is where your ${escHtml(opts.clientName)} programme lives: the lessons, the conversations, and the people walking it with you.`

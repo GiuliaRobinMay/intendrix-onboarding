@@ -70,6 +70,19 @@ export async function GET(
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
+
+  // the read-only preview a test email's button opens — full text,
+  // nothing to click, nothing recorded
+  if (token === "preview")
+    return page(`<div class="wrap"><div class="card">
+      <h1>${esc(AGREEMENT_TITLE)}</h1>
+      <p class="sub">Preview &middot; version ${AGREEMENT_VERSION}</p>
+      <div class="text">${esc(AGREEMENT_TEXT)}</div>
+    </div></div>
+    <div class="bar"><div class="barin">
+      <p>This is a preview. Each member gets their own personal link, where their I&nbsp;Agree is recorded.</p>
+    </div></div>`);
+
   if (!dbConfigured || !/^[a-f0-9]{24,64}$/.test(token))
     return page(`<div class="wrap"><div class="card"><h1>This link is not valid</h1>
       <p class="sub">Ask the person who sent it for a fresh one.</p></div></div>`);

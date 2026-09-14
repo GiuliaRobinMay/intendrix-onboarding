@@ -13,50 +13,48 @@ import { useState } from "react";
 import { DoorOpen, ScrollText } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { useConfirm } from "@/components/confirm";
+import { TestSendButton } from "@/components/test-send";
 import type { Member } from "@/lib/types";
 
 const fmtShort = (iso: string) =>
   new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-/** agreement + community state of one member, as two small chips */
+/** agreement + community state of one member: just a document and a
+ *  door — green once they signed / joined, no text. The story lives in
+ *  the tooltips. */
 export function OnboardingChips({ member }: { member: Member }) {
   const agreement = member.agreementSignedAt
     ? {
         color: "#4ade80",
-        label: "agreed",
         tip: `Accepted the user agreement on ${fmtShort(member.agreementSignedAt)}`,
       }
     : member.agreementSentAt
       ? {
           color: "#facc15",
-          label: "asked",
           tip: `Agreement sent ${fmtShort(member.agreementSentAt)} — not accepted yet`,
         }
       : {
           color: "#5a5c6b",
-          label: "—",
           tip: "The user agreement has not been sent to them yet",
         };
   const community = member.communityJoinedAt
-    ? { color: "#4ade80", label: "joined", tip: "In the community" }
+    ? { color: "#4ade80", tip: "In the community" }
     : member.communityInvitedAt
       ? {
           color: "#facc15",
-          label: "invited",
           tip: `Invited ${fmtShort(member.communityInvitedAt)} — has not joined yet`,
         }
       : {
           color: "#5a5c6b",
-          label: "—",
           tip: "Not invited into the community yet",
         };
   return (
-    <span className="flex shrink-0 items-center gap-2.5">
-      <span data-tip={agreement.tip} className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: agreement.color }}>
-        <ScrollText size={11} /> {agreement.label}
+    <span className="flex shrink-0 items-center gap-1.5">
+      <span data-tip={agreement.tip} className="flex items-center" style={{ color: agreement.color }}>
+        <ScrollText size={12} />
       </span>
-      <span data-tip={community.tip} className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: community.color }}>
-        <DoorOpen size={11} /> {community.label}
+      <span data-tip={community.tip} className="flex items-center" style={{ color: community.color }}>
+        <DoorOpen size={12} />
       </span>
     </span>
   );
@@ -241,9 +239,15 @@ export function OnboardingSection({
         personal invitation into the {clientName} community. The invitation
         only ever goes to people who have accepted.
       </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="agreement" />
-        <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="flex items-center gap-1">
+          <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="agreement" />
+          <TestSendButton campaignId={campaignId} kind="agreement" compact tipPos="top" />
+        </span>
+        <span className="flex items-center gap-1">
+          <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
+          <TestSendButton campaignId={campaignId} kind="invite" compact tipPos="top" />
+        </span>
         {!inviteUrl && (
           <span className="text-[11px] font-semibold text-[#ff7a55]">
             No invitation link yet — paste the client&rsquo;s plan link into
