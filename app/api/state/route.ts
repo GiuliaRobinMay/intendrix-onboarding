@@ -93,10 +93,16 @@ export async function GET(req: Request) {
                     space_url, invite_url
                from clients order by created_at, id`)
         ),
+      // the onboarding columns arrive with migration 0015 — until the
+      // database has them, fall back to the members list without them
+      // so a deploy ahead of the migration never takes the app down
       q(`select id, client_id, name, first_name, last_name, email, role, title,
                 agreement_sent_at, agreement_signed_at,
                 community_invited_at, community_joined_at
-           from members order by created_at, id`),
+           from members order by created_at, id`).catch(() =>
+        q(`select id, client_id, name, first_name, last_name, email, role, title
+             from members order by created_at, id`)
+      ),
       q(`select id, client_id, template_id, code, name, timezone,
                 status_override, sender_member_id, shadow_emails,
                 start_date::text as start_date,

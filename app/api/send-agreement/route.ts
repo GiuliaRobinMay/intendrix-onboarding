@@ -48,12 +48,20 @@ export async function POST(req: Request) {
   if ("error" in ctx) return NextResponse.json({ ok: false, reason: ctx.error });
   const { campaign, from, logoUrl } = ctx;
 
-  const { rows: members } = await pool.query(
-    `select id, name, first_name, email,
-            agreement_sent_at, agreement_signed_at, agreement_token
-       from members where client_id = $1 order by name`,
-    [campaign.client_id]
-  );
+  const { rows: members } = await pool
+    .query(
+      `select id, name, first_name, email,
+              agreement_sent_at, agreement_signed_at, agreement_token
+         from members where client_id = $1 order by name`,
+      [campaign.client_id]
+    )
+    .catch(() => ({ rows: null }));
+  if (!members)
+    return NextResponse.json({
+      ok: false,
+      reason:
+        "the database does not have the onboarding update yet — paste migration 0015 into the Supabase SQL editor first",
+    });
 
   const signed = members.filter((m: any) => m.agreement_signed_at);
   const pending = members.filter(

@@ -54,12 +54,20 @@ export async function POST(req: Request) {
         "this client has no community invitation link yet — paste their plan link into the Invite field on the client page first",
     });
 
-  const { rows: members } = await pool.query(
-    `select id, name, first_name, email,
-            agreement_signed_at, community_invited_at, community_joined_at
-       from members where client_id = $1 order by name`,
-    [campaign.client_id]
-  );
+  const { rows: members } = await pool
+    .query(
+      `select id, name, first_name, email,
+              agreement_signed_at, community_invited_at, community_joined_at
+         from members where client_id = $1 order by name`,
+      [campaign.client_id]
+    )
+    .catch(() => ({ rows: null }));
+  if (!members)
+    return NextResponse.json({
+      ok: false,
+      reason:
+        "the database does not have the onboarding update yet — paste migration 0015 into the Supabase SQL editor first",
+    });
 
   const joined = members.filter((m: any) => m.community_joined_at);
   const notJoined = members.filter((m: any) => !m.community_joined_at);
