@@ -9,7 +9,12 @@ import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
 import { emailConfigured, renderInviteEmail } from "@/lib/server/email";
-import { campaignContext, firstNameOf, sendPaced } from "@/lib/server/onboarding";
+import {
+  campaignContext,
+  firstNameOf,
+  NEW_MEMBER_GUIDE_FILENAME,
+  sendPaced,
+} from "@/lib/server/onboarding";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -46,7 +51,7 @@ export async function POST(req: Request) {
 
   const ctx = await campaignContext(pool, campaignId);
   if ("error" in ctx) return NextResponse.json({ ok: false, reason: ctx.error });
-  const { campaign, from, logoUrl } = ctx;
+  const { campaign, from, logoUrl, guideUrl } = ctx;
   if (!campaign.invite_url)
     return NextResponse.json({
       ok: false,
@@ -110,8 +115,9 @@ export async function POST(req: Request) {
       from: `${from.name} <${from.address}>`,
       to: m.email,
       replyTo: from.replyTo,
-      subject: `Your seat in the ${campaign.client_name} community is ready`,
+      subject: `Your access to the ${campaign.client_name} space on Intendrix`,
       html,
+      attachments: [{ filename: NEW_MEMBER_GUIDE_FILENAME, path: guideUrl }],
     });
     if (result.ok) {
       await pool.query(

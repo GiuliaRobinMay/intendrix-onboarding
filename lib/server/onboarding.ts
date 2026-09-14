@@ -7,6 +7,14 @@ import { FALLBACK_SENDING_ADDRESS as DEFAULT_SENDING_ADDRESS } from "@/lib/store
 
 const SENDING_ADDRESS = process.env.SENDING_ADDRESS || DEFAULT_SENDING_ADDRESS;
 
+/** The new-member guide that travels with every community invitation
+ *  ("Welcome to Intendrix — How to Join"). The provider fetches it from
+ *  this public link at send time; the app_settings key newMemberGuideUrl
+ *  overrides it if the file ever moves. */
+const NEW_MEMBER_GUIDE_URL =
+  "https://drive.usercontent.google.com/download?id=13NNPsy_BdyrcszKI1fKRM9uKVu0fgG3B&export=download";
+export const NEW_MEMBER_GUIDE_FILENAME = "Welcome to Intendrix - How to Join.pdf";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CampaignContext {
@@ -20,6 +28,7 @@ export interface CampaignContext {
   };
   senderStaffId: string | null;
   logoUrl: string | null;
+  guideUrl: string;
 }
 
 /** The campaign with its client, and the sender its emails go out as —
@@ -87,12 +96,17 @@ export async function campaignContext(
   if (!from)
     return { error: "this campaign has no sender yet — assign a Phoenix Coach first" };
 
-  const logoUrl = await pool
-    .query(`select value from app_settings where key = 'signatureLogoUrl'`)
-    .then((r) => r.rows[0]?.value ?? null)
-    .catch(() => null);
+  const settings = await pool
+    .query(
+      `select key, value from app_settings
+        where key in ('signatureLogoUrl', 'newMemberGuideUrl')`
+    )
+    .then((r) => new Map(r.rows.map((x: any) => [x.key, x.value])))
+    .catch(() => new Map());
+  const logoUrl = settings.get("signatureLogoUrl") ?? null;
+  const guideUrl = settings.get("newMemberGuideUrl") || NEW_MEMBER_GUIDE_URL;
 
-  return { campaign, from, senderStaffId, logoUrl };
+  return { campaign, from, senderStaffId, logoUrl, guideUrl };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

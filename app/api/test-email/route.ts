@@ -17,7 +17,7 @@ import {
   renderLessonEmail,
   sendEmail,
 } from "@/lib/server/email";
-import { campaignContext } from "@/lib/server/onboarding";
+import { campaignContext, NEW_MEMBER_GUIDE_FILENAME } from "@/lib/server/onboarding";
 import { FALLBACK_SENDING_ADDRESS as DEFAULT_SENDING_ADDRESS } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
     const subject =
       kind === "agreement"
         ? "[TEST] One click before your Intendrix journey starts"
-        : `[TEST] Your seat in the ${campaign.client_name} community is ready`;
+        : `[TEST] Your access to the ${campaign.client_name} space on Intendrix`;
 
     if (!emailConfigured)
       return NextResponse.json({
@@ -129,7 +129,20 @@ export async function POST(req: Request) {
         preview: { to, from: `${from.name} <${from.address}>`, subject },
       });
 
-    const mail = { to, replyTo: from.replyTo, subject, html };
+    const mail = {
+      to,
+      replyTo: from.replyTo,
+      subject,
+      html,
+      // the invitation travels with the new-member guide, tests included
+      ...(kind === "invite"
+        ? {
+            attachments: [
+              { filename: NEW_MEMBER_GUIDE_FILENAME, path: ctx.guideUrl },
+            ],
+          }
+        : {}),
+    };
     const result = await sendEmail({ from: `${from.name} <${from.address}>`, ...mail });
     if (result.ok) return NextResponse.json({ sent: true, to });
     if (/not verified|domain is not/i.test(result.error ?? "")) {

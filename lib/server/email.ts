@@ -145,8 +145,10 @@ export function renderAgreementEmail(opts: {
   return renderShell(inner, renderSignOff(opts));
 }
 
-/** The community invitation: one clear button to the client's own plan
- *  link inside the Intendrix community. */
+/** The community invitation, shaped by SOP-03: the plan link as the only
+ *  link in the message, the account-creation steps spelled out (wording
+ *  from the member guide, which travels along as the attachment), where
+ *  they arrive, and a person to reply to. */
 export function renderInviteEmail(opts: {
   firstName: string;
   clientName: string;
@@ -158,16 +160,38 @@ export function renderInviteEmail(opts: {
   /** marks a test send, so nobody mistakes one for the real thing */
   test?: boolean;
 }): string {
+  const li = (t: string) => `<li style="margin-bottom:8px;">${t}</li>`;
   const inner = [
     opts.test ? TEST_BANNER : "",
     P(`Hi ${escHtml(opts.firstName)},`),
     P(
-      `Your seat in the Intendrix community is ready. This is where your ${escHtml(opts.clientName)} programme lives: the lessons, the conversations, and the people walking it with you.`
+      `You're invited into ${escHtml(opts.clientName)}'s space on Intendrix — the home for your team's work together. Getting in takes about three minutes, and you only do it once:`
     ),
-    P(`The button below is your personal way in. It takes about two minutes: create your profile, say hello, and have a look around.`),
-    BUTTON(opts.inviteUrl, `Join the ${opts.clientName} community`),
-    P(`See you inside.`),
-  ].join("");
+    `<ol style="margin:0 0 14px;padding-left:22px;font-size:14px;line-height:1.6;color:#1a1b2e;">` +
+      li(
+        `Click the button below. It opens your team's welcome page, with ${escHtml(opts.clientName)}'s name on it.`
+      ) +
+      li(`On that page, click the red <strong>Access</strong> button.`) +
+      li(
+        `Create your account: your name, your <strong>work email</strong>, and a password you'll remember — or use the Google, LinkedIn, Facebook or Apple button instead.`
+      ) +
+      li(
+        `Tick the first box (the terms of use) and click <strong>Confirm</strong>. Add a photo, or skip it for now.`
+      ) +
+      li(
+        `You'll arrive in <strong>A Warm Welcome</strong>. Your team's own space is in the left sidebar, under <strong>TEAM CONNECT</strong>.`
+      ) +
+      `</ol>`,
+    BUTTON(opts.inviteUrl, "Open your invitation"),
+    P(
+      `The attached guide, <em>Welcome to Intendrix</em>, walks through the same steps with screenshots — and shows how to put Intendrix on your phone.`
+    ),
+    P(
+      `If anything doesn't work, just reply to this email — a real person reads it. Welcome aboard.`
+    ),
+  ]
+    .filter(Boolean)
+    .join("");
   return renderShell(inner, renderSignOff(opts));
 }
 

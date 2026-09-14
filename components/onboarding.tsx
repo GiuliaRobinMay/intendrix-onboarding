@@ -147,8 +147,8 @@ function OnboardingSendButton({
             ? `Sends the agreement again, right now, to the ${plural(toSend, "member")} of ${clientName} who received it but have not accepted yet, from ${check.from}.`
             : `Emails the user agreement, right now, to the ${plural(toSend, "member")} of ${clientName} who never received it — each with a personal accept link — from ${check.from}.`
           : remind
-            ? `Sends the invitation again, right now, to the ${plural(toSend, "member")} of ${clientName} who were invited but have not joined yet, from ${check.from}.`
-            : `Invites the ${plural(toSend, "member")} of ${clientName} who accepted the agreement into the community, right now, via the client's own plan link, from ${check.from}.`,
+            ? `Sends the invitation again, right now, to the ${plural(toSend, "member")} of ${clientName} who were invited but have not joined yet, with the new-member guide attached, from ${check.from}.`
+            : `Invites the ${plural(toSend, "member")} of ${clientName} who accepted the agreement into their space, right now, via the client's own plan link, with the new-member guide attached, from ${check.from}.`,
         kind === "agreement" && check.signed
           ? `${check.signed} already accepted and are skipped.`
           : "",
