@@ -167,6 +167,14 @@ export type Action =
       patch: Partial<Pick<Member, "firstName" | "lastName" | "title" | "email" | "role">>;
     }
   | { type: "removeMember"; clientId: string; memberId: string }
+  | {
+      /** hand-set whether someone is in the community — for people who
+       *  joined outside the invite flow, or corrections */
+      type: "setMemberJoined";
+      clientId: string;
+      memberId: string;
+      joined: boolean;
+    }
   // campaigns
   | {
       type: "addCampaign";
@@ -539,6 +547,21 @@ function reducer(db: DB, action: Action): DB {
       return mapClient(db, action.clientId, (c) => ({
         ...c,
         members: c.members.filter((m) => m.id !== action.memberId),
+      }));
+
+    case "setMemberJoined":
+      return mapClient(db, action.clientId, (c) => ({
+        ...c,
+        members: c.members.map((m) =>
+          m.id === action.memberId
+            ? {
+                ...m,
+                communityJoinedAt: action.joined
+                  ? new Date().toISOString()
+                  : undefined,
+              }
+            : m
+        ),
       }));
 
     // ——— campaigns —————————————————————————————————————————

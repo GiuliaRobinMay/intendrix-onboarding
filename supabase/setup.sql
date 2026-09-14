@@ -770,6 +770,23 @@ alter table clients
 comment on column clients.state is
   'Two-letter US state code — drives the default timezone of new campaigns.';
 
+-- Intendrix — onboarding: the user agreement, and who joined
+
+alter table members add column if not exists community_invited_at timestamptz;
+alter table members add column if not exists community_joined_at  timestamptz;
+alter table members add column if not exists agreement_sent_at    timestamptz;
+alter table members add column if not exists agreement_signed_at  timestamptz;
+alter table members add column if not exists agreement_version    text;
+alter table members add column if not exists agreement_ip         text;
+alter table members add column if not exists agreement_user_agent text;
+alter table members add column if not exists agreement_token      text;
+
+create unique index if not exists members_agreement_token_idx
+  on members (agreement_token);
+
+comment on column members.agreement_signed_at is
+  'When this person clicked I Agree — with agreement_version, agreement_ip and agreement_user_agent as the proof.';
+
 -- ═══ seed data ═══
 
 -- Intendrix Team Backend — seed data

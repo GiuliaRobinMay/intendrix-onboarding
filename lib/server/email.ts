@@ -60,6 +60,109 @@ interface LessonLinkLike {
   url: string | null;
 }
 
+const escHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** shared shell for the onboarding emails — same look as the lessons */
+function renderShell(inner: string, signOffBlock: string): string {
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f6;">
+<div style="max-width:560px;margin:0 auto;padding:32px 20px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <div style="background:#ffffff;border:1px solid #e4e4e8;border-radius:8px;padding:28px;">
+    ${inner}
+    <div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;">${signOffBlock}</div>
+  </div>
+  <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership programme.</p>
+</div>
+</body></html>`;
+}
+
+function renderSignOff(opts: {
+  senderName: string;
+  senderRole?: string | null;
+  signature?: string | null;
+  logoUrl?: string | null;
+}): string {
+  const signOff = (
+    opts.signature?.trim()
+      ? opts.signature.trim()
+      : [opts.senderName, opts.senderRole].filter(Boolean).join("\n")
+  )
+    .split("\n")
+    .map((line, i) =>
+      i === 0
+        ? `<p style="margin:0;font-size:13px;font-weight:600;color:#1a1b2e;">${escHtml(line)}</p>`
+        : `<p style="margin:0;font-size:12px;color:#5f6170;">${escHtml(line)}</p>`
+    )
+    .join("");
+  const logo =
+    opts.logoUrl && /^https:\/\//.test(opts.logoUrl)
+      ? `<img src="${opts.logoUrl}" alt="" style="display:block;margin:14px 0 0;max-height:44px;max-width:200px;" />`
+      : "";
+  return signOff + logo;
+}
+
+const P = (text: string) =>
+  `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1a1b2e;">${text}</p>`;
+const BUTTON = (url: string, label: string) =>
+  `<p style="margin:22px 0;"><a href="${url}" style="background:#2c2d83;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:6px;display:inline-block;">${escHtml(label)}</a></p>`;
+
+/** The user-agreement email: a short, human summary and one button to
+ *  the personal accept page. The full text lives on that page, where
+ *  the click is recorded — never as an attachment. */
+export function renderAgreementEmail(opts: {
+  firstName: string;
+  clientName: string;
+  agreeUrl: string;
+  thenCommunity: boolean;
+  senderName: string;
+  senderRole?: string | null;
+  signature?: string | null;
+  logoUrl?: string | null;
+}): string {
+  const inner = [
+    P(`Hi ${escHtml(opts.firstName)},`),
+    P(
+      `Welcome to Intendrix. Before your ${escHtml(opts.clientName)} programme opens up, there is one short piece of paperwork: the Intendrix user agreement. In plain words, it says three things:`
+    ),
+    `<ul style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.6;color:#1a1b2e;">
+      <li style="margin-bottom:6px;">It is your personal license to use Intendrix and the coaching delivered through it.</li>
+      <li style="margin-bottom:6px;">Coaching is personal development — not therapy or medical, legal or financial advice. Your choices stay your own.</li>
+      <li>You own what you write; Phoenix Performance Partners owns the platform and the lesson content.</li>
+    </ul>`,
+    P(`The button below opens the full agreement, personal to you. Reading it takes about three minutes, and accepting it is one click.`),
+    BUTTON(opts.agreeUrl, "Review & accept the agreement"),
+    opts.thenCommunity
+      ? P(`Right after you accept, you will get your personal link to join the ${escHtml(opts.clientName)} community — that is where your programme lives.`)
+      : "",
+  ]
+    .filter(Boolean)
+    .join("");
+  return renderShell(inner, renderSignOff(opts));
+}
+
+/** The community invitation: one clear button to the client's own plan
+ *  link inside the Intendrix community. */
+export function renderInviteEmail(opts: {
+  firstName: string;
+  clientName: string;
+  inviteUrl: string;
+  senderName: string;
+  senderRole?: string | null;
+  signature?: string | null;
+  logoUrl?: string | null;
+}): string {
+  const inner = [
+    P(`Hi ${escHtml(opts.firstName)},`),
+    P(
+      `Your seat in the Intendrix community is ready. This is where your ${escHtml(opts.clientName)} programme lives: the lessons, the conversations, and the people walking it with you.`
+    ),
+    P(`The button below is your personal way in. It takes about two minutes: create your profile, say hello, and have a look around.`),
+    BUTTON(opts.inviteUrl, `Join the ${opts.clientName} community`),
+    P(`See you inside.`),
+  ].join("");
+  return renderShell(inner, renderSignOff(opts));
+}
+
 /** The lesson email itself — simple, text-first, one clear button. */
 export function renderLessonEmail(opts: {
   body: string;

@@ -175,6 +175,16 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
     case "removeMember":
       await tx.query(`delete from members where id = $1`, [a.memberId]);
       return;
+    case "setMemberJoined":
+      // hand-set community membership; joining keeps an existing date
+      await tx.query(
+        a.joined
+          ? `update members set community_joined_at = coalesce(community_joined_at, now())
+              where id = $1`
+          : `update members set community_joined_at = null where id = $1`,
+        [a.memberId]
+      );
+      return;
 
     // ——— campaigns ———
     case "addCampaign": {

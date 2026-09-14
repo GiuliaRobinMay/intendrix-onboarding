@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { US_STATES, stateByCode } from "@/lib/us-states";
 import { authHeaders } from "@/lib/supabase-browser";
+import { OnboardingChips } from "@/components/onboarding";
 
 /** what the send log + the provider say about one email to one person */
 const HISTORY_LABEL: Record<string, { text: string; color: string }> = {
@@ -742,6 +743,7 @@ export default function ClientDetailPage() {
                       <span className="ml-2 text-[11px] text-mist">{m.title}</span>
                     )}
                   </p>
+                  <OnboardingChips member={m} />
                   <select
                     data-tip="Which series they receive — Leader gets the Leaders Guides, Coach gets a copy of every send"
                     value={m.role}
@@ -858,6 +860,41 @@ export default function ClientDetailPage() {
                         className="text-xs"
                       />
                     </label>
+                    <div className="border-t border-white/8 pt-2 sm:col-span-2">
+                      <p className="mb-1 text-[10px] font-medium text-mist">
+                        Onboarding
+                      </p>
+                      <p className="text-xs text-mist">
+                        {m.agreementSignedAt
+                          ? `Accepted the user agreement on ${new Date(m.agreementSignedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`
+                          : m.agreementSentAt
+                            ? `The user agreement was sent ${new Date(m.agreementSentAt).toLocaleDateString("en-US", { month: "long", day: "numeric" })} — not accepted yet.`
+                            : "The user agreement has not been sent to them yet — that happens from their campaign's page."}{" "}
+                        {m.communityJoinedAt
+                          ? "In the community."
+                          : m.communityInvitedAt
+                            ? "Invited into the community — has not joined yet."
+                            : "Not invited into the community yet."}
+                        <button
+                          data-tip={
+                            m.communityJoinedAt
+                              ? "They are marked as in the community — undo if that is wrong"
+                              : "Joined on their own, without the invitation email? Record it here so they are not invited again"
+                          }
+                          onClick={() =>
+                            dispatch({
+                              type: "setMemberJoined",
+                              clientId: client.id,
+                              memberId: m.id,
+                              joined: !m.communityJoinedAt,
+                            })
+                          }
+                          className="ml-2 cursor-pointer rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                        >
+                          {m.communityJoinedAt ? "Mark as not joined" : "Mark as joined"}
+                        </button>
+                      </p>
+                    </div>
                     <div className="border-t border-white/8 pt-2 sm:col-span-2">
                       <p className="mb-1 text-[10px] font-medium text-mist">
                         Emails received

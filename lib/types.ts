@@ -87,6 +87,12 @@ export interface Member {
   email: string;
   role: MemberRole;
   title?: string;
+  /** onboarding milestones — ISO timestamps set by the agreement and
+   *  community-invite flows; absent = not yet */
+  agreementSentAt?: string;
+  agreementSignedAt?: string;
+  communityInvitedAt?: string;
+  communityJoinedAt?: string;
 }
 
 /** A live or online meeting inside a campaign. Campaigns can have any

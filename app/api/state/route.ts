@@ -93,7 +93,9 @@ export async function GET(req: Request) {
                     space_url, invite_url
                from clients order by created_at, id`)
         ),
-      q(`select id, client_id, name, first_name, last_name, email, role, title
+      q(`select id, client_id, name, first_name, last_name, email, role, title,
+                agreement_sent_at, agreement_signed_at,
+                community_invited_at, community_joined_at
            from members order by created_at, id`),
       q(`select id, client_id, template_id, code, name, timezone,
                 status_override, sender_member_id, shadow_emails,
@@ -330,6 +332,18 @@ export async function GET(req: Request) {
         email: m.email,
         role: m.role,
         ...(m.title ? { title: m.title } : {}),
+        ...(m.agreement_sent_at
+          ? { agreementSentAt: new Date(m.agreement_sent_at).toISOString() }
+          : {}),
+        ...(m.agreement_signed_at
+          ? { agreementSignedAt: new Date(m.agreement_signed_at).toISOString() }
+          : {}),
+        ...(m.community_invited_at
+          ? { communityInvitedAt: new Date(m.community_invited_at).toISOString() }
+          : {}),
+        ...(m.community_joined_at
+          ? { communityJoinedAt: new Date(m.community_joined_at).toISOString() }
+          : {}),
       });
       membersByClient.set(m.client_id, list);
     }
