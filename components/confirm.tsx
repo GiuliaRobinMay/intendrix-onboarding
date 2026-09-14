@@ -28,6 +28,9 @@ export interface ConfirmRequest {
   /** the question's verb — "delete" unless the act is something else,
    *  e.g. "cancel" for an email that stays but never sends */
   action?: string;
+  /** notice mode: no question, no red button — just the message and OK.
+   *  `name` becomes the headline. Always resolves false. */
+  notice?: boolean;
 }
 
 type Ask = (req: ConfirmRequest) => Promise<boolean>;
@@ -76,18 +79,24 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             className="card w-full max-w-sm p-5 shadow-2xl shadow-black/50"
           >
             <p className="flex items-start gap-2.5 text-sm font-bold leading-snug">
-              {(pending.req.action ?? "delete") === "delete" ? (
+              {pending.req.notice ? (
+                <TriangleAlert size={16} className="mt-0.5 shrink-0 text-[#facc15]" />
+              ) : (pending.req.action ?? "delete") === "delete" ? (
                 <Trash2 size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
               ) : (
                 <TriangleAlert size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
               )}
-              <span>
-                Are you sure you want to {pending.req.action ?? "delete"}{" "}
-                <span className="text-[#ff7a55]">
-                  &ldquo;{pending.req.name}&rdquo;
+              {pending.req.notice ? (
+                <span>{pending.req.name}</span>
+              ) : (
+                <span>
+                  Are you sure you want to {pending.req.action ?? "delete"}{" "}
+                  <span className="text-[#ff7a55]">
+                    &ldquo;{pending.req.name}&rdquo;
+                  </span>
+                  ?
                 </span>
-                ?
-              </span>
+              )}
             </p>
             {pending.req.detail && (
               <p className="mt-2 pl-[26px] text-xs leading-relaxed text-mist">
@@ -100,14 +109,16 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 onClick={() => answer(false)}
                 className="cursor-pointer rounded-md border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
-                Cancel
+                {pending.req.notice ? "OK" : "Cancel"}
               </button>
-              <button
-                onClick={() => answer(true)}
-                className="cursor-pointer rounded-md bg-[#eb320f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#c92a0c]"
-              >
-                {pending.req.verb ?? "Delete"}
-              </button>
+              {!pending.req.notice && (
+                <button
+                  onClick={() => answer(true)}
+                  className="cursor-pointer rounded-md bg-[#eb320f] px-3.5 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[#c92a0c]"
+                >
+                  {pending.req.verb ?? "Delete"}
+                </button>
+              )}
             </div>
           </div>
         </div>
