@@ -39,8 +39,8 @@ function page(inner: string): NextResponse {
   .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e4e4e8;padding:14px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.06);}
   .barin{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
   .barin p{margin:0;font-size:12px;color:#5f6170;}
-  .chk{display:flex;align-items:center;gap:9px;font-size:13px;color:#2a2b3e;cursor:pointer;max-width:420px;}
-  .chk input{width:17px;height:17px;flex:none;accent-color:#2c2d83;cursor:pointer;}
+  .chk{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;color:#1a1b2e;cursor:pointer;margin-top:24px;padding-top:18px;border-top:1px solid #e4e4e8;}
+  .chk input{width:18px;height:18px;flex:none;accent-color:#2c2d83;cursor:pointer;}
   button,.btn{background:#2c2d83;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;padding:12px 28px;cursor:pointer;text-decoration:none;display:inline-block;}
   button:disabled{opacity:.5;cursor:default;}
   .ok{color:#15803d;font-weight:600;}
@@ -111,16 +111,20 @@ export async function GET(
     <h1>${esc(AGREEMENT_TITLE)}</h1>
     <p class="sub">For ${esc(m.name)} &middot; ${esc(m.client_name)} &middot; version ${AGREEMENT_VERSION}</p>
     <div class="text">${esc(AGREEMENT_TEXT)}</div>
+    <label class="chk"><input type="checkbox" id="tick"/>
+      <span>I have read this agreement and I agree to its terms.</span>
+    </label>
   </div></div>
   <div class="bar"><div class="barin">
-    <label class="chk"><input type="checkbox" id="tick"/>
-      <span>I have read this agreement and I agree to its terms. My acceptance is recorded.</span>
-    </label>
+    <p id="hint">Read the agreement and tick the box at the end — that unlocks this button. Your acceptance is recorded.</p>
     <span id="slot"><button id="agree" disabled>I Agree</button></span>
   </div></div>
   <script>
   document.getElementById('tick').addEventListener('change', function(){
     document.getElementById('agree').disabled = !this.checked;
+    document.getElementById('hint').textContent = this.checked
+      ? 'One click left.'
+      : 'Read the agreement and tick the box at the end — that unlocks this button. Your acceptance is recorded.';
   });
   document.getElementById('agree').addEventListener('click', async function(){
     this.disabled = true; this.textContent = 'One moment…';

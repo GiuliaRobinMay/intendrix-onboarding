@@ -1,10 +1,8 @@
 // POST /api/send-invite — invite a campaign's members into the client's
-// community space, each via the client's own plan link. The gate Tom
-// asked for lives here: by default only people who have ACCEPTED the
-// user agreement are invited. ignoreAgreement: true lifts the gate for
-// one send — a deliberate choice made in the app, e.g. for a group that
-// is already mid-programme. People who already joined (or were already
-// invited, unless remind: true) are skipped. ?dryrun=1 only counts.
+// community space, each via the client's own plan link. Deliberately
+// unrelated to the user agreement: the invitation can always go out.
+// People who already joined (or were already invited, unless
+// remind: true) are skipped. ?dryrun=1 only counts.
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
@@ -47,9 +45,6 @@ export async function POST(req: Request) {
   if (!campaignId)
     return NextResponse.json({ ok: false, reason: "campaign required" }, { status: 400 });
   const remind = body?.remind === true;
-  // the agreement gate is the default; ignoreAgreement: true lifts it
-  // for this send, deliberately, from the checkbox in the app
-  const gate = body?.ignoreAgreement !== true;
   const dryRun =
     new URL(req.url).searchParams.get("dryrun") === "1" || body?.dryrun === true;
 
@@ -80,17 +75,10 @@ export async function POST(req: Request) {
 
   const joined = members.filter((m: any) => m.community_joined_at);
   const notJoined = members.filter((m: any) => !m.community_joined_at);
-  // with the gate up, people who have not accepted are held back;
-  // with it lifted, everyone not yet in the community is eligible
-  const eligible = notJoined.filter((m: any) => !gate || m.agreement_signed_at);
-  const needAgreement = gate
-    ? notJoined.filter((m: any) => !m.agreement_signed_at)
-    : [];
-  const invited = eligible.filter((m: any) => m.community_invited_at);
-  const fresh = eligible.filter((m: any) => !m.community_invited_at);
+  const invited = notJoined.filter((m: any) => m.community_invited_at);
+  const fresh = notJoined.filter((m: any) => !m.community_invited_at);
   const targets = (remind ? invited : fresh).filter((m: any) => m.email);
   const noEmail = (remind ? invited : fresh).filter((m: any) => !m.email).length;
-  const unsigned = targets.filter((m: any) => !m.agreement_signed_at).length;
 
   if (dryRun || !emailConfigured)
     return NextResponse.json({
@@ -99,8 +87,6 @@ export async function POST(req: Request) {
       toSend: targets.length,
       joined: joined.length,
       invited: invited.length,
-      needAgreement: needAgreement.length,
-      unsigned,
       noEmail,
       from: `${from.name} <${from.address}>`,
       ...(emailConfigured ? {} : { reason: "email sending is not configured" }),

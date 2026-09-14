@@ -88,19 +88,15 @@ function OnboardingSendButton({
   campaignId,
   clientName,
   kind,
-  ignoreAgreement = false,
 }: {
   campaignId: string;
   clientName: string;
   kind: "agreement" | "invite";
-  /** invite only: lift the accepted-the-agreement gate for this send */
-  ignoreAgreement?: boolean;
 }) {
   const confirmSend = useConfirm();
   const [state, setState] = useState<"idle" | "checking" | "sending" | "done">("idle");
   const [msg, setMsg] = useState<string | null>(null);
   const api = kind === "agreement" ? "/api/send-agreement" : "/api/send-invite";
-  const gateOff = kind === "invite" && ignoreAgreement;
 
   const run = async () => {
     if (state !== "idle") return;
@@ -116,7 +112,7 @@ function OnboardingSendButton({
       const check = await fetch(`${api}?dryrun=1`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ campaignId, ...(gateOff ? { ignoreAgreement: true } : {}) }),
+        body: JSON.stringify({ campaignId }),
       }).then((r) => r.json());
       if (!check.ok || check.reason) {
         problem("That cannot be sent yet", check.reason ?? "Something went wrong — try again.");
@@ -133,9 +129,7 @@ function OnboardingSendButton({
           "Nothing to send",
           kind === "agreement"
             ? "Everyone has accepted the user agreement."
-            : check.needAgreement
-              ? `${plural(check.joined, "member")} already joined, and ${check.needAgreement} still need to accept the user agreement first — untick the box to invite them anyway.`
-              : "Everyone has joined or been invited."
+            : "Everyone has joined or been invited."
         );
         return;
       }
@@ -155,9 +149,6 @@ function OnboardingSendButton({
           : remind
             ? `Sends the invitation again, right now, to the ${plural(toSend, "member")} of ${clientName} who were invited but have not joined yet, with the new-member guide attached, from ${check.from}.`
             : `Invites the ${plural(toSend, "member")} of ${clientName} not yet in the community into their space, right now, via the client's own plan link, with the new-member guide attached, from ${check.from}.`,
-        kind === "invite" && check.unsigned
-          ? `${check.unsigned} of them have NOT accepted the user agreement and are invited anyway.`
-          : "",
         kind === "agreement" && check.signed
           ? `${check.signed} already accepted and are skipped.`
           : "",
@@ -165,9 +156,6 @@ function OnboardingSendButton({
           ? `${check.pending} received it earlier and still have to accept — once nobody new is left, this button sends them a reminder.`
           : "",
         kind === "invite" && check.joined ? `${check.joined} already joined and are skipped.` : "",
-        kind === "invite" && check.needAgreement
-          ? `${plural(check.needAgreement, "member")} have not accepted the user agreement and are held back until they do.`
-          : "",
         check.noEmail
           ? `${plural(check.noEmail, "member")} have no email address and are skipped.`
           : "",
@@ -182,11 +170,7 @@ function OnboardingSendButton({
       const out = await fetch(api, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          campaignId,
-          ...(remind ? { remind: true } : {}),
-          ...(gateOff ? { ignoreAgreement: true } : {}),
-        }),
+        body: JSON.stringify({ campaignId, ...(remind ? { remind: true } : {}) }),
       }).then((r) => r.json());
       if (!out.ok) {
         problem("Sending failed", out.reason ?? "Something went wrong — try again.");
@@ -211,7 +195,7 @@ function OnboardingSendButton({
         data-tip={
           kind === "agreement"
             ? "Email the user agreement to everyone who has not received it — each gets a personal link where their acceptance is recorded. You see the exact numbers and confirm first."
-            : "Email the community invitation to everyone who accepted the agreement — via the client's own plan link. You see the exact numbers and confirm first."
+            : "Email the invitation to everyone not yet in the community — via the client's own plan link, with the new-member guide attached. You see the exact numbers and confirm first."
         }
         className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-[#4ade80]/50 hover:text-[#4ade80] disabled:opacity-50"
       >
@@ -247,9 +231,6 @@ export function OnboardingSection({
 }) {
   const signed = members.filter((m) => m.agreementSignedAt).length;
   const joined = members.filter((m) => m.communityJoinedAt).length;
-  // the agreement-first gate on the invitation — on unless deliberately
-  // unticked for this campaign's send
-  const [gated, setGated] = useState(true);
   return (
     <section className="card mb-6 p-5">
       <h2 className="flex items-center gap-2 text-base font-bold">
@@ -262,10 +243,9 @@ export function OnboardingSection({
         )}
       </h2>
       <p className="mt-1 mb-4 text-xs text-mist">
-        Two steps before the programme starts: everyone accepts the user
-        agreement — each click is recorded as proof — and then gets their
-        personal invitation into the {clientName} community. The invitation
-        only ever goes to people who have accepted.
+        Two separate sends, each on its own time: the user agreement — every
+        acceptance is recorded as proof — and the invitation into the{" "}
+        {clientName} community. Neither waits for the other.
       </p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="flex items-center gap-1">
@@ -273,26 +253,9 @@ export function OnboardingSection({
           <TestSendButton campaignId={campaignId} kind="agreement" compact tipPos="top" />
         </span>
         <span className="flex items-center gap-1">
-          <OnboardingSendButton
-            campaignId={campaignId}
-            clientName={clientName}
-            kind="invite"
-            ignoreAgreement={!gated}
-          />
+          <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
           <TestSendButton campaignId={campaignId} kind="invite" compact tipPos="top" />
         </span>
-        <label
-          data-tip="Ticked: the invitation only goes to people who accepted the user agreement. Untick to invite everyone who is not in the community yet, agreement or not."
-          className="flex cursor-pointer items-center gap-1.5 text-[11px] text-mist"
-        >
-          <input
-            type="checkbox"
-            checked={gated}
-            onChange={(e) => setGated(e.target.checked)}
-            className="size-3.5 cursor-pointer accent-[#2c2d83]"
-          />
-          only after they accepted the agreement
-        </label>
         {!inviteUrl && (
           <span className="text-[11px] font-semibold text-[#ff7a55]">
             No invitation link yet — paste the client&rsquo;s plan link into
