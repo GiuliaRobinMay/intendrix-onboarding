@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { US_STATES, stateByCode } from "@/lib/us-states";
 import { authHeaders } from "@/lib/supabase-browser";
-import { OnboardingChips } from "@/components/onboarding";
+import { OnboardingChips, OnboardingLegend } from "@/components/onboarding";
 
 /** what the send log + the provider say about one email to one person */
 const HISTORY_LABEL: Record<string, { text: string; color: string }> = {
@@ -704,6 +704,12 @@ export default function ClientDetailPage() {
               </button>
             </div>
           </div>
+
+          {client.members.length > 0 && (
+            <div className="mb-3">
+              <OnboardingLegend />
+            </div>
+          )}
 
           {addingMember && (
             <AddMemberForm clientId={client.id} onClose={() => setAddingMember(false)} />

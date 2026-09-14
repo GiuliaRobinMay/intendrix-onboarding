@@ -38,7 +38,7 @@ export function OnboardingChips({ member }: { member: Member }) {
           tip: "The user agreement has not been sent to them yet",
         };
   const community = member.communityJoinedAt
-    ? { color: "#4ade80", tip: "In the community" }
+    ? { color: "#6ea8ff", tip: "In the community" }
     : member.communityInvitedAt
       ? {
           color: "#facc15",
@@ -57,6 +57,23 @@ export function OnboardingChips({ member }: { member: Member }) {
         <DoorOpen size={12} />
       </span>
     </span>
+  );
+}
+
+/** one quiet line saying what the two little icons mean */
+export function OnboardingLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-mist">
+      <span className="flex items-center gap-1">
+        <ScrollText size={12} className="text-[#4ade80]" /> agreement — green once
+        accepted
+      </span>
+      <span className="flex items-center gap-1">
+        <DoorOpen size={12} className="text-[#6ea8ff]" /> community — blue once
+        joined
+      </span>
+      <span>yellow = sent, waiting on them · grey = not yet</span>
+    </div>
   );
 }
 
@@ -256,15 +273,18 @@ export function OnboardingSection({
         )}
       </div>
       {members.length > 0 && (
-        <div className="mt-4 grid gap-x-6 gap-y-1 border-t border-white/8 pt-3 sm:grid-cols-2">
-          {[...members]
-            .sort((x, y) => x.name.localeCompare(y.name))
-            .map((m) => (
-              <div key={m.id} className="flex items-center justify-between gap-2 py-0.5">
-                <span className="min-w-0 truncate text-xs text-mist">{m.name}</span>
-                <OnboardingChips member={m} />
-              </div>
-            ))}
+        <div className="mt-4 border-t border-white/8 pt-3">
+          <OnboardingLegend />
+          <div className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+            {[...members]
+              .sort((x, y) => x.name.localeCompare(y.name))
+              .map((m) => (
+                <div key={m.id} className="flex items-center justify-between gap-2 py-0.5">
+                  <span className="min-w-0 truncate text-xs text-mist">{m.name}</span>
+                  <OnboardingChips member={m} />
+                </div>
+              ))}
+          </div>
         </div>
       )}
     </section>
