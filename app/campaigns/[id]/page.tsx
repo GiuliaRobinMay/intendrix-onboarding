@@ -898,7 +898,7 @@ export default function CampaignDetailPage() {
           <Mail size={17} className="text-mist" /> Emails sent by
         </h2>
         <p className="mt-1 mb-4 text-xs text-mist">
-          Normally the Phoenix Coach. For a programme introduced from inside
+          Normally the Phoenix Coach. For a program introduced from inside
           the client&rsquo;s own organisation, pick their Transformational
           Champion instead — recipients see that person&rsquo;s name and replies
           reach them, while the address stays on our sending domain so the

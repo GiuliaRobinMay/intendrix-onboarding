@@ -6,7 +6,7 @@
 // without agreeing first.
 //
 // Served as a standalone HTML page (no app chrome, no sign-in) because
-// its readers are programme members, not app users.
+// its readers are program members, not app users.
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";

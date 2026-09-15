@@ -63,7 +63,7 @@ interface LessonLinkLike {
 const escHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const TEST_BANNER = `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the programme received it.</p>`;
+const TEST_BANNER = `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the program received it.</p>`;
 
 /** shared shell for the onboarding emails — same look as the lessons */
 function renderShell(inner: string, signOffBlock: string): string {
@@ -73,7 +73,7 @@ function renderShell(inner: string, signOffBlock: string): string {
     ${inner}
     <div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;">${signOffBlock}</div>
   </div>
-  <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership programme.</p>
+  <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership program.</p>
 </div>
 </body></html>`;
 }
@@ -127,7 +127,7 @@ export function renderAgreementEmail(opts: {
     opts.test ? TEST_BANNER : "",
     P(`Hi ${escHtml(opts.firstName)},`),
     P(
-      `Welcome to Intendrix. Before your ${escHtml(opts.clientName)} programme opens up, there is one short piece of paperwork: the Intendrix user agreement. In plain words, it says three things:`
+      `Welcome to Intendrix. Before your ${escHtml(opts.clientName)} program opens up, there is one short piece of paperwork: the Intendrix user agreement. In plain words, it says three things:`
     ),
     `<ul style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.6;color:#1a1b2e;">
       <li style="margin-bottom:6px;">It is your personal license to use Intendrix and the coaching delivered through it.</li>
@@ -137,7 +137,7 @@ export function renderAgreementEmail(opts: {
     P(`The button below opens the full agreement, personal to you. Reading it takes about three minutes, and accepting it is one click.`),
     BUTTON(opts.agreeUrl, "Review & accept the agreement"),
     opts.thenCommunity
-      ? P(`Right after you accept, you will get your personal link to join the ${escHtml(opts.clientName)} community — that is where your programme lives.`)
+      ? P(`Right after you accept, you will get your personal link to join the ${escHtml(opts.clientName)} community — that is where your program lives.`)
       : "",
   ]
     .filter(Boolean)
@@ -252,7 +252,7 @@ export function renderLessonEmail(opts: {
       ? `<img src="${opts.logoUrl}" alt="" style="display:block;margin:14px 0 0;max-height:44px;max-width:200px;" />`
       : "";
   const banner = opts.test
-    ? `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the programme received it.</p>`
+    ? `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the program received it.</p>`
     : "";
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f4f6;">
 <div style="max-width:560px;margin:0 auto;padding:32px 20px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;">
@@ -260,7 +260,7 @@ export function renderLessonEmail(opts: {
     ${banner}${paragraphs}${button}${extras}${meeting}
     <div style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;">${signOff}${logo}</div>
   </div>
-  <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership programme.</p>
+  <p style="margin:14px 4px 0;font-size:11px;color:#9a9ca6;">Sent by Intendrix for your leadership program.</p>
 </div>
 </body></html>`;
 }

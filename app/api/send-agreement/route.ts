@@ -9,7 +9,12 @@ import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
 import { emailConfigured, renderAgreementEmail } from "@/lib/server/email";
-import { campaignContext, firstNameOf, sendPaced } from "@/lib/server/onboarding";
+import {
+  campaignContext,
+  firstNameOf,
+  publicBaseUrl,
+  sendPaced,
+} from "@/lib/server/onboarding";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -85,7 +90,7 @@ export async function POST(req: Request) {
       ...(emailConfigured ? {} : { reason: "email sending is not configured" }),
     });
 
-  const origin = new URL(req.url).origin;
+  const origin = publicBaseUrl(req);
   let sent = 0;
   let failed = 0;
   for (const m of targets) {

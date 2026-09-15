@@ -196,7 +196,7 @@ function InviteClientAdminForm({
       <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm">
         <input
           type="checkbox"
-          data-tip="Leave this off to write them down now and invite them when the programme is ready"
+          data-tip="Leave this off to write them down now and invite them when the program is ready"
           checked={invite}
           onChange={(e) => setInvite(e.target.checked)}
           className="mt-0.5 size-4 cursor-pointer accent-[#eb320f]"
@@ -205,7 +205,7 @@ function InviteClientAdminForm({
           Send the invitation email now
           <span className="block text-[11px] text-mist">
             Leave this off to write them down first and invite them when the
-            programme is ready — the send button on their row does it later.
+            program is ready — the send button on their row does it later.
           </span>
         </span>
       </label>

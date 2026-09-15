@@ -15,6 +15,14 @@ const NEW_MEMBER_GUIDE_URL =
   "https://drive.usercontent.google.com/download?id=13NNPsy_BdyrcszKI1fKRM9uKVu0fgG3B&export=download";
 export const NEW_MEMBER_GUIDE_FILENAME = "Welcome to Intendrix - How to Join.pdf";
 
+/** The address member-facing links are written under. With
+ *  PUBLIC_BASE_URL set (e.g. https://agree.intendrix.ai) every
+ *  agreement link in an email uses that domain instead of wherever the
+ *  request happened to come in — the vercel.app address keeps working,
+ *  but nothing we send points at it. */
+export const publicBaseUrl = (req: Request): string =>
+  (process.env.PUBLIC_BASE_URL || new URL(req.url).origin).replace(/\/+$/, "");
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CampaignContext {

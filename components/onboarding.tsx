@@ -1,6 +1,6 @@
 "use client";
 
-// Onboarding — the two steps everyone walks before their programme
+// Onboarding — the two steps everyone walks before their program
 // starts: accept the user agreement, then join the community. This file
 // carries the campaign page's Onboarding section (the two send buttons
 // with their look-before-you-send confirmations, and the live status of

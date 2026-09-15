@@ -17,7 +17,11 @@ import {
   renderLessonEmail,
   sendEmail,
 } from "@/lib/server/email";
-import { campaignContext, NEW_MEMBER_GUIDE_FILENAME } from "@/lib/server/onboarding";
+import {
+  campaignContext,
+  NEW_MEMBER_GUIDE_FILENAME,
+  publicBaseUrl,
+} from "@/lib/server/onboarding";
 import { FALLBACK_SENDING_ADDRESS as DEFAULT_SENDING_ADDRESS } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +117,7 @@ export async function POST(req: Request) {
       kind === "agreement"
         ? renderAgreementEmail({
             ...common,
-            agreeUrl: `${new URL(req.url).origin}/agree/preview`,
+            agreeUrl: `${publicBaseUrl(req)}/agree/preview`,
             thenCommunity: Boolean(campaign.invite_url),
           })
         : renderInviteEmail({ ...common, inviteUrl: campaign.invite_url });

@@ -51,7 +51,7 @@ export interface SeriesStep {
 
 /**
  * A campaign blueprint in Settings → Campaigns: the reusable design of a
- * whole programme (e.g. TLE for Executives), holding the series that make
+ * whole program (e.g. TLE for Executives), holding the series that make
  * it up. Client campaigns are created from one of these.
  */
 export interface CampaignTemplate {
@@ -197,11 +197,11 @@ export interface Campaign {
   statusOverride?: CampaignStatus;
   /** When set, this client member is the sender instead of the Phoenix
    *  coach — e.g. the Transformational Champion on a second-level
-   *  programme. Their name is what recipients see; the address stays on
+   *  program. Their name is what recipients see; the address stays on
    *  the sending domain, with their own address as reply-to. */
   senderMemberId?: string | null;
   /** addresses that receive one copy of every lesson this campaign sends
-   *  — the coordinator watching a live programme from the outside.
+   *  — the coordinator watching a live program from the outside.
    *  Comma-separated. They are never personalised or counted as members. */
   shadowEmails?: string | null;
   /** campaign runs from/to — shown as milestones in the Calendar */
