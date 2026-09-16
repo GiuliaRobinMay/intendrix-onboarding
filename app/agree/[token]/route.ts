@@ -35,6 +35,7 @@ function page(inner: string): NextResponse {
   .card{background:#fff;border:1px solid #e4e4e8;border-radius:10px;padding:32px;}
   h1{font-size:22px;margin:0 0 4px;}
   .sub{color:#5f6170;font-size:13px;margin:0 0 20px;}
+  .lead{font-size:14px;line-height:1.6;color:#2a2b3e;background:#f4f4f6;border-radius:8px;padding:14px 16px;margin:0 0 22px;}
   .text{white-space:pre-wrap;font-size:14px;line-height:1.65;color:#2a2b3e;}
   .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e4e4e8;padding:14px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.06);}
   .barin{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
@@ -110,6 +111,9 @@ export async function GET(
   return page(`<div class="wrap"><div class="card">
     <h1>${esc(AGREEMENT_TITLE)}</h1>
     <p class="sub">For ${esc(m.name)} &middot; ${esc(m.client_name)} &middot; version ${AGREEMENT_VERSION}</p>
+    <p class="lead">Please read the agreement below. Nothing is recorded until you tick
+      the box at the end and click <strong>I&nbsp;Agree</strong>. You can close this page and
+      come back to it later — the link stays yours.</p>
     <div class="text">${esc(AGREEMENT_TEXT)}</div>
     <label class="chk"><input type="checkbox" id="tick"/>
       <span>I have read this agreement and I agree to its terms.</span>

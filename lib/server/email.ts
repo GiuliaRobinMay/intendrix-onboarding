@@ -108,9 +108,11 @@ const P = (text: string) =>
 const BUTTON = (url: string, label: string) =>
   `<p style="margin:22px 0;"><a href="${url}" style="background:#2c2d83;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:6px;display:inline-block;">${escHtml(label)}</a></p>`;
 
-/** The user-agreement email: a short, human summary and one button to
- *  the personal accept page. The full text lives on that page, where
- *  the click is recorded — never as an attachment. */
+/** The user-agreement email: a short, human summary and one button that
+ *  opens the personal agreement page. The email never asks for consent
+ *  and the button never gives it — nobody can agree to a text they have
+ *  not seen. Consent happens on the page, after reading: tick the box,
+ *  click I Agree. The full text lives there, never as an attachment. */
 export function renderAgreementEmail(opts: {
   firstName: string;
   clientName: string;
@@ -134,10 +136,15 @@ export function renderAgreementEmail(opts: {
       <li style="margin-bottom:6px;">Coaching is personal development — not therapy or medical, legal or financial advice. Your choices stay your own.</li>
       <li>You own what you write; Phoenix Performance Partners owns the platform and the lesson content.</li>
     </ul>`,
-    P(`The button below opens the full agreement, personal to you. Reading it takes about three minutes, and accepting it is one click.`),
-    BUTTON(opts.agreeUrl, "Review & accept the agreement"),
+    P(
+      `The button below opens the full agreement, personal to you. Reading it takes about three minutes.`
+    ),
+    BUTTON(opts.agreeUrl, "Read the agreement"),
+    P(
+      `Opening it agrees to nothing. At the end of the page there is a box to tick and an <strong>I&nbsp;Agree</strong> button — only that records your acceptance, with the date and time. If anything in it raises a question, reply to this email before you accept.`
+    ),
     opts.thenCommunity
-      ? P(`Right after you accept, you will get your personal link to join the ${escHtml(opts.clientName)} community — that is where your program lives.`)
+      ? P(`Once you have accepted, you will get your personal link to join the ${escHtml(opts.clientName)} community — that is where your program lives.`)
       : "",
   ]
     .filter(Boolean)
