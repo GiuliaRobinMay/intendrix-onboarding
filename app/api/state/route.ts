@@ -71,6 +71,7 @@ export async function GET(req: Request) {
       skipRows,
       dateRows,
       deliveredRows,
+      memberDelivery,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
       q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
@@ -93,16 +94,10 @@ export async function GET(req: Request) {
                     space_url, invite_url
                from clients order by created_at, id`)
         ),
-      // the onboarding columns arrive with migration 0015 — until the
-      // database has them, fall back to the members list without them
-      // so a deploy ahead of the migration never takes the app down
-      q(`select id, client_id, name, first_name, last_name, email, role, title,
-                agreement_sent_at, agreement_signed_at,
-                community_invited_at, community_joined_at
-           from members order by created_at, id`).catch(() =>
-        q(`select id, client_id, name, first_name, last_name, email, role, title
-             from members order by created_at, id`)
-      ),
+      // every column the members table happens to have: onboarding
+      // (0015) and status/note (0016) arrive by hand-run migration, so
+      // a deploy that lands first must not take the app down
+      q(`select * from members order by created_at, id`),
       q(`select id, client_id, template_id, code, name, timezone,
                 status_override, sender_member_id, shadow_emails,
                 start_date::text as start_date,
@@ -155,6 +150,18 @@ export async function GET(req: Request) {
               where status = 'sent' and shadow_to is null
               group by campaign_id, step_id`).catch(() => [])
         ),
+      // the last word on each person's address — kept only when it is
+      // bad news, so a bounced address is visible on the client page
+      // instead of hiding inside one email's history
+      q(`select distinct on (member_id)
+                member_id,
+                coalesce(last_event, status) as event,
+                coalesce(last_event_at, sent_at, scheduled_for) as at,
+                error
+           from email_sends
+          where member_id is not null and shadow_to is null
+          order by member_id, coalesce(last_event_at, sent_at, scheduled_for) desc`)
+        .catch(() => []),
     ]);
 
     const linksByContent = new Map<string, Array<{ label: string; url: string | null }>>();
@@ -327,6 +334,18 @@ export async function GET(req: Request) {
       campaignsByClient.set(c.client_id, list);
     }
 
+    // only trouble is worth carrying to the client page
+    const TROUBLE = new Set(["bounced", "complained", "failed"]);
+    const deliveryByMember = new Map<string, any>();
+    for (const d of memberDelivery as any[]) {
+      if (d.member_id && TROUBLE.has(String(d.event)))
+        deliveryByMember.set(d.member_id, {
+          event: String(d.event),
+          at: d.at ? new Date(d.at).toISOString() : null,
+          ...(d.error ? { error: String(d.error).slice(0, 200) } : {}),
+        });
+    }
+
     const membersByClient = new Map<string, any[]>();
     for (const m of members) {
       const list = membersByClient.get(m.client_id) ?? [];
@@ -349,6 +368,12 @@ export async function GET(req: Request) {
           : {}),
         ...(m.community_joined_at
           ? { communityJoinedAt: new Date(m.community_joined_at).toISOString() }
+          : {}),
+        ...(m.status === "inactive" ? { status: "inactive" as const } : {}),
+        ...(m.left_at ? { leftAt: new Date(m.left_at).toISOString() } : {}),
+        ...(m.note ? { note: m.note } : {}),
+        ...(deliveryByMember.has(m.id)
+          ? { delivery: deliveryByMember.get(m.id) }
           : {}),
       });
       membersByClient.set(m.client_id, list);

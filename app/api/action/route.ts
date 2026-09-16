@@ -162,7 +162,17 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         title: "title",
         email: "email",
         role: "role",
+        status: "status",
+        note: "note",
       });
+      // leaving the team is dated; coming back clears the date
+      if (a.patch?.status === "inactive")
+        await tx.query(
+          `update members set left_at = coalesce(left_at, now()) where id = $1`,
+          [a.memberId]
+        );
+      if (a.patch?.status === "active")
+        await tx.query(`update members set left_at = null where id = $1`, [a.memberId]);
       // the display name follows its parts
       await tx.query(
         `update members

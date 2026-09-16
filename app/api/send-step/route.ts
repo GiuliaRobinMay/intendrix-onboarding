@@ -117,7 +117,9 @@ export async function POST(req: Request) {
   const [{ rows: members }, { rows: contents }, { rows: logged }, { rows: assignments }] =
     await Promise.all([
       pool.query(
-        `select id, name, first_name, email, role from members
+        // select * tolerates a database without the status column;
+        // people who left the team are filtered out below
+        `select * from members
           where client_id = $1 order by name`,
         [campaign.client_id]
       ),
@@ -202,7 +204,10 @@ export async function POST(req: Request) {
     .map((s: string) => s.trim())
     .filter((s: string) => s.includes("@"));
 
-  const toMembers = members.filter((m: any) => !already.has(String(m.id)));
+  // people who left the team keep their history and receive nothing
+  const toMembers = members.filter(
+    (m: any) => m.status !== "inactive" && !already.has(String(m.id))
+  );
   const toWatchers = watchers.filter((a: string) => !already.has(a));
 
   const engineOn = await pool

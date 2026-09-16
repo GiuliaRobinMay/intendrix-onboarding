@@ -839,18 +839,37 @@ export default function CampaignDetailPage() {
                       const first = newMember.first.trim();
                       const last = newMember.last.trim();
                       if (!first && !last) return;
-                      const memberId = `member-${Math.random().toString(36).slice(2, 9)}`;
-                      dispatch({
-                        type: "addMember",
-                        id: memberId,
-                        clientId: client.id,
-                        name: [first, last].filter(Boolean).join(" "),
-                        firstName: first,
-                        lastName: last,
-                        title: newMember.title.trim(),
-                        email: newMember.email.trim(),
-                        role: "participant",
-                      });
+                      const email = newMember.email.trim();
+                      const fullName = [first, last].filter(Boolean).join(" ");
+                      // never a second record for the same person: two of
+                      // them drift apart, and the older address keeps
+                      // being used somewhere
+                      const existing = client.members.find(
+                        (m) =>
+                          (email &&
+                            m.email &&
+                            m.email.toLowerCase() === email.toLowerCase()) ||
+                          m.name.trim().toLowerCase() === fullName.toLowerCase()
+                      );
+                      const memberId =
+                        existing?.id ?? `member-${Math.random().toString(36).slice(2, 9)}`;
+                      if (!existing)
+                        dispatch({
+                          type: "addMember",
+                          id: memberId,
+                          clientId: client.id,
+                          name: fullName,
+                          firstName: first,
+                          lastName: last,
+                          title: newMember.title.trim(),
+                          email,
+                          role: "participant",
+                        });
+                      if (campaign.clientTeam.some((a) => a.memberId === memberId)) {
+                        setNewMember({ first: "", last: "", title: "", email: "" });
+                        setAddingMember(false);
+                        return;
+                      }
                       dispatch({
                         type: "addClientAssignment",
                         clientId: client.id,

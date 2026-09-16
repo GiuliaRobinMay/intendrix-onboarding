@@ -60,9 +60,9 @@ export async function POST(req: Request) {
 
   const { rows: members } = await pool
     .query(
-      `select id, name, first_name, email,
-              agreement_signed_at, community_invited_at, community_joined_at
-         from members where client_id = $1 order by name`,
+      `select * from members
+        where client_id = $1 and coalesce(status, 'active') <> 'inactive'
+        order by name`,
       [campaign.client_id]
     )
     .catch(() => ({ rows: null }));
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: false,
       reason:
-        "the database does not have the onboarding update yet — paste migration 0015 into the Supabase SQL editor first",
+        "the database is missing the onboarding update — paste the latest migration into the Supabase SQL editor first",
     });
 
   const joined = members.filter((m: any) => m.community_joined_at);

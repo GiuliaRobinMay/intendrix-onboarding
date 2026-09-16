@@ -107,7 +107,9 @@ export async function GET(req: Request) {
       q(`select id, client_id, code, name, timezone, status_override,
                 sender_member_id, shadow_emails from campaigns`),
       q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
-      q(`select id, client_id, name, first_name, email, role, title from members`),
+      // select * so a database without the status column still answers;
+      // people who left the team are filtered out below
+      q(`select * from members`),
       q(`select id, name, email, role_title, signature from staff`),
       q(`select campaign_id, series_template_id, trigger_session_id
            from campaign_series order by campaign_id, sort_order, created_at`),
@@ -162,6 +164,8 @@ export async function GET(req: Request) {
   const sessionDate = new Map(sessions.map((s: any) => [s.id, s.session_date]));
   const membersByClient = new Map<string, any[]>();
   for (const m of members) {
+    // someone who left the team keeps their history and receives nothing
+    if (m.status === "inactive") continue;
     const list = membersByClient.get(m.client_id) ?? [];
     list.push(m);
     membersByClient.set(m.client_id, list);

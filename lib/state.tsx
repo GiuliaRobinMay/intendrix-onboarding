@@ -164,7 +164,12 @@ export type Action =
       type: "updateMember";
       clientId: string;
       memberId: string;
-      patch: Partial<Pick<Member, "firstName" | "lastName" | "title" | "email" | "role">>;
+      patch: Partial<
+        Pick<
+          Member,
+          "firstName" | "lastName" | "title" | "email" | "role" | "status" | "note"
+        >
+      >;
     }
   | { type: "removeMember"; clientId: string; memberId: string }
   | {
@@ -539,6 +544,10 @@ function reducer(db: DB, action: Action): DB {
           const next = { ...m, ...action.patch };
           // the display name follows its parts
           next.name = [next.firstName, next.lastName].filter(Boolean).join(" ") || m.name;
+          // leaving the team is dated; coming back clears the date
+          if (action.patch.status === "inactive")
+            next.leftAt = m.leftAt ?? new Date().toISOString();
+          if (action.patch.status === "active") next.leftAt = undefined;
           return next;
         }),
       }));
@@ -1272,6 +1281,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, []);
+
+  // A tab left open goes stale: someone edits an address in one window
+  // and the other still shows the old one — which then looks like the
+  // app lost the change. Coming back to a tab refetches the shared
+  // state, after any of our own writes have landed.
+  useEffect(() => {
+    if (backend !== "database") return;
+    let last = Date.now();
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - last < 10_000) return;
+      last = Date.now();
+      queue.current
+        .then(() => authHeaders())
+        .then((headers) => fetch("/api/state", { headers }))
+        .then((r) => r.json())
+        .then((res) => {
+          if (res?.configured && res.db)
+            rawDispatch({
+              type: "hydrate",
+              db: { seedVersion: SEED_VERSION, ...res.db },
+            });
+        })
+        .catch(() => {
+          // offline or signed out — the screen keeps what it has
+        });
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [backend]);
 
   // browser mode persists locally; database mode persists via /api/action
   useEffect(() => {
