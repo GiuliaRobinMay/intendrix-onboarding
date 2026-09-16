@@ -386,16 +386,11 @@ export default function ClientDetailPage() {
             })}
 
           </div>
-            <button
-              onClick={() => setAddingCampaign(true)}
-              data-tip="Start a program for this client — pick a blueprint and it arrives with its sessions and series"
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
-            >
-              <Plus size={15} />
-              {client.campaigns.length === 0
-                ? "Create the first campaign for this client"
-                : "Add another campaign"}
-            </button>
+          {client.campaigns.length === 0 && (
+            <p className="rounded-md border border-dashed border-white/10 py-6 text-center text-xs text-mist">
+              No campaigns yet — start one with <strong>+ New campaign</strong> above.
+            </p>
+          )}
         </section>
 
         {/* The three standing facts about this client, side by side */}
