@@ -18,6 +18,7 @@
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
+import { defaultLogoUrl } from "@/lib/server/onboarding";
 import { authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
 import {
   emailConfigured,
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
     await Promise.all([
       pool.query(
         // select * tolerates a database without the status column;
-        // people who left the team are filtered out below
+        // anyone not active is filtered out below
         `select * from members
           where client_id = $1 order by name`,
         [campaign.client_id]
@@ -204,9 +205,10 @@ export async function POST(req: Request) {
     .map((s: string) => s.trim())
     .filter((s: string) => s.includes("@"));
 
-  // people who left the team keep their history and receive nothing
+  // away or gone: their record stays, their mail stops
   const toMembers = members.filter(
-    (m: any) => m.status !== "inactive" && !already.has(String(m.id))
+    (m: any) =>
+      (!m.status || m.status === "active") && !already.has(String(m.id))
   );
   const toWatchers = watchers.filter((a: string) => !already.has(a));
 
@@ -232,8 +234,8 @@ export async function POST(req: Request) {
 
   const logoUrl = await pool
     .query(`select value from app_settings where key = 'signatureLogoUrl'`)
-    .then((r) => r.rows[0]?.value ?? null)
-    .catch(() => null);
+    .then((r) => r.rows[0]?.value || defaultLogoUrl())
+    .catch(() => defaultLogoUrl());
   const overrides = await pool
     .query(
       `select variant, email_subject, email_body from campaign_step_content

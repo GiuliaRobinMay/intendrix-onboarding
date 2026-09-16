@@ -19,6 +19,7 @@ import {
 } from "@/lib/server/email";
 import {
   campaignContext,
+  defaultLogoUrl,
   NEW_MEMBER_GUIDE_FILENAME,
   publicBaseUrl,
 } from "@/lib/server/onboarding";
@@ -299,7 +300,7 @@ export async function POST(req: Request) {
     senderName: from.name,
     senderRole: from.role,
     signature: from.signature,
-    logoUrl: campaign.sender_member_id ? null : (logoRows[0]?.value ?? null),
+    logoUrl: campaign.sender_member_id ? null : (logoRows[0]?.value || defaultLogoUrl()),
     test: true,
   });
   const subject = `[TEST] ${personalize(wordedSubject || step.title, merge)}`;

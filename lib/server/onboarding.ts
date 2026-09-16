@@ -23,6 +23,13 @@ export const NEW_MEMBER_GUIDE_FILENAME = "Welcome to Intendrix - How to Join.pdf
 export const publicBaseUrl = (req: Request): string =>
   (process.env.PUBLIC_BASE_URL || new URL(req.url).origin).replace(/\/+$/, "");
 
+/** The Phoenix logo under every sign-off. It ships with the app, so it
+ *  needs no hosting anywhere — but it has to travel as an absolute
+ *  address, because an email is read far away from this server. The
+ *  signatureLogoUrl setting still wins if someone sets one. */
+export const defaultLogoUrl = (): string =>
+  `${(process.env.PUBLIC_BASE_URL || "https://team.intendrix.ai").replace(/\/+$/, "")}/phoenix-logo.png`;
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface CampaignContext {
@@ -111,7 +118,7 @@ export async function campaignContext(
     )
     .then((r) => new Map(r.rows.map((x: any) => [x.key, x.value])))
     .catch(() => new Map());
-  const logoUrl = settings.get("signatureLogoUrl") ?? null;
+  const logoUrl = settings.get("signatureLogoUrl") || defaultLogoUrl();
   const guideUrl = settings.get("newMemberGuideUrl") || NEW_MEMBER_GUIDE_URL;
 
   return { campaign, from, senderStaffId, logoUrl, guideUrl };

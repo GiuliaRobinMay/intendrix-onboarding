@@ -93,10 +93,11 @@ export interface Member {
   agreementSignedAt?: string;
   communityInvitedAt?: string;
   communityJoinedAt?: string;
-  /** someone who left the team stays on the list as inactive: their
-   *  history is kept, and nothing is ever sent to them again */
+  /** where this person stands: on the team, temporarily away, or gone.
+   *  Only an active member is ever sent anything; the other two keep
+   *  their whole record. */
   status?: MemberStatus;
-  /** when they were marked inactive */
+  /** since when they have been away or gone */
   leftAt?: string;
   /** whatever the team needs to remember about this person */
   note?: string;
@@ -105,7 +106,7 @@ export interface Member {
   delivery?: { event: string; at?: string | null; error?: string | null };
 }
 
-export type MemberStatus = "active" | "inactive";
+export type MemberStatus = "active" | "on_leave" | "inactive";
 
 /** A live or online meeting inside a campaign. Campaigns can have any
  *  number of sessions — zero, five, or more. */

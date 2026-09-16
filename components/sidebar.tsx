@@ -154,6 +154,21 @@ export function Sidebar() {
         collapsed ? "w-14 px-2" : "w-56 px-3"
       }`}
     >
+      {/* whose app this is, before anything else — the brand's own
+          white artwork, because this panel is dark */}
+      <div
+        data-tip="Phoenix Performance Partners"
+        data-tip-pos="right"
+        className={`mb-4 flex items-center ${collapsed ? "justify-center" : "px-2 pt-1"}`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={collapsed ? "/phoenix-mark.png" : "/phoenix-logo-white.png"}
+          alt="Phoenix Performance Partners"
+          className={collapsed ? "h-7 w-auto" : "h-auto w-40"}
+        />
+      </div>
+
       {/* profile management at the top */}
       <button
         data-tip={

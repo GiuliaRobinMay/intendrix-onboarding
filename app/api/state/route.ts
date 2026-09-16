@@ -369,7 +369,9 @@ export async function GET(req: Request) {
         ...(m.community_joined_at
           ? { communityJoinedAt: new Date(m.community_joined_at).toISOString() }
           : {}),
-        ...(m.status === "inactive" ? { status: "inactive" as const } : {}),
+        ...(m.status && m.status !== "active"
+          ? { status: m.status as "on_leave" | "inactive" }
+          : {}),
         ...(m.left_at ? { leftAt: new Date(m.left_at).toISOString() } : {}),
         ...(m.note ? { note: m.note } : {}),
         ...(deliveryByMember.has(m.id)

@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   const { rows: members } = await pool
     .query(
       `select * from members
-        where client_id = $1 and coalesce(status, 'active') <> 'inactive'
+        where client_id = $1 and coalesce(status, 'active') = 'active'
         order by name`,
       [campaign.client_id]
     )

@@ -15,6 +15,7 @@
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
+import { defaultLogoUrl } from "@/lib/server/onboarding";
 import { authEnforced } from "@/lib/server/auth";
 import {
   emailConfigured,
@@ -132,7 +133,7 @@ export async function GET(req: Request) {
 
   // the company logo under every Phoenix sign-off; client champions keep
   // their own plain block — their organisation is not Phoenix
-  const logoUrl: string | null = logoRows[0]?.value ?? null;
+  const logoUrl: string | null = logoRows[0]?.value || defaultLogoUrl();
 
   // a campaign's own wording of a lesson, when it has one — it wins over
   // the master, field by field
@@ -164,8 +165,8 @@ export async function GET(req: Request) {
   const sessionDate = new Map(sessions.map((s: any) => [s.id, s.session_date]));
   const membersByClient = new Map<string, any[]>();
   for (const m of members) {
-    // someone who left the team keeps their history and receives nothing
-    if (m.status === "inactive") continue;
+    // away or gone: their record stays, their mail stops
+    if (m.status && m.status !== "active") continue;
     const list = membersByClient.get(m.client_id) ?? [];
     list.push(m);
     membersByClient.set(m.client_id, list);

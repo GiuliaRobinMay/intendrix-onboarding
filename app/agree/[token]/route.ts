@@ -23,6 +23,9 @@ export const dynamic = "force-dynamic";
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// served from this same domain, so a plain path is the safest link
+const LOGO = `<img class="logo" src="/phoenix-logo.png" alt="Phoenix Performance Partners" />`;
+
 function page(inner: string): NextResponse {
   return new NextResponse(
     `<!doctype html><html><head><meta charset="utf-8"/>
@@ -33,6 +36,7 @@ function page(inner: string): NextResponse {
   body{margin:0;background:#f4f4f6;color:#1a1b2e;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;}
   .wrap{max-width:680px;margin:0 auto;padding:32px 20px 120px;}
   .card{background:#fff;border:1px solid #e4e4e8;border-radius:10px;padding:32px;}
+  .logo{display:block;height:46px;width:auto;margin:0 0 22px;}
   h1{font-size:22px;margin:0 0 4px;}
   .sub{color:#5f6170;font-size:13px;margin:0 0 20px;}
   .lead{font-size:14px;line-height:1.6;color:#2a2b3e;background:#f4f4f6;border-radius:8px;padding:14px 16px;margin:0 0 22px;}
@@ -77,7 +81,7 @@ export async function GET(
   // the read-only preview a test email's button opens — full text,
   // nothing to click, nothing recorded
   if (token === "preview")
-    return page(`<div class="wrap"><div class="card">
+    return page(`<div class="wrap"><div class="card">${LOGO}
       <h1>${esc(AGREEMENT_TITLE)}</h1>
       <p class="sub">Preview &middot; version ${AGREEMENT_VERSION}</p>
       <div class="text">${esc(AGREEMENT_TEXT)}</div>
@@ -87,12 +91,12 @@ export async function GET(
     </div></div>`);
 
   if (!dbConfigured || !/^[a-f0-9]{24,64}$/.test(token))
-    return page(`<div class="wrap"><div class="card"><h1>This link is not valid</h1>
+    return page(`<div class="wrap"><div class="card">${LOGO}<h1>This link is not valid</h1>
       <p class="sub">Ask the person who sent it for a fresh one.</p></div></div>`);
 
   const m = await memberByToken(token);
   if (!m)
-    return page(`<div class="wrap"><div class="card"><h1>This link is not valid</h1>
+    return page(`<div class="wrap"><div class="card">${LOGO}<h1>This link is not valid</h1>
       <p class="sub">Ask the person who sent it for a fresh one.</p></div></div>`);
 
   if (m.agreement_signed_at) {
@@ -101,14 +105,14 @@ export async function GET(
       day: "numeric",
       year: "numeric",
     });
-    return page(`<div class="wrap"><div class="card">
+    return page(`<div class="wrap"><div class="card">${LOGO}
       <h1>You are all set, ${esc(m.first_name ?? m.name)}</h1>
       <p class="sub">You accepted the Intendrix user agreement on ${when}.</p>
       ${joinBlock(m.invite_url, m.client_name)}
     </div></div>`);
   }
 
-  return page(`<div class="wrap"><div class="card">
+  return page(`<div class="wrap"><div class="card">${LOGO}
     <h1>${esc(AGREEMENT_TITLE)}</h1>
     <p class="sub">For ${esc(m.name)} &middot; ${esc(m.client_name)} &middot; version ${AGREEMENT_VERSION}</p>
     <p class="lead">Please read the agreement below. Nothing is recorded until you tick

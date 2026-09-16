@@ -3,11 +3,12 @@
 // The client's people, in full. This is where the account is actually
 // managed: who receives which series, whether they accepted the user
 // agreement, whether they are in the community, whether their address
-// still works, what the team needs to remember about them, and whether
-// they are still on the team at all.
+// still works, what the team needs to remember about them, and where
+// each person stands — active, away for a while, or gone.
 //
-// Nobody is deleted for leaving: they become inactive, keep their whole
-// history, and every send skips them from that moment on.
+// Nobody is deleted for leaving or for being on maternity leave: only
+// an active member is ever sent anything, and the whole record stays
+// either way. The list opens on the people who are actually active.
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -130,6 +131,37 @@ export function AddMemberForm({
   );
 }
 
+/** the three places a person can be, and how each one reads */
+const STATUS: Record<
+  MemberStatus,
+  { label: string; color: string; tip: string }
+> = {
+  active: {
+    label: "Active",
+    color: "#4ade80",
+    tip: "On the team and receiving everything",
+  },
+  on_leave: {
+    label: "On leave",
+    color: "#facc15",
+    tip: "Away for a while — maternity, sick leave, holiday. Nothing is sent while they are away; set them back to Active when they return.",
+  },
+  inactive: {
+    label: "Inactive",
+    color: "#ff7a55",
+    tip: "No longer on the team. Everything they were sent stays on record, and nothing is ever sent to them again.",
+  },
+};
+
+const STATUS_TABS: Array<{ key: "all" | MemberStatus; label: string }> = [
+  { key: "active", label: "Active" },
+  { key: "on_leave", label: "On leave" },
+  { key: "inactive", label: "Inactive" },
+  { key: "all", label: "All" },
+];
+
+const statusOf = (m: Member): MemberStatus => m.status ?? "active";
+
 const COLS =
   "grid-cols-[minmax(9rem,1.3fr)_minmax(11rem,1.5fr)_7.5rem_6.5rem_4.5rem_minmax(7rem,1.3fr)_4.25rem]";
 
@@ -159,6 +191,8 @@ export function MembersSection({ client }: { client: Client }) {
   const [adding, setAdding] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // the list opens on the people who are actually on the team
+  const [filter, setFilter] = useState<"all" | MemberStatus>("active");
 
   const q = query.trim().toLowerCase();
   const matches = (m: Member) =>
@@ -166,10 +200,19 @@ export function MembersSection({ client }: { client: Client }) {
       ? `${m.name} ${m.email} ${m.title ?? ""} ${m.note ?? ""}`.toLowerCase().includes(q)
       : true;
   const byName = (x: Member, y: Member) => x.name.localeCompare(y.name);
-  const shown = client.members.filter(matches);
-  const active = shown.filter((m) => m.status !== "inactive").sort(byName);
-  const gone = shown.filter((m) => m.status === "inactive").sort(byName);
-  const troubled = active.filter((m) => m.delivery).length;
+  const counts = {
+    all: client.members.length,
+    active: client.members.filter((m) => statusOf(m) === "active").length,
+    on_leave: client.members.filter((m) => statusOf(m) === "on_leave").length,
+    inactive: client.members.filter((m) => statusOf(m) === "inactive").length,
+  };
+  const shown = client.members
+    .filter(matches)
+    .filter((m) => filter === "all" || statusOf(m) === filter)
+    .sort(byName);
+  const troubled = client.members.filter(
+    (m) => statusOf(m) === "active" && m.delivery
+  ).length;
 
   // the same person twice: their records drift apart, and the older
   // address quietly keeps being used by whatever points at it
@@ -190,9 +233,10 @@ export function MembersSection({ client }: { client: Client }) {
     dispatch({ type: "updateMember", clientId: client.id, memberId, patch: p });
 
   const row = (m: Member) => {
-    const inactive = m.status === "inactive";
+    const st = statusOf(m);
+    const away = st !== "active";
     return (
-      <div key={m.id} className={inactive ? "opacity-55" : ""}>
+      <div key={m.id} className={away ? "opacity-70" : ""}>
         <div
           className={`grid ${COLS} items-center gap-x-3 border-b border-white/5 px-1 py-1.5 transition-colors hover:bg-white/4`}
         >
@@ -225,10 +269,10 @@ export function MembersSection({ client }: { client: Client }) {
                   </span>
                 )}
               </p>
-              {(m.title || inactive) && (
+              {(m.title || away) && (
                 <p className="truncate text-[11px] text-mist">
-                  {inactive
-                    ? `Left the team${m.leftAt ? ` · ${fmtDate(new Date(m.leftAt))}` : ""}`
+                  {away
+                    ? `${STATUS[st].label}${m.leftAt ? ` since ${fmtDate(new Date(m.leftAt))}` : ""}${m.title ? ` · ${m.title}` : ""}`
                     : m.title}
                 </p>
               )}
@@ -260,17 +304,17 @@ export function MembersSection({ client }: { client: Client }) {
             <option value="coach">Coach</option>
           </select>
 
-          {/* on the team, or not anymore */}
+          {/* where this person stands */}
           <select
-            data-tip="Inactive keeps everything on record but stops every email to them, in every campaign"
-            value={m.status ?? "active"}
+            data-tip={STATUS[st].tip}
+            value={st}
             onChange={(e) => patch(m.id, { status: e.target.value as MemberStatus })}
-            className={`min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:outline-none ${
-              inactive ? "text-[#ff7a55]" : "text-[#4ade80]"
-            }`}
+            style={{ color: STATUS[st].color }}
+            className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:outline-none"
           >
             <option value="active">Active</option>
-            <option value="inactive">Left</option>
+            <option value="on_leave">On leave</option>
+            <option value="inactive">Inactive</option>
           </select>
 
           {/* agreement + community */}
@@ -417,15 +461,40 @@ export function MembersSection({ client }: { client: Client }) {
         <h2 className="flex flex-wrap items-baseline gap-x-3 text-base font-bold">
           Members
           <span className="text-xs font-medium text-mist">
-            {client.members.filter((m) => m.status !== "inactive").length} on the team
-            {client.members.some((m) => m.status === "inactive")
-              ? ` · ${client.members.filter((m) => m.status === "inactive").length} left`
-              : ""}
+            {counts.active} active
+            {counts.on_leave ? ` · ${counts.on_leave} on leave` : ""}
+            {counts.inactive ? ` · ${counts.inactive} inactive` : ""}
             {troubled ? ` · ${troubled} with a bad address` : ""}
             {duplicates ? ` · ${duplicates} duplicated` : ""}
           </span>
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1">
+            {STATUS_TABS.map((t) => {
+              const on = filter === t.key;
+              return (
+                <button
+                  key={t.key}
+                  data-tip={
+                    t.key === "all"
+                      ? "Everyone on this client, whatever their status"
+                      : STATUS[t.key].tip
+                  }
+                  onClick={() => setFilter(t.key)}
+                  className={
+                    on
+                      ? "brand-gradient-soft cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-bold text-paper"
+                      : "cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
+                  }
+                >
+                  {t.label}
+                  <span className={on ? "ml-1.5 opacity-80" : "ml-1.5 text-mist/60"}>
+                    {counts[t.key]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <div className="relative">
             <Search
               size={12}
@@ -471,28 +540,27 @@ export function MembersSection({ client }: { client: Client }) {
             <span>Name</span>
             <span>Email</span>
             <span>Series</span>
-            <span>On the team</span>
+            <span>Status</span>
             <span>Onboarding</span>
             <span>Note</span>
             <span />
           </div>
 
           <div className="flex max-h-[38rem] flex-col overflow-y-auto pr-1">
-            {active.map(row)}
+            {shown.map(row)}
 
-            {gone.length > 0 && (
-              <p className="mt-4 mb-1 px-1 text-[11px] font-semibold text-mist/60">
-                No longer on the team — kept on record, never emailed
+            {client.members.length > 0 && shown.length === 0 && !query.trim() && (
+              <p className="py-6 text-sm text-mist">
+                Nobody on this client is {STATUS[filter as MemberStatus]?.label.toLowerCase()} right now.
               </p>
             )}
-            {gone.map(row)}
 
             {client.members.length === 0 && (
               <p className="py-6 text-sm text-mist">
                 No members yet — add the team with the + button.
               </p>
             )}
-            {client.members.length > 0 && shown.length === 0 && (
+            {client.members.length > 0 && shown.length === 0 && query.trim() && (
               <p className="py-6 text-sm text-mist">
                 Nobody matches &ldquo;{query.trim()}&rdquo;.{" "}
                 <button
@@ -518,7 +586,7 @@ export function MembersSection({ client }: { client: Client }) {
         </p>
         <p className="flex items-center gap-1.5">
           <TriangleAlert size={13} className="text-[#ff7a55]" />
-          A flagged address stopped accepting mail — fix it or set them to Left.
+          A flagged address stopped accepting mail — fix it, or set them to Inactive.
         </p>
       </div>
     </section>
