@@ -22,6 +22,7 @@ import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { SendNowButton } from "@/components/send-now";
 import { OnboardingSection } from "@/components/onboarding";
+import { ClientFactsCard } from "@/components/client-facts";
 import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
@@ -1010,6 +1011,11 @@ export default function CampaignDetailPage() {
           </span>
         </label>
       </section>
+
+      {/* the client's own details, so nobody has to go and look them up */}
+      <div className="mb-6">
+        <ClientFactsCard client={client} fromCampaign />
+      </div>
 
       {/* The user agreement and the community invitation */}
       <OnboardingSection

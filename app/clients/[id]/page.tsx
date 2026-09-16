@@ -32,6 +32,7 @@ import {
 import { EditableText } from "@/components/editable";
 import { NewCampaignForm } from "@/components/campaign-form";
 import { MembersSection } from "@/components/members-table";
+import { ClientFactsCard } from "@/components/client-facts";
 import { useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
 import {
@@ -77,7 +78,7 @@ function ResponsiblesCard({ client }: { client: Client }) {
   const { staff: team, dispatch } = useData();
   const confirmDelete = useConfirm();
   const [adding, setAdding] = useState(false);
-  const [staffId, setStaffId] = useState(team[0]?.id ?? "");
+  const [staffId, setStaffId] = useState("");
   const [role, setRole] = useState<RoleField>("phoenixLeaderId");
 
   const assigned = ROLE_FIELDS.filter((r) => client[r.field]);
@@ -87,7 +88,7 @@ function ResponsiblesCard({ client }: { client: Client }) {
     dispatch({ type: "updateClient", clientId: client.id, patch });
 
   const openAdd = () => {
-    setStaffId(team[0]?.id ?? "");
+    setStaffId("");
     setRole(free[0].field);
     setAdding(true);
   };
@@ -181,16 +182,20 @@ function ResponsiblesCard({ client }: { client: Client }) {
         <div className="mt-3 rounded-md border border-white/10 p-3">
           <div className="grid grid-cols-2 gap-2">
             <select
-              title="Who at Phoenix to add"
+              autoFocus
+              title="Who at Phoenix to add — nothing is saved until you choose"
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
               className={selectCls}
             >
-              {team.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
+              <option value="">— choose a person —</option>
+              {[...team]
+                .sort((x, y) => x.name.localeCompare(y.name))
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
             </select>
             <select
               title="Their role for this organization"
@@ -207,6 +212,7 @@ function ResponsiblesCard({ client }: { client: Client }) {
           </div>
           <div className="mt-2.5 flex gap-2">
             <GradientButton
+              disabled={!staffId}
               onClick={() => {
                 if (!staffId || !free.some((f) => f.field === role)) return;
                 patchRoles({ [role]: staffId });
@@ -470,140 +476,12 @@ export default function ClientDetailPage() {
           )}
         </section>
 
-        {/* The three standing facts about this client, side by side */}
+        {/* who owns this client, and where the client lives online */}
         <div className="grid gap-6 lg:grid-cols-3">
-        <ResponsiblesCard client={client} />
-
-        {/* Where the client is — the state drives new campaigns' timezone */}
-        <section className="card p-5">
-          <h2 className="mb-1 text-base font-bold">Location</h2>
-          <p className="mb-4 text-xs text-mist">
-            The state decides which timezone new campaigns start with, so
-            emails land at 8:00 AM in the client&rsquo;s own morning.
-          </p>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
-                State
-              </span>
-              <select
-                data-tip="The client's US state — new campaigns default to its timezone"
-                value={client.state ?? ""}
-                onChange={(e) =>
-                  dispatch({
-                    type: "updateClient",
-                    clientId: client.id,
-                    patch: { state: e.target.value },
-                  })
-                }
-                className="min-w-0 flex-1 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
-              >
-                <option value="">— choose a state —</option>
-                {US_STATES.map((s) => (
-                  <option key={s.code} value={s.code}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
-                City
-              </span>
-              <EditableText
-                value={client.city ?? ""}
-                placeholder="e.g. Ann Arbor"
-                onCommit={(v) =>
-                  dispatch({
-                    type: "updateClient",
-                    clientId: client.id,
-                    patch: { city: v.trim() },
-                  })
-                }
-                className="text-xs"
-              />
-            </div>
-            {client.state ? (
-              <p className="text-[11px] text-mist">
-                New campaigns for this client start in{" "}
-                <span className="font-semibold text-paper">
-                  {fmtSendTime("08:00", stateByCode(client.state)!.tz).replace("8:00 AM ", "")}
-                </span>{" "}
-                time.
-              </p>
-            ) : (
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[#ff7a55]">
-                <TriangleAlert size={12} className="shrink-0" />
-                No state chosen — new campaigns fall back to Eastern time.
-              </p>
-            )}
+          <ResponsiblesCard client={client} />
+          <div className="lg:col-span-2">
+            <ClientFactsCard client={client} />
           </div>
-        </section>
-
-        {/* Mighty Networks */}
-        <section className="card p-5">
-          <h2 className="mb-1 text-base font-bold">Mighty Networks</h2>
-          <p className="mb-4 text-xs text-mist">
-            This client&rsquo;s space and the invitation link members use to join.
-          </p>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
-                Space
-              </span>
-              <EditableText
-                value={client.spaceUrl ?? ""}
-                placeholder="Paste the space URL…"
-                onCommit={(v) =>
-                  dispatch({
-                    type: "updateClient",
-                    clientId: client.id,
-                    patch: { spaceUrl: v },
-                  })
-                }
-                className="text-xs text-mist"
-              />
-              {client.spaceUrl && (
-                <a
-                  data-tip="Open the client's space in Mighty Networks"
-                  href={client.spaceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0 text-mist hover:text-paper"
-                >
-                  <ExternalLink size={13} />
-                </a>
-              )}
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-14 shrink-0 text-[11px] font-medium text-mist">
-                Invite
-              </span>
-              <EditableText
-                value={client.inviteUrl ?? ""}
-                placeholder="Paste the plan invitation link…"
-                onCommit={(v) =>
-                  dispatch({
-                    type: "updateClient",
-                    clientId: client.id,
-                    patch: { inviteUrl: v },
-                  })
-                }
-                className="text-xs text-mist"
-              />
-              {client.inviteUrl && (
-                <button
-                  data-tip="Copy the invitation link to send it by email"
-                  onClick={() => navigator.clipboard?.writeText(client.inviteUrl!)}
-                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-md border border-white/10 px-2 py-1 text-[10px] font-bold text-mist transition-colors hover:border-white/25 hover:text-paper"
-                >
-                  <Copy size={11} /> Copy
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-
         </div>
       </div>
 

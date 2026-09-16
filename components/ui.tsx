@@ -24,16 +24,20 @@ export function GradientButton({
   children,
   onClick,
   tip,
+  disabled = false,
 }: {
   children: ReactNode;
   onClick?: () => void;
   tip?: string;
+  /** greyed out until whatever it needs has been filled in */
+  disabled?: boolean;
 }) {
   return (
     <button
       data-tip={tip}
       onClick={onClick}
-      className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold transition-opacity hover:opacity-90"
+      disabled={disabled}
+      className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

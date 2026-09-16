@@ -11,6 +11,7 @@ export function EditableText({
   placeholder,
   multiline = false,
   minRows,
+  invalid = false,
 }: {
   value: string;
   onCommit: (v: string) => void;
@@ -19,12 +20,15 @@ export function EditableText({
   multiline?: boolean;
   /** never shrink below this many lines (multiline only) */
   minRows?: number;
+  /** something important is missing here — say so in red */
+  invalid?: boolean;
 }) {
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value]);
 
-  const base =
-    "w-full rounded-md border border-white/12 bg-navy/40 px-2 py-1 transition-colors hover:border-white/25 focus:border-white/40 focus:bg-navy/70 focus:outline-none";
+  const base = invalid
+    ? "w-full rounded-md border border-[#eb320f]/70 bg-[#eb320f]/8 px-2 py-1 transition-colors hover:border-[#ff7a55] focus:border-[#ff7a55] focus:outline-none"
+    : "w-full rounded-md border border-white/12 bg-navy/40 px-2 py-1 transition-colors hover:border-white/25 focus:border-white/40 focus:bg-navy/70 focus:outline-none";
 
   if (multiline) {
     return (
