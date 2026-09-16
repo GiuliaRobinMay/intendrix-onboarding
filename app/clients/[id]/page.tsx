@@ -34,8 +34,32 @@ import { NewCampaignForm } from "@/components/campaign-form";
 import { MembersSection } from "@/components/members-table";
 import { useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
-import { findTemplate, campaignCompletion, seriesProgress, fmtDate, fmtSendTime } from "@/lib/store";
-import type { Client, ClientStatus } from "@/lib/types";
+import {
+  findTemplate,
+  campaignCompletion,
+  campaignStatus,
+  seriesProgress,
+  fmtDate,
+  fmtSendTime,
+} from "@/lib/store";
+import type { Campaign, CampaignStatus, Client, ClientStatus } from "@/lib/types";
+
+/** the campaigns list keeps only what is running, unless you ask for
+ *  more — the same tabs as the Campaigns page, in the same order */
+const CAMPAIGN_TABS: Array<{ key: "all" | CampaignStatus; label: string }> = [
+  { key: "active", label: "Active" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "paused", label: "Paused" },
+  { key: "closed", label: "Closed" },
+  { key: "all", label: "All" },
+];
+
+const CLIENT_STATUS_TIP: Record<CampaignStatus, string> = {
+  upcoming: "Hasn't started yet — the first sends are still ahead",
+  active: "Running — scheduled emails go out",
+  paused: "On hold — every send waits until it is reopened",
+  closed: "Finished — nothing more will be sent",
+};
 
 /** The three Phoenix roles at client level — one person each. */
 const ROLE_FIELDS = [
@@ -213,9 +237,24 @@ export default function ClientDetailPage() {
   const [openMemberInfo, setOpenMemberInfo] = useState<string | null>(null);
   const [memberQuery, setMemberQuery] = useState("");
   const [addingCampaign, setAddingCampaign] = useState(false);
+  const [campaignFilter, setCampaignFilter] = useState<"all" | CampaignStatus>("active");
 
   const client = clients.find((c) => c.id === id);
   const today = new Date();
+
+  const campaignsByStatus = new Map<CampaignStatus, Campaign[]>();
+  for (const campaign of client?.campaigns ?? []) {
+    const st = campaignStatus(campaign, templates, today);
+    campaignsByStatus.set(st, [...(campaignsByStatus.get(st) ?? []), campaign]);
+  }
+  // opening on Active is only helpful when there is something there
+  const visibleCampaigns =
+    campaignFilter === "all"
+      ? client?.campaigns ?? []
+      : campaignsByStatus.get(campaignFilter) ??
+        (campaignFilter === "active" && (client?.campaigns.length ?? 0) > 0
+          ? client?.campaigns ?? []
+          : []);
 
   if (!client) {
     return (
@@ -278,19 +317,51 @@ export default function ClientDetailPage() {
       <div className="flex flex-col gap-6">
         {/* Campaigns */}
         <section className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-base font-bold">
               <Layers size={17} className="text-mist" /> Campaigns
               <span className="text-sm font-medium text-mist">
                 ({client.campaigns.length})
               </span>
             </h2>
+            {/* the same tabs as the campaigns page, so a client with
+                years of history still opens on what is running now */}
+            <div className="flex flex-wrap gap-1">
+              {CAMPAIGN_TABS.map((t) => {
+                const on = campaignFilter === t.key;
+                const n =
+                  t.key === "all"
+                    ? client.campaigns.length
+                    : campaignsByStatus.get(t.key)?.length ?? 0;
+                return (
+                  <button
+                    key={t.key}
+                    data-tip={
+                      t.key === "all"
+                        ? "Every campaign of this client, whatever its status"
+                        : CLIENT_STATUS_TIP[t.key]
+                    }
+                    onClick={() => setCampaignFilter(t.key)}
+                    className={
+                      on
+                        ? "brand-gradient-soft cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-bold text-paper"
+                        : "cursor-pointer rounded-md px-2.5 py-1 text-[11px] font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
+                    }
+                  >
+                    {t.label}
+                    <span className={on ? "ml-1.5 opacity-80" : "ml-1.5 text-mist/60"}>
+                      {n}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* about four campaigns tall, the rest scrolls — so the
               members below always start at the same place */}
           <div className="flex max-h-[26rem] flex-col gap-3 overflow-y-auto pr-1">
-            {client.campaigns.map((campaign) => {
+            {visibleCampaigns.map((campaign) => {
               const completion = campaignCompletion(campaign, templates, today);
               const nextSession = campaign.sessions
                 .filter((s) => s.date && new Date(`${s.date}T00:00:00`) >= today)
@@ -389,6 +460,12 @@ export default function ClientDetailPage() {
           {client.campaigns.length === 0 && (
             <p className="rounded-md border border-dashed border-white/10 py-6 text-center text-xs text-mist">
               No campaigns yet — start one with <strong>+ New campaign</strong> above.
+            </p>
+          )}
+          {client.campaigns.length > 0 && visibleCampaigns.length === 0 && (
+            <p className="rounded-md border border-dashed border-white/10 py-6 text-center text-xs text-mist">
+              No {campaignFilter} campaigns for this client — the tabs above show
+              where the others are.
             </p>
           )}
         </section>

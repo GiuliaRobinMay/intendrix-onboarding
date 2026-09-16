@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-/** Input that looks like text until focused; commits on blur. */
+/** An input that reads as text but always wears its frame, so you can
+ *  see at a glance where something can be typed; commits on blur. */
 export function EditableText({
   value,
   onCommit,
@@ -23,7 +24,7 @@ export function EditableText({
   useEffect(() => setDraft(value), [value]);
 
   const base =
-    "w-full rounded-md border border-transparent bg-transparent px-1.5 py-0.5 -mx-1.5 transition-colors hover:border-white/10 focus:border-white/25 focus:bg-navy/60 focus:outline-none";
+    "w-full rounded-md border border-white/12 bg-navy/40 px-2 py-1 transition-colors hover:border-white/25 focus:border-white/40 focus:bg-navy/70 focus:outline-none";
 
   if (multiline) {
     return (

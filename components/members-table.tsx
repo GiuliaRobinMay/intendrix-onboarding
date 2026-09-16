@@ -9,18 +9,20 @@
 // Nobody is deleted for leaving: they become inactive, keep their whole
 // history, and every send skips them from that moment on.
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CircleCheck,
   CircleDashed,
   Crown,
-  Info,
+  Mail,
+  Pencil,
   Plus,
   Search,
   Trash2,
   TriangleAlert,
+  X,
 } from "lucide-react";
-import { authHeaders } from "@/lib/supabase-browser";
 import { EditableText, Field } from "@/components/editable";
 import { GradientButton, GhostButton } from "@/components/ui";
 import { OnboardingChips, OnboardingLegend } from "@/components/onboarding";
@@ -41,75 +43,6 @@ const HISTORY_LABEL: Record<string, { text: string; color: string }> = {
   held: { text: "held", color: "var(--tone-yellow)" },
   sent: { text: "sent", color: "var(--color-mist)" },
 };
-
-/** Every email one person was sent, newest first — the individual-level
- *  answer to "did they get it?". Loaded when the info panel opens. */
-export function MemberHistory({ memberId }: { memberId: string }) {
-  const [rows, setRows] = useState<Array<{
-    title: string;
-    campaign: string;
-    status: string;
-    error: string | null;
-    event: string | null;
-    at: string | null;
-  }> | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/member-history?memberId=${encodeURIComponent(memberId)}`,
-          { headers: await authHeaders() }
-        );
-        const out = await res.json();
-        if (cancelled) return;
-        if (out.rows) setRows(out.rows);
-        else setErr(out.error ?? "could not load the history");
-      } catch {
-        if (!cancelled) setErr("could not reach the server");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [memberId]);
-
-  if (err) return <p className="text-[11px] font-semibold text-[#ff7a55]">{err}</p>;
-  if (!rows) return <p className="text-[11px] text-mist">Loading…</p>;
-  if (rows.length === 0) return <p className="text-[11px] text-mist">No emails yet.</p>;
-  return (
-    <ul className="flex max-h-40 flex-col gap-0.5 overflow-y-auto pr-1">
-      {rows.map((r, i) => {
-        const label =
-          r.status === "sent"
-            ? HISTORY_LABEL[r.event ?? "sent"] ?? HISTORY_LABEL.sent
-            : HISTORY_LABEL[r.status] ?? { text: r.status, color: "#ff7a55" };
-        return (
-          <li key={i} className="flex items-baseline justify-between gap-2 text-[11px]">
-            <span className="min-w-0 truncate text-paper/90">
-              {r.title}
-              <span className="ml-1.5 text-mist/60">{r.campaign}</span>
-            </span>
-            <span className="flex shrink-0 items-baseline gap-2">
-              {r.at && (
-                <span className="tabular-nums text-mist/70">{fmtDate(new Date(r.at))}</span>
-              )}
-              <span
-                className="font-semibold"
-                style={{ color: label.color }}
-                title={r.error ?? undefined}
-              >
-                {label.text}
-              </span>
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
 
 export function AddMemberForm({
   clientId,
@@ -353,7 +286,7 @@ export function MembersSection({ client }: { client: Client }) {
 
           <div className="flex items-center justify-end gap-0.5">
             <button
-              data-tip="Details, email history and onboarding"
+              data-tip="Edit their details"
               onClick={() => setOpenInfo(openInfo === m.id ? null : m.id)}
               className={`shrink-0 cursor-pointer rounded-md p-1 transition-colors ${
                 openInfo === m.id
@@ -361,8 +294,15 @@ export function MembersSection({ client }: { client: Client }) {
                   : "text-mist hover:bg-white/8 hover:text-paper"
               }`}
             >
-              <Info size={13} />
+              <Pencil size={13} />
             </button>
+            <Link
+              href={`/members/${m.id}`}
+              data-tip="Every email they were sent — delivered, opened, or bounced"
+              className="shrink-0 cursor-pointer rounded-md p-1 text-mist transition-colors hover:bg-white/8 hover:text-paper"
+            >
+              <Mail size={13} />
+            </Link>
             <button
               data-tip="Remove this member — for someone who left, Left is the better choice"
               onClick={async () => {
@@ -383,7 +323,17 @@ export function MembersSection({ client }: { client: Client }) {
         </div>
 
         {openInfo === m.id && (
-          <div className="mx-1 mb-2 grid gap-x-6 gap-y-3 rounded-md border border-white/8 bg-navy/40 px-4 py-3 lg:grid-cols-2">
+          <div className="mx-1 mb-3 max-w-4xl rounded-lg border border-white/15 bg-white/6 px-4 py-3">
+            <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+              <p className="text-xs font-bold">{m.name}</p>
+              <button
+                data-tip="Close"
+                onClick={() => setOpenInfo(null)}
+                className="cursor-pointer rounded-md p-1 text-mist transition-colors hover:bg-white/10 hover:text-paper"
+              >
+                <X size={14} />
+              </button>
+            </div>
             <div className="grid gap-x-4 gap-y-2 sm:grid-cols-2">
               <label className="block">
                 <span className="text-[10px] font-medium text-mist">First name</span>
@@ -454,10 +404,6 @@ export function MembersSection({ client }: { client: Client }) {
                   </button>
                 </p>
               </div>
-            </div>
-            <div>
-              <p className="mb-1 text-[10px] font-medium text-mist">Emails received</p>
-              <MemberHistory memberId={m.id} />
             </div>
           </div>
         )}
