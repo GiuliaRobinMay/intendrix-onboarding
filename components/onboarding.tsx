@@ -1,16 +1,17 @@
 "use client";
 
-// Onboarding — the two steps everyone walks before their program
-// starts: accept the user agreement, then join the community. This file
-// carries the campaign page's Onboarding section (the two send buttons
-// with their look-before-you-send confirmations, and the live status of
+// Onboarding — the two things everyone does before their program
+// starts: accept the user agreement, and join the community. This file
+// carries the campaign page's Onboarding section (three sends, each
+// with its look-before-you-send confirmation, and the live status of
 // every member) and the little status chips reused on the client page.
 //
-// The order is enforced server-side: the community invitation only ever
-// goes to people who have accepted the agreement.
+// The two are deliberately independent: neither waits for the other.
+// The third send is the nudge — a gentler second email to the people
+// who were invited and have not walked through the door yet.
 
 import { useState } from "react";
-import { DoorOpen, ScrollText } from "lucide-react";
+import { BellRing, DoorOpen, ScrollText } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { useConfirm } from "@/components/confirm";
 import { TestSendButton } from "@/components/test-send";
@@ -79,19 +80,21 @@ export function OnboardingLegend() {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** One of the two onboarding sends. Same manners as Send-to-everyone-now:
- *  ask the server who exactly would get it, put those numbers in the
- *  confirmation, only then send. When nobody fresh is left but people
- *  are still sitting on an unanswered email, the same button offers the
- *  reminder instead. */
+/** One onboarding send. Same manners as Send-to-everyone-now: ask the
+ *  server who exactly would get it, put those numbers in the
+ *  confirmation, only then send. */
 function OnboardingSendButton({
   campaignId,
   clientName,
   kind,
+  mode = "fresh",
 }: {
   campaignId: string;
   clientName: string;
   kind: "agreement" | "invite";
+  /** fresh: people who never received it. remind: the ones who did and
+   *  have not acted on it yet. */
+  mode?: "fresh" | "remind";
 }) {
   const confirmSend = useConfirm();
   const [state, setState] = useState<"idle" | "checking" | "sending" | "done">("idle");
@@ -119,17 +122,23 @@ function OnboardingSendButton({
         return;
       }
 
-      // what this click would do: the fresh send, or — with nobody fresh
-      // left — the reminder to those who have not answered
+      // a reminder goes to the people still sitting on an unanswered
+      // email; the agreement button turns into one by itself once
+      // nobody new is left
       const waiting = kind === "agreement" ? check.pending : check.invited;
-      const remind = check.toSend === 0 && waiting > 0;
+      const remind =
+        mode === "remind" || (kind === "agreement" && check.toSend === 0 && waiting > 0);
       const toSend = remind ? waiting : check.toSend;
       if (toSend === 0) {
         problem(
           "Nothing to send",
-          kind === "agreement"
-            ? "Everyone has accepted the user agreement."
-            : "Everyone has joined or been invited."
+          mode === "remind"
+            ? check.joined
+              ? "Nobody is waiting — everyone who was invited has joined."
+              : "Nobody has been invited yet, so there is nobody to remind."
+            : kind === "agreement"
+              ? "Everyone has accepted the user agreement."
+              : "Everyone has joined or been invited."
         );
         return;
       }
@@ -137,7 +146,7 @@ function OnboardingSendButton({
       const name = remind
         ? kind === "agreement"
           ? "a reminder about the user agreement"
-          : "a reminder about the community invitation"
+          : "a reminder to join the community"
         : kind === "agreement"
           ? "the user agreement"
           : "the community invitation";
@@ -186,16 +195,25 @@ function OnboardingSendButton({
     }
   };
 
-  const Icon = kind === "agreement" ? ScrollText : DoorOpen;
+  const Icon =
+    mode === "remind" ? BellRing : kind === "agreement" ? ScrollText : DoorOpen;
+  const label =
+    mode === "remind"
+      ? "Remind them to join"
+      : kind === "agreement"
+        ? "Send the user agreement"
+        : "Invite to the community";
   return (
     <span className="flex flex-wrap items-center gap-2">
       <button
         onClick={run}
         disabled={state !== "idle"}
         data-tip={
-          kind === "agreement"
-            ? "Email the user agreement to everyone who has not received it — each gets a personal link where their acceptance is recorded. You see the exact numbers and confirm first."
-            : "Email the invitation to everyone not yet in the community — via the client's own plan link, with the new-member guide attached. You see the exact numbers and confirm first."
+          mode === "remind"
+            ? "A second, gentler email to the people who were invited but have not joined yet — same link, same guide. You see the exact numbers and confirm first."
+            : kind === "agreement"
+              ? "Email the user agreement to everyone who has not received it — each gets a personal link where their acceptance is recorded. You see the exact numbers and confirm first."
+              : "Email the invitation to everyone not yet in the community — via the client's own plan link, with the new-member guide attached. You see the exact numbers and confirm first."
         }
         className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-[#4ade80]/50 hover:text-[#4ade80] disabled:opacity-50"
       >
@@ -206,9 +224,7 @@ function OnboardingSendButton({
             ? "Sending…"
             : state === "done"
               ? "Sent"
-              : kind === "agreement"
-                ? "Send the user agreement"
-                : "Invite to the community"}
+              : label}
       </button>
       {msg && <span className="max-w-md text-[11px] text-mist">{msg}</span>}
     </span>
@@ -245,7 +261,9 @@ export function OnboardingSection({
       <p className="mt-1 mb-4 text-xs text-mist">
         Two separate sends, each on its own time: the user agreement — every
         acceptance is recorded as proof — and the invitation into the{" "}
-        {clientName} community. Neither waits for the other.
+        {clientName} community. Neither waits for the other. The third is the
+        nudge: a gentler second email to whoever was invited and has not walked
+        in yet.
       </p>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="flex items-center gap-1">
@@ -256,6 +274,12 @@ export function OnboardingSection({
           <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
           <TestSendButton campaignId={campaignId} kind="invite" compact tipPos="top" />
         </span>
+        <OnboardingSendButton
+          campaignId={campaignId}
+          clientName={clientName}
+          kind="invite"
+          mode="remind"
+        />
         {!inviteUrl && (
           <span className="text-[11px] font-semibold text-[#ff7a55]">
             No invitation link yet — paste the client&rsquo;s plan link into

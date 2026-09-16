@@ -103,12 +103,15 @@ export async function POST(req: Request) {
       senderRole: from.role,
       signature: from.signature,
       logoUrl: campaign.sender_member_id ? null : logoUrl,
+      reminder: remind,
     });
     const result = await sendPaced({
       from: `${from.name} <${from.address}>`,
       to: m.email,
       replyTo: from.replyTo,
-      subject: `Your access to the ${campaign.client_name} space on Intendrix`,
+      subject: remind
+        ? `Still waiting for you: the ${campaign.client_name} space on Intendrix`
+        : `Your access to the ${campaign.client_name} space on Intendrix`,
       html,
       attachments: [{ filename: NEW_MEMBER_GUIDE_FILENAME, path: guideUrl }],
     });

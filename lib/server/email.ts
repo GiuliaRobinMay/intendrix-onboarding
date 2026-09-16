@@ -166,14 +166,21 @@ export function renderInviteEmail(opts: {
   logoUrl?: string | null;
   /** marks a test send, so nobody mistakes one for the real thing */
   test?: boolean;
+  /** a second nudge to someone invited who has not joined — same steps,
+   *  but it says out loud that it is a reminder */
+  reminder?: boolean;
 }): string {
   const li = (t: string) => `<li style="margin-bottom:8px;">${t}</li>`;
   const inner = [
     opts.test ? TEST_BANNER : "",
     P(`Hi ${escHtml(opts.firstName)},`),
-    P(
-      `You're invited into ${escHtml(opts.clientName)}'s space on Intendrix — the home for your team's work together. Getting in takes about three minutes, and you only do it once:`
-    ),
+    opts.reminder
+      ? P(
+          `A quick reminder: your place in ${escHtml(opts.clientName)}'s space on Intendrix is still waiting for you. It is easy for an email like this to get buried, so here are the steps again — three minutes, once:`
+        )
+      : P(
+          `You're invited into ${escHtml(opts.clientName)}'s space on Intendrix — the home for your team's work together. Getting in takes about three minutes, and you only do it once:`
+        ),
     `<ol style="margin:0 0 14px;padding-left:22px;font-size:14px;line-height:1.6;color:#1a1b2e;">` +
       li(
         `Click the button below. It opens your team's welcome page, with ${escHtml(opts.clientName)}'s name on it.`
@@ -193,9 +200,13 @@ export function renderInviteEmail(opts: {
     P(
       `The attached guide, <em>Welcome to Intendrix</em>, walks through the same steps with screenshots — and shows how to put Intendrix on your phone.`
     ),
-    P(
-      `If anything doesn't work, just reply to this email — a real person reads it. Welcome aboard.`
-    ),
+    opts.reminder
+      ? P(
+          `If something got in the way — the link, the sign-up, anything — just reply to this email and we will sort it out. We would like you in there.`
+        )
+      : P(
+          `If anything doesn't work, just reply to this email — a real person reads it. Welcome aboard.`
+        ),
   ]
     .filter(Boolean)
     .join("");
