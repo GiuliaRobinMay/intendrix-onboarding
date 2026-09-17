@@ -173,14 +173,17 @@ function DeliveryFlag({ member }: { member: Member }) {
     color: "#ff7a55",
   };
   const when = member.delivery.at ? ` on ${fmtDate(new Date(member.delivery.at))}` : "";
+  // a quiet red mark, not a badge: the address is the thing being
+  // talked about, so the warning sits beside it and explains itself
+  // when you rest on it
   return (
     <span
       data-tip={`The last email to this address ${label.text}${when}. ${
         member.delivery.error ? member.delivery.error : "Check the address with them."
       }`}
-      className="flex shrink-0 items-center gap-1 rounded bg-[#eb320f]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#ff7a55]"
+      className="shrink-0 cursor-help text-[#ff4d4d]"
     >
-      <TriangleAlert size={10} /> {label.text}
+      <TriangleAlert size={12} strokeWidth={2.5} />
     </span>
   );
 }
