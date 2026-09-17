@@ -723,7 +723,14 @@ export async function POST(req: Request) {
   } catch (err) {
     await client.query("rollback").catch(() => {});
     console.error(`POST /api/action ${action.type} failed:`, err);
-    return NextResponse.json({ error: "could not save" }, { status: 500 });
+    // say what went wrong: a silent failure looks like the app losing
+    // the change, and the usual cause — a column a migration has not
+    // added yet — is named right here in the database's own message
+    const reason = String((err as { message?: string })?.message ?? err).slice(0, 200);
+    return NextResponse.json(
+      { error: "could not save", action: action.type, reason },
+      { status: 500 }
+    );
   } finally {
     client.release();
   }

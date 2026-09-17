@@ -1162,7 +1162,8 @@ interface DataContextValue {
   settings: Record<string, string>;
   backend: Backend;
   /** true when a change could not be saved to the database */
-  syncError: boolean;
+  /** what the last failed save said, or null when all is well */
+  syncError: string | null;
   dispatch: (action: Action) => void;
 }
 
@@ -1229,7 +1230,7 @@ function prepareAction(action: Action, db: DB): Action {
 export function DataProvider({ children }: { children: ReactNode }) {
   const [db, rawDispatch] = useReducer(reducer, undefined, seed);
   const [backend, setBackend] = useState<Backend>("loading");
-  const [syncError, setSyncError] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const dbRef = useRef(db);
   const backendRef = useRef(backend);
@@ -1351,10 +1352,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
               body,
             })
           )
-          .then((r) => {
-            if (!r.ok) throw new Error(String(r.status));
+          .then(async (r) => {
+            if (r.ok) return;
+            const out = await r.json().catch(() => null);
+            throw new Error(
+              out?.reason ?? out?.error ?? `the server answered ${r.status}`
+            );
           })
-          .catch(() => setSyncError(true))
+          .catch((err: Error) =>
+            setSyncError(err?.message ?? "the change did not reach the database")
+          )
       );
     }
   };

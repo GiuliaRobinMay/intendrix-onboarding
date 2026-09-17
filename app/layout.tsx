@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { SyncBanner } from "@/components/sync-banner";
 import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
 import { ConfirmProvider } from "@/components/confirm";
@@ -49,6 +50,7 @@ export default function RootLayout({
                 </div>
               </main>
             </div>
+            <SyncBanner />
             <HelpButton />
             </ConfirmProvider>
           </DataProvider>
