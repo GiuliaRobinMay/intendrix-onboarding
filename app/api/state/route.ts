@@ -160,6 +160,7 @@ export async function GET(req: Request) {
                 error
            from email_sends
           where member_id is not null and shadow_to is null
+            and status = 'sent'
           order by member_id, coalesce(last_event_at, sent_at, scheduled_for) desc`)
         .catch(() => []),
     ]);
@@ -334,8 +335,11 @@ export async function GET(req: Request) {
       campaignsByClient.set(c.client_id, list);
     }
 
-    // only trouble is worth carrying to the client page
-    const TROUBLE = new Set(["bounced", "complained", "failed"]);
+    // only trouble with the ADDRESS is worth carrying to the client
+    // page. A send we failed to make — an unverified domain, a missing
+    // key, our own mistake — says nothing about the person's address,
+    // so it must never hang a warning on their name.
+    const TROUBLE = new Set(["bounced", "complained"]);
     const deliveryByMember = new Map<string, any>();
     for (const d of memberDelivery as any[]) {
       if (d.member_id && TROUBLE.has(String(d.event)))
