@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { EditableText, Field } from "@/components/editable";
 import { GradientButton, GhostButton } from "@/components/ui";
-import { OnboardingChips, OnboardingLegend } from "@/components/onboarding";
+import { OnboardingChips } from "@/components/onboarding";
 import { useConfirm } from "@/components/confirm";
 import { useData } from "@/lib/state";
 import { fmtDate } from "@/lib/store";
@@ -460,13 +460,13 @@ export function MembersSection({ client }: { client: Client }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex flex-wrap items-baseline gap-x-3 text-base font-bold">
           Members
-          <span className="text-xs font-medium text-mist">
-            {counts.active} active
-            {counts.on_leave ? ` · ${counts.on_leave} on leave` : ""}
-            {counts.inactive ? ` · ${counts.inactive} inactive` : ""}
-            {troubled ? ` · ${troubled} with a bad address` : ""}
-            {duplicates ? ` · ${duplicates} duplicated` : ""}
-          </span>
+          {(troubled > 0 || duplicates > 0) && (
+            <span className="text-xs font-medium text-[#ff7a55]">
+              {troubled ? `${troubled} with a bad address` : ""}
+              {troubled && duplicates ? " · " : ""}
+              {duplicates ? `${duplicates} duplicated` : ""}
+            </span>
+          )}
         </h2>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-1">
@@ -518,12 +518,6 @@ export function MembersSection({ client }: { client: Client }) {
         </div>
       </div>
 
-      {client.members.length > 0 && (
-        <div className="mb-3">
-          <OnboardingLegend />
-        </div>
-      )}
-
       {adding && (
         <AddMemberForm
           clientId={client.id}
@@ -541,7 +535,12 @@ export function MembersSection({ client }: { client: Client }) {
             <span>Email</span>
             <span>Series</span>
             <span>Status</span>
-            <span>Onboarding</span>
+            <span
+              data-tip="Two steps, two icons. The document is the user agreement and the door is the community: grey — not sent yet, yellow — sent and waiting on them, green — agreement accepted, blue — in the community. Hover any icon for the date."
+              className="cursor-help"
+            >
+              Onboarding
+            </span>
             <span>Note</span>
             <span />
           </div>
