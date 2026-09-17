@@ -123,7 +123,12 @@ export function HelpButton({ collapsed = false }: { collapsed?: boolean }) {
       )}
 
       {open && (
-        <div className="card fixed bottom-5 right-5 z-40 flex h-[32rem] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden shadow-2xl shadow-black/50">
+        // the panel opens beside the button it came from, clear of the
+        // sidebar, and never wider than the space actually left
+        <div
+          style={{ left: collapsed ? "4.25rem" : "14.75rem" }}
+          className="card fixed bottom-5 z-40 flex h-[min(32rem,calc(100vh-2.5rem))] w-[min(24rem,calc(100vw-16rem))] flex-col overflow-hidden shadow-2xl shadow-black/50"
+        >
           <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
             <p className="flex items-center gap-2 text-sm font-bold">
               <HelpCircle size={15} className="text-[#ff7a55]" /> How Intendrix works

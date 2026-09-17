@@ -795,10 +795,14 @@ export default function CampaignDetailPage() {
                       (m.status ?? "active") === "active" &&
                       !campaign.clientTeam.some((a) => a.memberId === m.id)
                   );
-                  if (missing.length === 0) return null;
                   return (
                     <button
-                      data-tip={`Put all ${missing.length} active team members on this campaign`}
+                      disabled={missing.length === 0}
+                      data-tip={
+                        missing.length === 0
+                          ? `Everyone active at ${client.shortName} is already on this campaign`
+                          : `Put all ${missing.length} active team members on this campaign`
+                      }
                       onClick={() => {
                         for (const m of missing)
                           dispatch({
@@ -809,9 +813,10 @@ export default function CampaignDetailPage() {
                             role: "contact",
                           });
                       }}
-                      className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                      className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      <Users size={13} /> Add the whole team ({missing.length})
+                      <Users size={13} /> Add the whole team
+                      {missing.length > 0 ? ` (${missing.length})` : ""}
                     </button>
                   );
                 })()}
@@ -827,7 +832,7 @@ export default function CampaignDetailPage() {
                     if (client.members.length === 0) setAddingMember(true);
                     else setPendingClientRow(true);
                   }}
-                  className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                  className="brand-gradient cursor-pointer rounded-md p-1.5 text-white transition-opacity hover:opacity-90"
                 >
                   <Plus size={14} />
                 </button>
@@ -864,22 +869,14 @@ export default function CampaignDetailPage() {
                     <span className="text-[11px] tabular-nums text-mist/60">
                       {rowIndex + 1}
                     </span>
-                    <MemberPicker
-                      nameOnly
-                      tip="Which member of the client — type to search"
-                      members={client.members}
-                      excludeIds={campaign.clientTeam.map((x) => x.memberId)}
-                      value={a.memberId}
-                      onPick={(memberId) =>
-                        dispatch({
-                          type: "updateClientAssignment",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          assignmentId: a.id,
-                          patch: { memberId },
-                        })
-                      }
-                    />
+                    <span className="min-w-0 truncate text-xs font-semibold text-paper">
+                      {member?.name ?? "—"}
+                      {member?.title && (
+                        <span className="ml-1.5 font-medium text-mist/70">
+                          {member.title}
+                        </span>
+                      )}
+                    </span>
                     <span
                       data-tip={member?.email || "No email address yet — add it on the client page"}
                       className={`truncate text-xs ${member?.email ? "text-mist" : "font-semibold text-[#ff7a55]"}`}
@@ -1080,15 +1077,6 @@ export default function CampaignDetailPage() {
                 </div>
               )}
 
-              {client.members.length > 0 && !addingMember && (
-                <button
-                  onClick={() => setAddingMember(true)}
-                  data-tip="Create a person at this client and put them on this campaign in one step"
-                  className="w-fit cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
-                >
-                  Someone not on the list yet? Add them here
-                </button>
-              )}
             </div>
           </section>
         </>

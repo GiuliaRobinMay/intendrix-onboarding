@@ -253,12 +253,15 @@ export function OnboardingButtons({
         <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
         <TestSendButton campaignId={campaignId} kind="invite" compact tipPos="top" />
       </span>
-      <OnboardingSendButton
-        campaignId={campaignId}
-        clientName={clientName}
-        kind="invite"
-        mode="remind"
-      />
+      <span className="flex items-center gap-1">
+        <OnboardingSendButton
+          campaignId={campaignId}
+          clientName={clientName}
+          kind="invite"
+          mode="remind"
+        />
+        <TestSendButton campaignId={campaignId} kind="invite" remind compact tipPos="top" />
+      </span>
       {!inviteUrl && (
         <span
           data-tip="Paste the client's plan link into the Invitation link field before inviting anyone"

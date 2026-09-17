@@ -18,6 +18,8 @@ interface Props {
   variant?: TestVariant;
   /** which email: a lesson (default), or one of the onboarding two */
   kind?: "lesson" | "agreement" | "invite";
+  /** the invitation's second version — the nudge, not the welcome */
+  remind?: boolean;
   /** icon only, for a table row; full label elsewhere */
   compact?: boolean;
   /** where the tooltip should open */
@@ -33,6 +35,7 @@ export function TestSendButton({
   stepId,
   variant = "participant",
   kind = "lesson",
+  remind = false,
   compact = false,
   tipPos = "top",
   variantLabel,
@@ -51,7 +54,7 @@ export function TestSendButton({
       const res = await fetch("/api/test-email", {
         method: "POST",
         headers: { "content-type": "application/json", ...(await authHeaders()) },
-        body: JSON.stringify({ campaignId, stepId, variant, kind }),
+        body: JSON.stringify({ campaignId, stepId, variant, kind, remind }),
       });
       const out = await res.json();
       if (out.sent) {

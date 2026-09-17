@@ -54,6 +54,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ sent: false, reason: "invalid body" }, { status: 400 });
   }
   const { campaignId, stepId, variant } = body ?? {};
+  // the invitation has two versions and both are worth reading before
+  // they go out: the first one, and the nudge that follows it
+  const remind = body?.remind === true;
   // what to test: a lesson, or one of the two onboarding emails
   const kind: "lesson" | "agreement" | "invite" =
     body?.kind === "agreement" || body?.kind === "invite" ? body.kind : "lesson";
@@ -121,11 +124,17 @@ export async function POST(req: Request) {
             agreeUrl: `${publicBaseUrl(req)}/agree/preview`,
             thenCommunity: Boolean(campaign.invite_url),
           })
-        : renderInviteEmail({ ...common, inviteUrl: campaign.invite_url });
+        : renderInviteEmail({
+            ...common,
+            inviteUrl: campaign.invite_url,
+            reminder: remind,
+          });
     const subject =
       kind === "agreement"
         ? "[TEST] One click before your Intendrix journey starts"
-        : `[TEST] Your access to the ${campaign.client_name} space on Intendrix`;
+        : remind
+          ? `[TEST] Still waiting for you: the ${campaign.client_name} space on Intendrix`
+          : `[TEST] Your access to the ${campaign.client_name} space on Intendrix`;
 
     if (!emailConfigured)
       return NextResponse.json({

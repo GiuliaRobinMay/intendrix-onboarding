@@ -230,12 +230,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* rarely used links live at the bottom — with the one thing that
-          must never be hard to find sitting right on top of them */}
+      {/* rarely used links live at the bottom, and asking for help sits
+          under them all — the last thing in the panel, impossible to
+          scroll past */}
       <div className="mt-auto flex flex-col gap-0.5 border-t border-white/8 pt-3">
-        <div className="mb-1.5">
-          <HelpButton collapsed={collapsed} />
-        </div>
         <NavLink
           href="/settings"
           label="Settings"
@@ -289,6 +287,10 @@ export function Sidebar() {
             </>
           )}
         </button>
+        <div className="mt-2">
+          <HelpButton collapsed={collapsed} />
+        </div>
+
         {!collapsed && (
           <p
             className={`px-2.5 pt-2 text-[10px] leading-relaxed ${
