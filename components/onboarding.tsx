@@ -232,8 +232,10 @@ function OnboardingSendButton({
 }
 
 /** The campaign page's Onboarding card: send buttons and everyone's
- *  live status. Works on the client's whole members list — the same
- *  people the campaign's emails go to. */
+ *  live status. Works on the people put on THIS campaign's client
+ *  team — not the client's whole address book. A client runs several
+ *  programs with different people in each, so the agreement and the
+ *  community invitation must follow the campaign, not the company. */
 export function OnboardingSection({
   campaignId,
   clientName,

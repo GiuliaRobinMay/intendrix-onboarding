@@ -53,12 +53,18 @@ export async function POST(req: Request) {
   if ("error" in ctx) return NextResponse.json({ ok: false, reason: ctx.error });
   const { campaign, from, logoUrl } = ctx;
 
+  // only the people put on THIS campaign's client team. A client runs
+  // several programs with different people in each, so onboarding must
+  // follow the campaign, never the whole company address book.
   const { rows: members } = await pool
     .query(
-      `select * from members
-        where client_id = $1 and coalesce(status, 'active') = 'active'
-        order by name`,
-      [campaign.client_id]
+      `select m.* from members m
+         join campaign_client_assignments a on a.member_id = m.id
+        where a.campaign_id = $1
+          and coalesce(m.status, 'active') = 'active'
+        group by m.id
+        order by m.name`,
+      [campaignId]
     )
     .catch(() => ({ rows: null }));
   if (!members)
@@ -66,6 +72,12 @@ export async function POST(req: Request) {
       ok: false,
       reason:
         "the database is missing the onboarding update — paste the latest migration into the Supabase SQL editor first",
+    });
+  if (members.length === 0)
+    return NextResponse.json({
+      ok: false,
+      reason:
+        "nobody is on this campaign's client team yet — add the people taking part, then send",
     });
 
   const signed = members.filter((m: any) => m.agreement_signed_at);

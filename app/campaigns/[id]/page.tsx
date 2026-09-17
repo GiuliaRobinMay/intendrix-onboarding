@@ -15,6 +15,7 @@ import {
   MapPin,
   Plus,
   Trash2,
+  Users,
   Video,
   X,
 } from "lucide-react";
@@ -470,8 +471,9 @@ export default function CampaignDetailPage() {
         </div>
       </section>
 
-      {/* Campaign team — same add-person system on both sides */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+      {/* Who runs it, who it comes from, and where the client is —
+          three short cards, so the people list below gets the room */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-3">
         {/* Phoenix side */}
         <section className="card p-5">
           <div className="mb-1 flex items-center justify-between">
@@ -628,8 +630,113 @@ export default function CampaignDetailPage() {
           </div>
         </section>
 
-        {/* Client side — same system */}
-        <section className="card p-5">
+        {/* Who the emails come from */}
+      <section className="card p-5">
+        <h2 className="flex items-center gap-2 text-base font-bold">
+          <Mail size={17} className="text-mist" /> Emails sent by
+        </h2>
+        <p className="mt-1 mb-4 text-xs text-mist">
+          Normally the Phoenix Coach. For a program introduced from inside
+          the client&rsquo;s own organisation, pick their Transformational
+          Champion instead — recipients see that person&rsquo;s name and replies
+          reach them, while the address stays on our sending domain so the
+          emails keep arriving.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <select
+            title="Who this campaign's emails appear to come from"
+            value={campaign.senderMemberId ?? ""}
+            onChange={(e) =>
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: { senderMemberId: e.target.value || null },
+              })
+            }
+            className="min-w-64 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+          >
+            <option value="">
+              The Phoenix Coach
+              {phoenixSender ? ` — ${phoenixSender.name}` : " — none assigned"}
+            </option>
+            {client.members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+                {m.title ? ` — ${m.title}` : ""} (at {client.shortName})
+              </option>
+            ))}
+          </select>
+
+          {emailSender ? (
+            <p className="min-w-0 text-xs text-mist">
+              Recipients see{" "}
+              <span className="font-semibold text-paper">
+                {emailSender.name} &lt;{emailSender.address}&gt;
+              </span>
+              {emailSender.isClientMember && (
+                <>
+                  {" "}
+                  · replies go to{" "}
+                  <span className="font-semibold text-paper">
+                    {emailSender.replyTo}
+                  </span>
+                </>
+              )}
+            </p>
+          ) : (
+            <p className="text-xs font-semibold text-[#ff7a55]">
+              No sender yet — assign a Phoenix Coach above, or pick a client
+              member.
+            </p>
+          )}
+        </div>
+
+        {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
+          <p className="mt-3 text-xs font-semibold text-[#ff7a55]">
+            {emailSender.name} has no email address — add it on the client page
+            so replies have somewhere to go.
+          </p>
+        )}
+
+        {/* Watching from the outside: one copy per lesson, not per member */}
+        <label className="mt-5 block border-t border-white/8 pt-4">
+          <span className="text-[11px] font-medium text-mist">
+            Send a copy of everything to
+          </span>
+          <input
+            type="text"
+            defaultValue={campaign.shadowEmails ?? ""}
+            placeholder="amber@phoenixperform.com, someone@else.com"
+            data-tip="One copy of each lesson, once — not one per member. They stay off the members list."
+            onBlur={(e) => {
+              const next = e.target.value.trim();
+              if (next === (campaign.shadowEmails ?? "").trim()) return;
+              dispatch({
+                type: "updateCampaign",
+                clientId: client.id,
+                campaignId: campaign.id,
+                patch: { shadowEmails: next || null },
+              });
+            }}
+            className="mt-1 w-full max-w-xl rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+          />
+          <span className="mt-1.5 block text-[11px] text-mist">
+            Comma-separated. They see every lesson exactly once as it goes out,
+            with the client&rsquo;s name in the subject — no personalisation, and
+            they never appear in the members list.
+          </span>
+        </label>
+      </section>
+
+        {/* the client's own details, so nobody has to go and look them up */}
+      <ClientFactsCard client={client} fromCampaign />
+      </div>
+
+      {/* The people this campaign is actually for — full width,
+          because this is the list that gets read and edited */}
+        <section className="card mb-6 p-5">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-base font-bold">
               Client team{" "}
@@ -637,22 +744,52 @@ export default function CampaignDetailPage() {
                 ({campaign.clientTeam.length})
               </span>
             </h2>
-            <button
-              data-tip={
-                client.members.length === 0
-                  ? "Add the first person at this client"
-                  : "Add a client member to this campaign"
-              }
-              onClick={() => {
-                // no members yet? then the person has to be created first,
-                // right here — sending you to another page loses your place
-                if (client.members.length === 0) setAddingMember(true);
-                else setPendingClientRow(true);
-              }}
-              className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
-            >
-              <Plus size={14} />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* the common case is the whole team: one click instead of
+                  picking the same twenty people by hand, one row at a time */}
+              {(() => {
+                const missing = client.members.filter(
+                  (m) =>
+                    (m.status ?? "active") === "active" &&
+                    !campaign.clientTeam.some((a) => a.memberId === m.id)
+                );
+                if (missing.length === 0) return null;
+                return (
+                  <button
+                    data-tip={`Put all ${missing.length} active team members on this campaign`}
+                    onClick={() => {
+                      for (const m of missing)
+                        dispatch({
+                          type: "addClientAssignment",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          memberId: m.id,
+                          role: "contact",
+                        });
+                    }}
+                    className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                  >
+                    <Users size={13} /> Add the whole team ({missing.length})
+                  </button>
+                );
+              })()}
+              <button
+                data-tip={
+                  client.members.length === 0
+                    ? "Add the first person at this client"
+                    : "Add a client member to this campaign"
+                }
+                onClick={() => {
+                  // no members yet? then the person has to be created first,
+                  // right here — sending you to another page loses your place
+                  if (client.members.length === 0) setAddingMember(true);
+                  else setPendingClientRow(true);
+                }}
+                className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
           </div>
           <p className="mb-4 text-xs text-mist">
             Who at the client is responsible — chosen from the client&rsquo;s
@@ -660,7 +797,7 @@ export default function CampaignDetailPage() {
           </p>
 
           {campaign.clientTeam.length > 0 && (
-            <div className="grid grid-cols-[1.4rem_minmax(0,1.1fr)_minmax(0,1.3fr)_8.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+            <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
               <span>#</span>
               <span>Name</span>
               <span>Email</span>
@@ -670,7 +807,7 @@ export default function CampaignDetailPage() {
           )}
           <div className="flex flex-col">
             {/* about five rows tall; the rest scrolls */}
-            <div className="flex max-h-[11.5rem] flex-col overflow-y-auto pr-1">
+            <div className="flex max-h-[32rem] flex-col overflow-y-auto pr-1">
             {[...campaign.clientTeam]
               .sort((x, y) => {
                 const nx = client.members.find((m) => m.id === x.memberId)?.name ?? "";
@@ -682,7 +819,7 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="grid grid-cols-[1.4rem_minmax(0,1.1fr)_minmax(0,1.3fr)_8.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
+                  className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                 >
                   <span className="text-[11px] tabular-nums text-mist/60">
                     {rowIndex + 1}
@@ -752,7 +889,7 @@ export default function CampaignDetailPage() {
             })}
             </div>
             {pendingClientRow && (
-              <div className="grid grid-cols-[1.4rem_minmax(0,1.1fr)_minmax(0,1.3fr)_8.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+              <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
                 <span className="text-[11px] tabular-nums text-mist/40">+</span>
                 <MemberPicker
                   nameOnly
@@ -910,118 +1047,14 @@ export default function CampaignDetailPage() {
             )}
           </div>
         </section>
-      </div>
-
-      {/* Who the emails come from */}
-      <section className="card mb-6 p-5">
-        <h2 className="flex items-center gap-2 text-base font-bold">
-          <Mail size={17} className="text-mist" /> Emails sent by
-        </h2>
-        <p className="mt-1 mb-4 text-xs text-mist">
-          Normally the Phoenix Coach. For a program introduced from inside
-          the client&rsquo;s own organisation, pick their Transformational
-          Champion instead — recipients see that person&rsquo;s name and replies
-          reach them, while the address stays on our sending domain so the
-          emails keep arriving.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <select
-            title="Who this campaign's emails appear to come from"
-            value={campaign.senderMemberId ?? ""}
-            onChange={(e) =>
-              dispatch({
-                type: "updateCampaign",
-                clientId: client.id,
-                campaignId: campaign.id,
-                patch: { senderMemberId: e.target.value || null },
-              })
-            }
-            className="min-w-64 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
-          >
-            <option value="">
-              The Phoenix Coach
-              {phoenixSender ? ` — ${phoenixSender.name}` : " — none assigned"}
-            </option>
-            {client.members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-                {m.title ? ` — ${m.title}` : ""} (at {client.shortName})
-              </option>
-            ))}
-          </select>
-
-          {emailSender ? (
-            <p className="min-w-0 text-xs text-mist">
-              Recipients see{" "}
-              <span className="font-semibold text-paper">
-                {emailSender.name} &lt;{emailSender.address}&gt;
-              </span>
-              {emailSender.isClientMember && (
-                <>
-                  {" "}
-                  · replies go to{" "}
-                  <span className="font-semibold text-paper">
-                    {emailSender.replyTo}
-                  </span>
-                </>
-              )}
-            </p>
-          ) : (
-            <p className="text-xs font-semibold text-[#ff7a55]">
-              No sender yet — assign a Phoenix Coach above, or pick a client
-              member.
-            </p>
-          )}
-        </div>
-
-        {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
-          <p className="mt-3 text-xs font-semibold text-[#ff7a55]">
-            {emailSender.name} has no email address — add it on the client page
-            so replies have somewhere to go.
-          </p>
-        )}
-
-        {/* Watching from the outside: one copy per lesson, not per member */}
-        <label className="mt-5 block border-t border-white/8 pt-4">
-          <span className="text-[11px] font-medium text-mist">
-            Send a copy of everything to
-          </span>
-          <input
-            type="text"
-            defaultValue={campaign.shadowEmails ?? ""}
-            placeholder="amber@phoenixperform.com, someone@else.com"
-            data-tip="One copy of each lesson, once — not one per member. They stay off the members list."
-            onBlur={(e) => {
-              const next = e.target.value.trim();
-              if (next === (campaign.shadowEmails ?? "").trim()) return;
-              dispatch({
-                type: "updateCampaign",
-                clientId: client.id,
-                campaignId: campaign.id,
-                patch: { shadowEmails: next || null },
-              });
-            }}
-            className="mt-1 w-full max-w-xl rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-          />
-          <span className="mt-1.5 block text-[11px] text-mist">
-            Comma-separated. They see every lesson exactly once as it goes out,
-            with the client&rsquo;s name in the subject — no personalisation, and
-            they never appear in the members list.
-          </span>
-        </label>
-      </section>
-
-      {/* the client's own details, so nobody has to go and look them up */}
-      <div className="mb-6">
-        <ClientFactsCard client={client} fromCampaign />
-      </div>
 
       {/* The user agreement and the community invitation */}
       <OnboardingSection
         campaignId={campaign.id}
         clientName={client.shortName}
-        members={client.members}
+        members={campaign.clientTeam
+          .map((a) => client.members.find((m) => m.id === a.memberId))
+          .filter((m): m is NonNullable<typeof m> => Boolean(m))}
         inviteUrl={client.inviteUrl}
       />
 
