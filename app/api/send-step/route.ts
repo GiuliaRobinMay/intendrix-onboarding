@@ -120,9 +120,20 @@ export async function POST(req: Request) {
       pool.query(
         // select * tolerates a database without the status column;
         // anyone not active is filtered out below
-        `select * from members
-          where client_id = $1 order by name`,
-        [campaign.client_id]
+        // the campaign's own participants; a campaign nobody has been
+        // put on yet still reaches the whole client, so turning this on
+        // never silently stops a programme already running
+        `select m.* from members m
+           join campaign_client_assignments a on a.member_id = m.id
+          where a.campaign_id = $2
+          group by m.id
+          union
+         select m.* from members m
+          where m.client_id = $1
+            and not exists (select 1 from campaign_client_assignments
+                             where campaign_id = $2)
+          order by name`,
+        [campaign.client_id, campaignId]
       ),
       pool.query(
         `select id, variant, email_subject, email_body, lesson_label, lesson_url,

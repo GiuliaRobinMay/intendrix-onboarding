@@ -231,79 +231,42 @@ function OnboardingSendButton({
   );
 }
 
-/** The campaign page's Onboarding card: send buttons and everyone's
- *  live status. Works on the people put on THIS campaign's client
- *  team — not the client's whole address book. A client runs several
- *  programs with different people in each, so the agreement and the
- *  community invitation must follow the campaign, not the company. */
-export function OnboardingSection({
+/** The three onboarding sends, as a row of buttons. They live in the
+ *  header of the participants list, because that list is who they go
+ *  to — the people put on this campaign, not everyone at the client. */
+export function OnboardingButtons({
   campaignId,
   clientName,
-  members,
   inviteUrl,
 }: {
   campaignId: string;
   clientName: string;
-  members: Member[];
   inviteUrl?: string;
 }) {
-  const signed = members.filter((m) => m.agreementSignedAt).length;
-  const joined = members.filter((m) => m.communityJoinedAt).length;
   return (
-    <section className="card mb-6 p-5">
-      <h2 className="flex items-center gap-2 text-base font-bold">
-        <ScrollText size={17} className="text-mist" /> Onboarding
-        {members.length > 0 && (
-          <span className="text-sm font-medium text-mist">
-            — {signed} of {members.length} accepted the agreement · {joined} in
-            the community
-          </span>
-        )}
-      </h2>
-      <p className="mt-1 mb-4 text-xs text-mist">
-        Two separate sends, each on its own time: the user agreement — every
-        acceptance is recorded as proof — and the invitation into the{" "}
-        {clientName} community. Neither waits for the other. The third is the
-        nudge: a gentler second email to whoever was invited and has not walked
-        in yet.
-      </p>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="flex items-center gap-1">
-          <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="agreement" />
-          <TestSendButton campaignId={campaignId} kind="agreement" compact tipPos="top" />
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+      <span className="flex items-center gap-1">
+        <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="agreement" />
+        <TestSendButton campaignId={campaignId} kind="agreement" compact tipPos="top" />
+      </span>
+      <span className="flex items-center gap-1">
+        <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
+        <TestSendButton campaignId={campaignId} kind="invite" compact tipPos="top" />
+      </span>
+      <OnboardingSendButton
+        campaignId={campaignId}
+        clientName={clientName}
+        kind="invite"
+        mode="remind"
+      />
+      {!inviteUrl && (
+        <span
+          data-tip="Paste the client's plan link into the Invitation link field before inviting anyone"
+          className="text-[11px] font-semibold text-[#ff7a55]"
+        >
+          No invitation link yet
         </span>
-        <span className="flex items-center gap-1">
-          <OnboardingSendButton campaignId={campaignId} clientName={clientName} kind="invite" />
-          <TestSendButton campaignId={campaignId} kind="invite" compact tipPos="top" />
-        </span>
-        <OnboardingSendButton
-          campaignId={campaignId}
-          clientName={clientName}
-          kind="invite"
-          mode="remind"
-        />
-        {!inviteUrl && (
-          <span className="text-[11px] font-semibold text-[#ff7a55]">
-            No invitation link yet — paste the client&rsquo;s plan link into
-            the Invite field on the client page first.
-          </span>
-        )}
-      </div>
-      {members.length > 0 && (
-        <div className="mt-4 border-t border-white/8 pt-3">
-          <OnboardingLegend />
-          <div className="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2">
-            {[...members]
-              .sort((x, y) => x.name.localeCompare(y.name))
-              .map((m) => (
-                <div key={m.id} className="flex items-center justify-between gap-2 py-0.5">
-                  <span className="min-w-0 truncate text-xs text-mist">{m.name}</span>
-                  <OnboardingChips member={m} />
-                </div>
-              ))}
-          </div>
-        </div>
       )}
-    </section>
+    </div>
   );
 }

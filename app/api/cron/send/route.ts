@@ -202,6 +202,23 @@ export async function GET(req: Request) {
 
   const memberById = new Map(members.map((m: any) => [m.id, m]));
 
+  // Who a campaign is actually for. A client runs several programs with
+  // different people in each, so the lessons follow the campaign's own
+  // participant list. A campaign nobody has been put on yet keeps its
+  // old reach — the whole client — so switching this on never silently
+  // stops a programme that is already running.
+  const clientAssignments = await q(
+    `select campaign_id, member_id from campaign_client_assignments`
+  ).catch(() => []);
+  const membersByCampaign = new Map<string, any[]>();
+  for (const a of clientAssignments as any[]) {
+    const m = memberById.get(a.member_id);
+    if (!m || (m.status && m.status !== "active")) continue;
+    const list = membersByCampaign.get(a.campaign_id) ?? [];
+    if (!list.some((x: any) => x.id === m.id)) list.push(m);
+    membersByCampaign.set(a.campaign_id, list);
+  }
+
   const senderFor = (campaign: any): any | null => {
     const client = clientById.get(campaign.client_id);
     const pick = (role: string, fallbackId?: string | null) => {
@@ -326,7 +343,10 @@ export async function GET(req: Request) {
     const now = nowInZone(campaign.timezone || "America/New_York");
     const sender = senderFor(campaign);
     const from = fromFor(campaign, sender);
-    const clientMembers = membersByClient.get(campaign.client_id) ?? [];
+    const clientMembers =
+      membersByCampaign.get(campaign.id) ??
+      membersByClient.get(campaign.client_id) ??
+      [];
 
     for (const ls of loaded.filter((x: any) => x.campaign_id === campaign.id)) {
       const baseDate = ls.trigger_session_id

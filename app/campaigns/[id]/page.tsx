@@ -22,7 +22,7 @@ import {
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { SendNowButton } from "@/components/send-now";
-import { OnboardingSection } from "@/components/onboarding";
+import { OnboardingButtons, OnboardingChips } from "@/components/onboarding";
 import { ClientFactsCard } from "@/components/client-facts";
 import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
@@ -475,9 +475,12 @@ export default function CampaignDetailPage() {
           three short cards, so the people list below gets the room */}
       <div className="mb-6 grid gap-6 lg:grid-cols-3">
         {/* Phoenix side */}
-        <section className="card p-5">
+        <section className="card p-4">
           <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-base font-bold">
+            <h2
+              data-tip="Who at Phoenix works on this campaign. The Coach is the one the emails are sent from."
+              className="text-base font-bold"
+            >
               Phoenix team{" "}
               <span className="text-sm font-medium text-mist">
                 ({campaign.phoenixTeam.length})
@@ -491,10 +494,7 @@ export default function CampaignDetailPage() {
               <Plus size={14} />
             </button>
           </div>
-          <p className="mb-4 text-xs text-mist">
-            Who at Phoenix works on this campaign — any number of people, each
-            with a role. The Coach is the one the emails are sent from.
-          </p>
+          <div className="mb-3" />
 
           {campaign.phoenixTeam.length > 0 && (
             <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
@@ -612,7 +612,7 @@ export default function CampaignDetailPage() {
               </div>
             )}
             {campaign.phoenixTeam.length === 0 && !pendingPhoenixRow && (
-              <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+              <p className="text-[11px] leading-relaxed text-mist">
                 No one assigned yet — the client defaults apply
                 {(() => {
                   const d = [
@@ -631,21 +631,13 @@ export default function CampaignDetailPage() {
         </section>
 
         {/* Who the emails come from */}
-      <section className="card p-5">
-        <h2 className="flex items-center gap-2 text-base font-bold">
-          <Mail size={17} className="text-mist" /> Emails sent by
-        </h2>
-        <p className="mt-1 mb-4 text-xs text-mist">
-          Normally the Phoenix Coach. For a program introduced from inside
-          the client&rsquo;s own organisation, pick their Transformational
-          Champion instead — recipients see that person&rsquo;s name and replies
-          reach them, while the address stays on our sending domain so the
-          emails keep arriving.
-        </p>
+        <section className="card p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-base font-bold">
+            <Mail size={17} className="text-mist" /> Emails sent from
+          </h2>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <select
-            title="Who this campaign's emails appear to come from"
+            data-tip="Who this campaign's emails appear to come from — normally the Phoenix Coach, or the client's own champion when the program is introduced from inside their organisation"
             value={campaign.senderMemberId ?? ""}
             onChange={(e) =>
               dispatch({
@@ -655,7 +647,7 @@ export default function CampaignDetailPage() {
                 patch: { senderMemberId: e.target.value || null },
               })
             }
-            className="min-w-64 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+            className="w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
           >
             <option value="">
               The Phoenix Coach
@@ -670,68 +662,55 @@ export default function CampaignDetailPage() {
           </select>
 
           {emailSender ? (
-            <p className="min-w-0 text-xs text-mist">
-              Recipients see{" "}
-              <span className="font-semibold text-paper">
-                {emailSender.name} &lt;{emailSender.address}&gt;
-              </span>
-              {emailSender.isClientMember && (
-                <>
-                  {" "}
-                  · replies go to{" "}
-                  <span className="font-semibold text-paper">
-                    {emailSender.replyTo}
-                  </span>
-                </>
-              )}
+            <p
+              data-tip={
+                emailSender.isClientMember
+                  ? `Replies go to ${emailSender.replyTo}`
+                  : "The address recipients see"
+              }
+              className="mt-2 truncate text-[11px] text-mist"
+            >
+              {emailSender.name} &lt;{emailSender.address}&gt;
             </p>
           ) : (
-            <p className="text-xs font-semibold text-[#ff7a55]">
-              No sender yet — assign a Phoenix Coach above, or pick a client
-              member.
+            <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
+              No sender yet
             </p>
           )}
-        </div>
 
-        {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
-          <p className="mt-3 text-xs font-semibold text-[#ff7a55]">
-            {emailSender.name} has no email address — add it on the client page
-            so replies have somewhere to go.
-          </p>
-        )}
+          {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
+            <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
+              {emailSender.name} has no address — replies have nowhere to go.
+            </p>
+          )}
 
-        {/* Watching from the outside: one copy per lesson, not per member */}
-        <label className="mt-5 block border-t border-white/8 pt-4">
-          <span className="text-[11px] font-medium text-mist">
-            Send a copy of everything to
-          </span>
-          <input
-            type="text"
-            defaultValue={campaign.shadowEmails ?? ""}
-            placeholder="amber@phoenixperform.com, someone@else.com"
-            data-tip="One copy of each lesson, once — not one per member. They stay off the members list."
-            onBlur={(e) => {
-              const next = e.target.value.trim();
-              if (next === (campaign.shadowEmails ?? "").trim()) return;
-              dispatch({
-                type: "updateCampaign",
-                clientId: client.id,
-                campaignId: campaign.id,
-                patch: { shadowEmails: next || null },
-              });
-            }}
-            className="mt-1 w-full max-w-xl rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-          />
-          <span className="mt-1.5 block text-[11px] text-mist">
-            Comma-separated. They see every lesson exactly once as it goes out,
-            with the client&rsquo;s name in the subject — no personalisation, and
-            they never appear in the members list.
-          </span>
-        </label>
-      </section>
+          {/* Watching from the outside: one copy per lesson, not per member */}
+          <label className="mt-4 block border-t border-white/8 pt-3">
+            <span className="text-[11px] font-medium text-mist">
+              Send a copy of everything to
+            </span>
+            <input
+              type="text"
+              defaultValue={campaign.shadowEmails ?? ""}
+              placeholder="amber@phoenixperform.com"
+              data-tip="Comma-separated. One copy of each lesson, once — not one per member, no personalisation, and they stay off the participants list."
+              onBlur={(e) => {
+                const next = e.target.value.trim();
+                if (next === (campaign.shadowEmails ?? "").trim()) return;
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { shadowEmails: next || null },
+                });
+              }}
+              className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+            />
+          </label>
+        </section>
 
         {/* the client's own details, so nobody has to go and look them up */}
-      <ClientFactsCard client={client} fromCampaign />
+        <ClientFactsCard client={client} fromCampaign />
       </div>
 
       {/* The people this campaign is actually for — full width,
@@ -739,12 +718,18 @@ export default function CampaignDetailPage() {
         <section className="card mb-6 p-5">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="text-base font-bold">
-              Client team{" "}
+              Campaign participants{" "}
               <span className="text-sm font-medium text-mist">
                 ({campaign.clientTeam.length})
               </span>
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <OnboardingButtons
+                campaignId={campaign.id}
+                clientName={client.shortName}
+                inviteUrl={client.inviteUrl}
+              />
+              <span className="mx-1 h-5 w-px bg-white/10" aria-hidden />
               {/* the common case is the whole team: one click instead of
                   picking the same twenty people by hand, one row at a time */}
               {(() => {
@@ -791,17 +776,15 @@ export default function CampaignDetailPage() {
               </button>
             </div>
           </div>
-          <p className="mb-4 text-xs text-mist">
-            Who at the client is responsible — chosen from the client&rsquo;s
-            members, each with a role, e.g. the Client Transformational Champion.
-          </p>
+          <div className="mb-3" />
 
           {campaign.clientTeam.length > 0 && (
-            <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+            <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
               <span>#</span>
               <span>Name</span>
               <span>Email</span>
               <span>Role</span>
+              <span data-tip="Document: the user agreement. Door: the community. Green means accepted or joined, yellow means sent and waiting, grey means not yet.">Onboarding</span>
               <span />
             </div>
           )}
@@ -819,7 +802,7 @@ export default function CampaignDetailPage() {
               return (
                 <div
                   key={a.id}
-                  className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
+                  className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                 >
                   <span className="text-[11px] tabular-nums text-mist/60">
                     {rowIndex + 1}
@@ -863,6 +846,9 @@ export default function CampaignDetailPage() {
                     <option value="contact">Team member</option>
                     <option value="champion">Transf. Champion</option>
                   </select>
+                  <span className="flex items-center justify-center">
+                    {member && <OnboardingChips member={member} />}
+                  </span>
                   <button
                     data-tip="Remove this assignment"
                     onClick={async () => {
@@ -889,7 +875,7 @@ export default function CampaignDetailPage() {
             })}
             </div>
             {pendingClientRow && (
-              <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+              <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
                 <span className="text-[11px] tabular-nums text-mist/40">+</span>
                 <MemberPicker
                   nameOnly
@@ -910,6 +896,7 @@ export default function CampaignDetailPage() {
                 />
                 <span className="truncate text-xs text-mist/40">—</span>
                 <span className="text-xs text-mist/50">as team member</span>
+                <span />
                 <button
                   data-tip="Never mind"
                   onClick={() => setPendingClientRow(false)}
@@ -1047,16 +1034,6 @@ export default function CampaignDetailPage() {
             )}
           </div>
         </section>
-
-      {/* The user agreement and the community invitation */}
-      <OnboardingSection
-        campaignId={campaign.id}
-        clientName={client.shortName}
-        members={campaign.clientTeam
-          .map((a) => client.members.find((m) => m.id === a.memberId))
-          .filter((m): m is NonNullable<typeof m> => Boolean(m))}
-        inviteUrl={client.inviteUrl}
-      />
 
       <div className="flex flex-col gap-6">
         {/* Sessions — square, draggable cards */}
