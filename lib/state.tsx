@@ -384,6 +384,21 @@ export type Action =
       assignmentId: string;
     }
   | {
+      type: "addCampaignNote";
+      id?: string;
+      clientId: string;
+      campaignId: string;
+      body: string;
+      author?: string | null;
+      createdAt?: string;
+    }
+  | {
+      type: "removeCampaignNote";
+      clientId: string;
+      campaignId: string;
+      noteId: string;
+    }
+  | {
       type: "addClientAssignment";
       id?: string;
       clientId: string;
@@ -901,6 +916,26 @@ function reducer(db: DB, action: Action): DB {
         phoenixTeam: c.phoenixTeam.filter((x) => x.id !== action.assignmentId),
       }));
 
+    case "addCampaignNote":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        notes: [
+          {
+            id: action.id ?? uid("note"),
+            body: action.body,
+            author: action.author ?? null,
+            createdAt: action.createdAt ?? new Date().toISOString(),
+          },
+          ...(c.notes ?? []),
+        ],
+      }));
+
+    case "removeCampaignNote":
+      return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
+        ...c,
+        notes: (c.notes ?? []).filter((n) => n.id !== action.noteId),
+      }));
+
     case "addClientAssignment":
       return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
         ...c,
@@ -1193,6 +1228,12 @@ function prepareAction(action: Action, db: DB): Action {
       return { ...action, id: action.id ?? uid("pa") };
     case "addClientAssignment":
       return { ...action, id: action.id ?? uid("ca") };
+    case "addCampaignNote":
+      return {
+        ...action,
+        id: action.id ?? uid("note"),
+        createdAt: action.createdAt ?? new Date().toISOString(),
+      };
     case "addInvitation":
       return { ...action, id: action.id ?? uid("inv") };
     case "addStaff":

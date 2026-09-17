@@ -69,6 +69,7 @@ export async function GET(req: Request) {
       settingRows,
       overrideRows,
       skipRows,
+      noteRows,
       dateRows,
       deliveredRows,
       memberDelivery,
@@ -132,6 +133,10 @@ export async function GET(req: Request) {
       q(`select campaign_id, step_id, variant, email_subject, email_body
            from campaign_step_content`).catch(() => []),
       q(`select campaign_id, step_id from campaign_step_skips`).catch(() => []),
+      // the running record the team keeps on a campaign (0017) — a
+      // database without the table simply has no notes
+      q(`select id, campaign_id, body, author, created_at
+           from campaign_notes order by created_at desc`).catch(() => []),
       q(`select campaign_id, step_id, send_on::text as send_on
            from campaign_step_dates`).catch(() => []),
       // what has REALLY been delivered — only these may show as Sent —
@@ -307,6 +312,18 @@ export async function GET(req: Request) {
       cByCampaign.set(a.campaign_id, list);
     }
 
+    const notesByCampaign = new Map<string, any[]>();
+    for (const n of noteRows as any[]) {
+      const list = notesByCampaign.get(n.campaign_id) ?? [];
+      list.push({
+        id: n.id,
+        body: n.body,
+        author: n.author ?? null,
+        createdAt: new Date(n.created_at).toISOString(),
+      });
+      notesByCampaign.set(n.campaign_id, list);
+    }
+
     const campaignsByClient = new Map<string, Campaign[]>();
     for (const c of campaigns) {
       const campaign: Campaign = {
@@ -320,6 +337,7 @@ export async function GET(req: Request) {
         ...(c.status_override ? { statusOverride: c.status_override } : {}),
         senderMemberId: c.sender_member_id,
         shadowEmails: c.shadow_emails,
+        notes: notesByCampaign.get(c.id) ?? [],
         startDate: c.start_date,
         endDate: c.end_date,
         sessions: sessionsByCampaign.get(c.id) ?? [],

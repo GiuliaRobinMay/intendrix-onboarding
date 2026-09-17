@@ -24,6 +24,7 @@ import { EditableText } from "@/components/editable";
 import { SendNowButton } from "@/components/send-now";
 import { OnboardingButtons, OnboardingChips } from "@/components/onboarding";
 import { ClientFactsCard } from "@/components/client-facts";
+import { CampaignNotes } from "@/components/campaign-notes";
 import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
@@ -124,10 +125,32 @@ function InlineSelect({
   );
 }
 
+type CampaignTab = "info" | "plan" | "people";
+
+const TABS: Array<{ key: CampaignTab; label: string; tip: string }> = [
+  {
+    key: "info",
+    label: "Campaign information",
+    tip: "Progress, who runs it, who it comes from, the client's details and the team's notes",
+  },
+  {
+    key: "plan",
+    label: "Sessions & series",
+    tip: "The meetings and the lesson series they trigger",
+  },
+  {
+    key: "people",
+    label: "Participants",
+    tip: "Who takes part, and where each of them stands on the agreement and the community",
+  },
+];
+
 export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { clients, templates, staff: team, dispatch } = useData();
   const confirmDelete = useConfirm();
+  // which of the three faces of this page you are looking at
+  const [tab, setTab] = useState<CampaignTab>("info");
   const [pickingModule, setPickingModule] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -380,621 +403,544 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Progress overview */}
-      <section className="card mb-6 p-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-medium text-mist">
-              Campaign progress
-            </p>
-            <p className="mt-1 text-3xl font-bold tabular-nums">
-              {completion.pct}%
-              <span className="ml-2 text-sm font-medium text-mist">
-                {completion.sent} of {completion.total} lessons sent
-              </span>
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-[#4ade80]" />
-              <span className="font-bold tabular-nums">{sent}</span>
-              <span className="text-mist">sent</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-[#a3a4f0]" />
-              <span className="font-bold tabular-nums">{scheduled}</span>
-              <span className="text-mist">scheduled</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-white/20" />
-              <span className="font-bold tabular-nums">{waiting}</span>
-              <span className="text-mist">awaiting a date</span>
-            </span>
-            <span className="flex items-center gap-1.5 text-mist">
-              <CalendarDays size={13} />
-              <span className="font-bold tabular-nums text-paper">
-                {datedSessions}/{campaign.sessions.length}
-              </span>
-              sessions dated
-            </span>
-            <span className="flex items-center gap-1.5 text-mist">
-              <span>Runs</span>
-              <input
-                type="date"
-                title="Campaign start date — shown as a milestone in the Calendar"
-                value={campaign.startDate ?? ""}
-                onChange={(e) =>
-                  dispatch({
-                    type: "updateCampaign",
-                    clientId: client.id,
-                    campaignId: campaign.id,
-                    patch: { startDate: e.target.value || null },
-                  })
-                }
-                className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
-              />
-              <span>→</span>
-              <input
-                type="date"
-                title="Campaign end date — shown as a milestone in the Calendar"
-                value={campaign.endDate ?? ""}
-                onChange={(e) =>
-                  dispatch({
-                    type: "updateCampaign",
-                    clientId: client.id,
-                    campaignId: campaign.id,
-                    patch: { endDate: e.target.value || null },
-                  })
-                }
-                className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
-              />
-            </span>
-          </div>
-        </div>
-
-        {/* segmented bar: sent | scheduled | waiting */}
-        <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-white/8">
-          {sent > 0 && (
-            <div
-              className="h-full bg-[#4ade80]"
-              style={{ width: `${(sent / Math.max(1, sent + scheduled + waiting)) * 100}%` }}
-            />
-          )}
-          {scheduled > 0 && (
-            <div
-              className="h-full bg-[#a3a4f0]"
-              style={{
-                width: `${(scheduled / Math.max(1, sent + scheduled + waiting)) * 100}%`,
-              }}
-            />
-          )}
-        </div>
-      </section>
-
-      {/* Who runs it, who it comes from, and where the client is —
-          three short cards, so the people list below gets the room */}
-      <div className="mb-6 grid gap-6 lg:grid-cols-3">
-        {/* Phoenix side */}
-        <section className="card p-4">
-          <div className="mb-1 flex items-center justify-between">
-            <h2
-              data-tip="Who at Phoenix works on this campaign. The Coach is the one the emails are sent from."
-              className="text-base font-bold"
-            >
-              Phoenix team{" "}
-              <span className="text-sm font-medium text-mist">
-                ({campaign.phoenixTeam.length})
-              </span>
-            </h2>
-            <button
-              data-tip="Add a Phoenix collaborator to this campaign"
-              onClick={() => setPendingPhoenixRow(true)}
-              className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-          <div className="mb-3" />
-
-          {campaign.phoenixTeam.length > 0 && (
-            <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
-              <span>Name</span>
-              <span>Role</span>
-              <span />
-            </div>
-          )}
-          <div className="flex flex-col">
-            {campaign.phoenixTeam.map((a) => {
-              const person = findStaff(team, a.staffId);
-              return (
-                <div
-                  key={a.id}
-                  className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
-                >
-                  <select
-                    title="Which Phoenix collaborator"
-                    value={a.staffId}
-                    onChange={(e) =>
-                      dispatch({
-                        type: "updatePhoenixAssignment",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        assignmentId: a.id,
-                        patch: { staffId: e.target.value },
-                      })
-                    }
-                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
-                  >
-                    {team.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    title="Their role on this campaign"
-                    value={a.role}
-                    onChange={(e) =>
-                      dispatch({
-                        type: "updatePhoenixAssignment",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        assignmentId: a.id,
-                        patch: { role: e.target.value as PhoenixAssignmentRole },
-                      })
-                    }
-                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs text-mist transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
-                  >
-                    <option value="phoenix_leader">Phoenix Leader</option>
-                    <option value="phoenix_coach">Phoenix Coach</option>
-                    <option value="project_manager">Project Manager</option>
-                  </select>
-                  <button
-                    data-tip="Remove this assignment"
-                    onClick={async () => {
-                      if (
-                        await confirmDelete({
-                          name: person?.name ?? "this assignment",
-                          detail: "Takes them off this campaign only — they stay on the team and on the client.",
-                          verb: "Remove",
-                        })
-                      )
-                        dispatch({
-                          type: "removePhoenixAssignment",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          assignmentId: a.id,
-                        });
-                    }}
-                    className="cursor-pointer justify-self-end rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              );
-            })}
-            {pendingPhoenixRow && (
-              <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
-                <select
-                  autoFocus
-                  data-tip="Choose who joins this campaign — nothing is saved until you do"
-                  value=""
-                  onChange={(e) => {
-                    if (!e.target.value) return;
-                    dispatch({
-                      type: "addPhoenixAssignment",
-                      clientId: client.id,
-                      campaignId: campaign.id,
-                      staffId: e.target.value,
-                      role: "phoenix_coach",
-                    });
-                    setPendingPhoenixRow(false);
-                  }}
-                  className="min-w-0 cursor-pointer rounded border border-white/20 bg-navy/60 px-1 py-1 text-xs focus:border-white/30 focus:outline-none"
-                >
-                  <option value="">— choose a person —</option>
-                  {[...team]
-                    .sort((x, y) => x.name.localeCompare(y.name))
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                </select>
-                <span className="text-xs text-mist/50">then pick a role</span>
-                <button
-                  data-tip="Never mind"
-                  onClick={() => setPendingPhoenixRow(false)}
-                  className="cursor-pointer justify-self-end rounded p-1 text-mist/60 hover:bg-white/10 hover:text-paper"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-            )}
-            {campaign.phoenixTeam.length === 0 && !pendingPhoenixRow && (
-              <p className="text-[11px] leading-relaxed text-mist">
-                No one assigned yet — the client defaults apply
-                {(() => {
-                  const d = [
-                    findStaff(team, client.phoenixLeaderId),
-                    findStaff(team, client.phoenixCoachId),
-                    findStaff(team, client.projectManagerId),
-                  ]
-                    .filter(Boolean)
-                    .map((x) => x!.name);
-                  return d.length ? ` (${[...new Set(d)].join(", ")})` : "";
-                })()}
-                .
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* Who the emails come from */}
-        <section className="card p-4">
-          <h2 className="mb-3 flex items-center gap-2 text-base font-bold">
-            <Mail size={17} className="text-mist" /> Emails sent from
-          </h2>
-
-          <select
-            data-tip="Who this campaign's emails appear to come from — normally the Phoenix Coach, or the client's own champion when the program is introduced from inside their organisation"
-            value={campaign.senderMemberId ?? ""}
-            onChange={(e) =>
-              dispatch({
-                type: "updateCampaign",
-                clientId: client.id,
-                campaignId: campaign.id,
-                patch: { senderMemberId: e.target.value || null },
-              })
-            }
-            className="w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+      {/* One page, three things: what the campaign is, how it runs, and
+          who it is for. All three at once buried the part you came for. */}
+      <div className="mb-6 flex flex-wrap gap-1 border-b border-white/8">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            data-tip={t.tip}
+            className={`-mb-px cursor-pointer border-b-2 px-3.5 py-2 text-[13px] transition-colors ${
+              tab === t.key
+                ? "border-[#eb320f] font-bold text-paper"
+                : "border-transparent font-medium text-mist hover:text-paper"
+            }`}
           >
-            <option value="">
-              The Phoenix Coach
-              {phoenixSender ? ` — ${phoenixSender.name}` : " — none assigned"}
-            </option>
-            {client.members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-                {m.title ? ` — ${m.title}` : ""} (at {client.shortName})
-              </option>
-            ))}
-          </select>
-
-          {emailSender ? (
-            <p
-              data-tip={
-                emailSender.isClientMember
-                  ? `Replies go to ${emailSender.replyTo}`
-                  : "The address recipients see"
-              }
-              className="mt-2 truncate text-[11px] text-mist"
-            >
-              {emailSender.name} &lt;{emailSender.address}&gt;
-            </p>
-          ) : (
-            <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
-              No sender yet
-            </p>
-          )}
-
-          {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
-            <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
-              {emailSender.name} has no address — replies have nowhere to go.
-            </p>
-          )}
-
-          {/* Watching from the outside: one copy per lesson, not per member */}
-          <label className="mt-4 block border-t border-white/8 pt-3">
-            <span className="text-[11px] font-medium text-mist">
-              Send a copy of everything to
-            </span>
-            <input
-              type="text"
-              defaultValue={campaign.shadowEmails ?? ""}
-              placeholder="amber@phoenixperform.com"
-              data-tip="Comma-separated. One copy of each lesson, once — not one per member, no personalisation, and they stay off the participants list."
-              onBlur={(e) => {
-                const next = e.target.value.trim();
-                if (next === (campaign.shadowEmails ?? "").trim()) return;
-                dispatch({
-                  type: "updateCampaign",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  patch: { shadowEmails: next || null },
-                });
-              }}
-              className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-            />
-          </label>
-        </section>
-
-        {/* the client's own details, so nobody has to go and look them up */}
-        <ClientFactsCard client={client} fromCampaign />
+            {t.label}
+            {t.key === "people" && campaign.clientTeam.length > 0 && (
+              <span className="ml-1.5 text-[11px] font-medium text-mist">
+                {campaign.clientTeam.length}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* The people this campaign is actually for — full width,
-          because this is the list that gets read and edited */}
+      {tab === "info" && (
+        <>
+        {/* Progress overview */}
         <section className="card mb-6 p-5">
-          <div className="mb-1 flex items-center justify-between">
-            <h2 className="text-base font-bold">
-              Campaign participants{" "}
-              <span className="text-sm font-medium text-mist">
-                ({campaign.clientTeam.length})
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium text-mist">
+                Campaign progress
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums">
+                {completion.pct}%
+                <span className="ml-2 text-sm font-medium text-mist">
+                  {completion.sent} of {completion.total} lessons sent
+                </span>
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-[#4ade80]" />
+                <span className="font-bold tabular-nums">{sent}</span>
+                <span className="text-mist">sent</span>
               </span>
-            </h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <OnboardingButtons
-                campaignId={campaign.id}
-                clientName={client.shortName}
-                inviteUrl={client.inviteUrl}
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-[#a3a4f0]" />
+                <span className="font-bold tabular-nums">{scheduled}</span>
+                <span className="text-mist">scheduled</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-full bg-white/20" />
+                <span className="font-bold tabular-nums">{waiting}</span>
+                <span className="text-mist">awaiting a date</span>
+              </span>
+              <span className="flex items-center gap-1.5 text-mist">
+                <CalendarDays size={13} />
+                <span className="font-bold tabular-nums text-paper">
+                  {datedSessions}/{campaign.sessions.length}
+                </span>
+                sessions dated
+              </span>
+              <span className="flex items-center gap-1.5 text-mist">
+                <span>Runs</span>
+                <input
+                  type="date"
+                  title="Campaign start date — shown as a milestone in the Calendar"
+                  value={campaign.startDate ?? ""}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "updateCampaign",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                      patch: { startDate: e.target.value || null },
+                    })
+                  }
+                  className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                />
+                <span>→</span>
+                <input
+                  type="date"
+                  title="Campaign end date — shown as a milestone in the Calendar"
+                  value={campaign.endDate ?? ""}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "updateCampaign",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                      patch: { endDate: e.target.value || null },
+                    })
+                  }
+                  className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                />
+              </span>
+            </div>
+          </div>
+
+          {/* segmented bar: sent | scheduled | waiting */}
+          <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-white/8">
+            {sent > 0 && (
+              <div
+                className="h-full bg-[#4ade80]"
+                style={{ width: `${(sent / Math.max(1, sent + scheduled + waiting)) * 100}%` }}
               />
-              <span className="mx-1 h-5 w-px bg-white/10" aria-hidden />
-              {/* the common case is the whole team: one click instead of
-                  picking the same twenty people by hand, one row at a time */}
-              {(() => {
-                const missing = client.members.filter(
-                  (m) =>
-                    (m.status ?? "active") === "active" &&
-                    !campaign.clientTeam.some((a) => a.memberId === m.id)
-                );
-                if (missing.length === 0) return null;
-                return (
-                  <button
-                    data-tip={`Put all ${missing.length} active team members on this campaign`}
-                    onClick={() => {
-                      for (const m of missing)
-                        dispatch({
-                          type: "addClientAssignment",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          memberId: m.id,
-                          role: "contact",
-                        });
-                    }}
-                    className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
-                  >
-                    <Users size={13} /> Add the whole team ({missing.length})
-                  </button>
-                );
-              })()}
-              <button
-                data-tip={
-                  client.members.length === 0
-                    ? "Add the first person at this client"
-                    : "Add a client member to this campaign"
-                }
-                onClick={() => {
-                  // no members yet? then the person has to be created first,
-                  // right here — sending you to another page loses your place
-                  if (client.members.length === 0) setAddingMember(true);
-                  else setPendingClientRow(true);
+            )}
+            {scheduled > 0 && (
+              <div
+                className="h-full bg-[#a3a4f0]"
+                style={{
+                  width: `${(scheduled / Math.max(1, sent + scheduled + waiting)) * 100}%`,
                 }}
+              />
+            )}
+          </div>
+        </section>
+
+        {/* Who runs it, who it comes from, and where the client is —
+            three short cards, so the people list below gets the room */}
+        <div className="mb-6 grid gap-6 lg:grid-cols-3">
+          {/* Phoenix side */}
+          <section className="card p-4">
+            <div className="mb-1 flex items-center justify-between">
+              <h2
+                data-tip="Who at Phoenix works on this campaign. The Coach is the one the emails are sent from."
+                className="text-base font-bold"
+              >
+                Phoenix team{" "}
+                <span className="text-sm font-medium text-mist">
+                  ({campaign.phoenixTeam.length})
+                </span>
+              </h2>
+              <button
+                data-tip="Add a Phoenix collaborator to this campaign"
+                onClick={() => setPendingPhoenixRow(true)}
                 className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
               >
                 <Plus size={14} />
               </button>
             </div>
-          </div>
-          <div className="mb-3" />
+            <div className="mb-3" />
 
-          {campaign.clientTeam.length > 0 && (
-            <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
-              <span>#</span>
-              <span>Name</span>
-              <span>Email</span>
-              <span>Role</span>
-              <span data-tip="Document: the user agreement. Door: the community. Green means accepted or joined, yellow means sent and waiting, grey means not yet.">Onboarding</span>
-              <span />
-            </div>
-          )}
-          <div className="flex flex-col">
-            {/* about five rows tall; the rest scrolls */}
-            <div className="flex max-h-[32rem] flex-col overflow-y-auto pr-1">
-            {[...campaign.clientTeam]
-              .sort((x, y) => {
-                const nx = client.members.find((m) => m.id === x.memberId)?.name ?? "";
-                const ny = client.members.find((m) => m.id === y.memberId)?.name ?? "";
-                return nx.localeCompare(ny);
-              })
-              .map((a, rowIndex) => {
-              const member = client.members.find((m) => m.id === a.memberId);
-              return (
-                <div
-                  key={a.id}
-                  className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
-                >
-                  <span className="text-[11px] tabular-nums text-mist/60">
-                    {rowIndex + 1}
-                  </span>
-                  <MemberPicker
-                    nameOnly
-                    tip="Which member of the client — type to search"
-                    members={client.members}
-                    excludeIds={campaign.clientTeam.map((x) => x.memberId)}
-                    value={a.memberId}
-                    onPick={(memberId) =>
-                      dispatch({
-                        type: "updateClientAssignment",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        assignmentId: a.id,
-                        patch: { memberId },
-                      })
-                    }
-                  />
-                  <span
-                    data-tip={member?.email || "No email address yet — add it on the client page"}
-                    className={`truncate text-xs ${member?.email ? "text-mist" : "font-semibold text-[#ff7a55]"}`}
+            {campaign.phoenixTeam.length > 0 && (
+              <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+                <span>Name</span>
+                <span>Role</span>
+                <span />
+              </div>
+            )}
+            <div className="flex flex-col">
+              {campaign.phoenixTeam.map((a) => {
+                const person = findStaff(team, a.staffId);
+                return (
+                  <div
+                    key={a.id}
+                    className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
                   >
-                    {member?.email || "no email"}
-                  </span>
-                  <select
-                    title="Their role on this campaign"
-                    value={a.role}
-                    onChange={(e) =>
-                      dispatch({
-                        type: "updateClientAssignment",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        assignmentId: a.id,
-                        patch: { role: e.target.value as ClientAssignmentRole },
-                      })
-                    }
-                    className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs text-mist transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
-                  >
-                    <option value="contact">Team member</option>
-                    <option value="champion">Transf. Champion</option>
-                  </select>
-                  <span className="flex items-center justify-center">
-                    {member && <OnboardingChips member={member} />}
-                  </span>
-                  <button
-                    data-tip="Remove this assignment"
-                    onClick={async () => {
-                      if (
-                        await confirmDelete({
-                          name: member?.name ?? "this assignment",
-                          detail: `Takes them off this campaign's team only — they stay on ${client.shortName}'s members list.`,
-                          verb: "Remove",
-                        })
-                      )
+                    <select
+                      title="Which Phoenix collaborator"
+                      value={a.staffId}
+                      onChange={(e) =>
                         dispatch({
-                          type: "removeClientAssignment",
+                          type: "updatePhoenixAssignment",
                           clientId: client.id,
                           campaignId: campaign.id,
                           assignmentId: a.id,
-                        });
+                          patch: { staffId: e.target.value },
+                        })
+                      }
+                      className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs font-semibold transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
+                    >
+                      {team.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      title="Their role on this campaign"
+                      value={a.role}
+                      onChange={(e) =>
+                        dispatch({
+                          type: "updatePhoenixAssignment",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          assignmentId: a.id,
+                          patch: { role: e.target.value as PhoenixAssignmentRole },
+                        })
+                      }
+                      className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs text-mist transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
+                    >
+                      <option value="phoenix_leader">Phoenix Leader</option>
+                      <option value="phoenix_coach">Phoenix Coach</option>
+                      <option value="project_manager">Project Manager</option>
+                    </select>
+                    <button
+                      data-tip="Remove this assignment"
+                      onClick={async () => {
+                        if (
+                          await confirmDelete({
+                            name: person?.name ?? "this assignment",
+                            detail: "Takes them off this campaign only — they stay on the team and on the client.",
+                            verb: "Remove",
+                          })
+                        )
+                          dispatch({
+                            type: "removePhoenixAssignment",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            assignmentId: a.id,
+                          });
+                      }}
+                      className="cursor-pointer justify-self-end rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+              {pendingPhoenixRow && (
+                <div className="grid grid-cols-[minmax(0,1fr)_9.5rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+                  <select
+                    autoFocus
+                    data-tip="Choose who joins this campaign — nothing is saved until you do"
+                    value=""
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      dispatch({
+                        type: "addPhoenixAssignment",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        staffId: e.target.value,
+                        role: "phoenix_coach",
+                      });
+                      setPendingPhoenixRow(false);
                     }}
-                    className="cursor-pointer justify-self-end rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+                    className="min-w-0 cursor-pointer rounded border border-white/20 bg-navy/60 px-1 py-1 text-xs focus:border-white/30 focus:outline-none"
                   >
-                    <Trash2 size={13} />
+                    <option value="">— choose a person —</option>
+                    {[...team]
+                      .sort((x, y) => x.name.localeCompare(y.name))
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                  </select>
+                  <span className="text-xs text-mist/50">then pick a role</span>
+                  <button
+                    data-tip="Never mind"
+                    onClick={() => setPendingPhoenixRow(false)}
+                    className="cursor-pointer justify-self-end rounded p-1 text-mist/60 hover:bg-white/10 hover:text-paper"
+                  >
+                    <X size={13} />
                   </button>
                 </div>
-              );
-            })}
+              )}
+              {campaign.phoenixTeam.length === 0 && !pendingPhoenixRow && (
+                <p className="text-[11px] leading-relaxed text-mist">
+                  No one assigned yet — the client defaults apply
+                  {(() => {
+                    const d = [
+                      findStaff(team, client.phoenixLeaderId),
+                      findStaff(team, client.phoenixCoachId),
+                      findStaff(team, client.projectManagerId),
+                    ]
+                      .filter(Boolean)
+                      .map((x) => x!.name);
+                    return d.length ? ` (${[...new Set(d)].join(", ")})` : "";
+                  })()}
+                  .
+                </p>
+              )}
             </div>
-            {pendingClientRow && (
-              <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
-                <span className="text-[11px] tabular-nums text-mist/40">+</span>
-                <MemberPicker
-                  nameOnly
-                  tip="Choose who joins this campaign — nothing is saved until you do"
-                  members={client.members}
-                  excludeIds={campaign.clientTeam.map((x) => x.memberId)}
-                  value=""
-                  onPick={(memberId) => {
-                    dispatch({
-                      type: "addClientAssignment",
-                      clientId: client.id,
-                      campaignId: campaign.id,
-                      memberId,
-                      role: "contact",
-                    });
-                    setPendingClientRow(false);
-                  }}
-                />
-                <span className="truncate text-xs text-mist/40">—</span>
-                <span className="text-xs text-mist/50">as team member</span>
-                <span />
-                <button
-                  data-tip="Never mind"
-                  onClick={() => setPendingClientRow(false)}
-                  className="cursor-pointer justify-self-end rounded p-1 text-mist/60 hover:bg-white/10 hover:text-paper"
-                >
-                  <X size={13} />
-                </button>
-              </div>
-            )}
-            {campaign.clientTeam.length === 0 && !addingMember && !pendingClientRow && (
-              <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
-                No one assigned yet — add the Client Transformational Champion
-                with the + above.
+          </section>
+
+          {/* Who the emails come from */}
+          <section className="card p-4">
+            <h2 className="mb-3 flex items-center gap-2 text-base font-bold">
+              <Mail size={17} className="text-mist" /> Emails sent from
+            </h2>
+
+            <select
+              data-tip="Who this campaign's emails appear to come from — normally the Phoenix Coach, or the client's own champion when the program is introduced from inside their organisation"
+              value={campaign.senderMemberId ?? ""}
+              onChange={(e) =>
+                dispatch({
+                  type: "updateCampaign",
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  patch: { senderMemberId: e.target.value || null },
+                })
+              }
+              className="w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
+            >
+              <option value="">
+                The Phoenix Coach
+                {phoenixSender ? ` — ${phoenixSender.name}` : " — none assigned"}
+              </option>
+              {client.members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                  {m.title ? ` — ${m.title}` : ""} (at {client.shortName})
+                </option>
+              ))}
+            </select>
+
+            {emailSender ? (
+              <p
+                data-tip={
+                  emailSender.isClientMember
+                    ? `Replies go to ${emailSender.replyTo}`
+                    : "The address recipients see"
+                }
+                className="mt-2 truncate text-[11px] text-mist"
+              >
+                {emailSender.name} &lt;{emailSender.address}&gt;
+              </p>
+            ) : (
+              <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
+                No sender yet
               </p>
             )}
 
-            {/* Create a person at the client and put them on this campaign in
-                one step — no detour to the client page. */}
-            {addingMember && (
-              <div className="rounded-md border border-white/10 bg-white/3 p-3">
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  <input
-                    autoFocus
-                    value={newMember.first}
-                    onChange={(e) =>
-                      setNewMember({ ...newMember, first: e.target.value })
-                    }
-                    placeholder="First name"
-                    data-tip="What {{first_name}} in their emails becomes"
-                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-                  />
-                  <input
-                    value={newMember.last}
-                    onChange={(e) =>
-                      setNewMember({ ...newMember, last: e.target.value })
-                    }
-                    placeholder="Last name"
-                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-                  />
-                  <input
-                    value={newMember.title}
-                    onChange={(e) =>
-                      setNewMember({ ...newMember, title: e.target.value })
-                    }
-                    placeholder="Job title"
-                    data-tip="Shown beside their name, and used as their role if they ever send the campaign's emails"
-                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-                  />
-                  <input
-                    type="email"
-                    value={newMember.email}
-                    onChange={(e) =>
-                      setNewMember({ ...newMember, email: e.target.value })
-                    }
-                    placeholder="name@company.com"
-                    data-tip="Where their lessons go, and where replies reach them if they are the sender"
-                    className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-                  />
-                </div>
-                <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  <button
-                    disabled={!newMember.first.trim() && !newMember.last.trim()}
-                    data-tip="Adds them to this client and puts them on this campaign as a team member"
-                    onClick={() => {
-                      const first = newMember.first.trim();
-                      const last = newMember.last.trim();
-                      if (!first && !last) return;
-                      const email = newMember.email.trim();
-                      const fullName = [first, last].filter(Boolean).join(" ");
-                      // never a second record for the same person: two of
-                      // them drift apart, and the older address keeps
-                      // being used somewhere
-                      const existing = client.members.find(
-                        (m) =>
-                          (email &&
-                            m.email &&
-                            m.email.toLowerCase() === email.toLowerCase()) ||
-                          m.name.trim().toLowerCase() === fullName.toLowerCase()
-                      );
-                      const memberId =
-                        existing?.id ?? `member-${Math.random().toString(36).slice(2, 9)}`;
-                      if (!existing)
+            {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
+              <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
+                {emailSender.name} has no address — replies have nowhere to go.
+              </p>
+            )}
+
+            {/* Watching from the outside: one copy per lesson, not per member */}
+            <label className="mt-4 block border-t border-white/8 pt-3">
+              <span className="text-[11px] font-medium text-mist">
+                Send a copy of everything to
+              </span>
+              <input
+                type="text"
+                defaultValue={campaign.shadowEmails ?? ""}
+                placeholder="amber@phoenixperform.com"
+                data-tip="Comma-separated. One copy of each lesson, once — not one per member, no personalisation, and they stay off the participants list."
+                onBlur={(e) => {
+                  const next = e.target.value.trim();
+                  if (next === (campaign.shadowEmails ?? "").trim()) return;
+                  dispatch({
+                    type: "updateCampaign",
+                    clientId: client.id,
+                    campaignId: campaign.id,
+                    patch: { shadowEmails: next || null },
+                  });
+                }}
+                className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+              />
+            </label>
+          </section>
+
+          {/* the client's own details, so nobody has to go and look them up */}
+          <ClientFactsCard client={client} fromCampaign />
+        </div>
+
+          <div className="mb-6">
+            <CampaignNotes clientId={client.id} campaign={campaign} />
+          </div>
+        </>
+      )}
+
+      {tab === "people" && (
+        <>
+        {/* The people this campaign is actually for — full width,
+            because this is the list that gets read and edited */}
+          <section className="card mb-6 p-5">
+            <div className="mb-1 flex items-center justify-between">
+              <h2 className="text-base font-bold">
+                Campaign participants{" "}
+                <span className="text-sm font-medium text-mist">
+                  ({campaign.clientTeam.length})
+                </span>
+              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <OnboardingButtons
+                  campaignId={campaign.id}
+                  clientName={client.shortName}
+                  inviteUrl={client.inviteUrl}
+                />
+                <span className="mx-1 h-5 w-px bg-white/10" aria-hidden />
+                {/* the common case is the whole team: one click instead of
+                    picking the same twenty people by hand, one row at a time */}
+                {(() => {
+                  const missing = client.members.filter(
+                    (m) =>
+                      (m.status ?? "active") === "active" &&
+                      !campaign.clientTeam.some((a) => a.memberId === m.id)
+                  );
+                  if (missing.length === 0) return null;
+                  return (
+                    <button
+                      data-tip={`Put all ${missing.length} active team members on this campaign`}
+                      onClick={() => {
+                        for (const m of missing)
+                          dispatch({
+                            type: "addClientAssignment",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            memberId: m.id,
+                            role: "contact",
+                          });
+                      }}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                    >
+                      <Users size={13} /> Add the whole team ({missing.length})
+                    </button>
+                  );
+                })()}
+                <button
+                  data-tip={
+                    client.members.length === 0
+                      ? "Add the first person at this client"
+                      : "Add a client member to this campaign"
+                  }
+                  onClick={() => {
+                    // no members yet? then the person has to be created first,
+                    // right here — sending you to another page loses your place
+                    if (client.members.length === 0) setAddingMember(true);
+                    else setPendingClientRow(true);
+                  }}
+                  className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="mb-3" />
+
+            {campaign.clientTeam.length > 0 && (
+              <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] gap-2 border-b border-white/8 pb-1 text-[11px] font-medium text-mist">
+                <span>#</span>
+                <span>Name</span>
+                <span>Email</span>
+                <span>Role</span>
+                <span data-tip="Document: the user agreement. Door: the community. Green means accepted or joined, yellow means sent and waiting, grey means not yet.">Onboarding</span>
+                <span />
+              </div>
+            )}
+            <div className="flex flex-col">
+              {/* about five rows tall; the rest scrolls */}
+              <div className="flex max-h-[32rem] flex-col overflow-y-auto pr-1">
+              {[...campaign.clientTeam]
+                .sort((x, y) => {
+                  const nx = client.members.find((m) => m.id === x.memberId)?.name ?? "";
+                  const ny = client.members.find((m) => m.id === y.memberId)?.name ?? "";
+                  return nx.localeCompare(ny);
+                })
+                .map((a, rowIndex) => {
+                const member = client.members.find((m) => m.id === a.memberId);
+                return (
+                  <div
+                    key={a.id}
+                    className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
+                  >
+                    <span className="text-[11px] tabular-nums text-mist/60">
+                      {rowIndex + 1}
+                    </span>
+                    <MemberPicker
+                      nameOnly
+                      tip="Which member of the client — type to search"
+                      members={client.members}
+                      excludeIds={campaign.clientTeam.map((x) => x.memberId)}
+                      value={a.memberId}
+                      onPick={(memberId) =>
                         dispatch({
-                          type: "addMember",
-                          id: memberId,
+                          type: "updateClientAssignment",
                           clientId: client.id,
-                          name: fullName,
-                          firstName: first,
-                          lastName: last,
-                          title: newMember.title.trim(),
-                          email,
-                          role: "participant",
-                        });
-                      if (campaign.clientTeam.some((a) => a.memberId === memberId)) {
-                        setNewMember({ first: "", last: "", title: "", email: "" });
-                        setAddingMember(false);
-                        return;
+                          campaignId: campaign.id,
+                          assignmentId: a.id,
+                          patch: { memberId },
+                        })
                       }
+                    />
+                    <span
+                      data-tip={member?.email || "No email address yet — add it on the client page"}
+                      className={`truncate text-xs ${member?.email ? "text-mist" : "font-semibold text-[#ff7a55]"}`}
+                    >
+                      {member?.email || "no email"}
+                    </span>
+                    <select
+                      title="Their role on this campaign"
+                      value={a.role}
+                      onChange={(e) =>
+                        dispatch({
+                          type: "updateClientAssignment",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          assignmentId: a.id,
+                          patch: { role: e.target.value as ClientAssignmentRole },
+                        })
+                      }
+                      className="min-w-0 cursor-pointer rounded border border-transparent bg-transparent px-1 py-1 text-xs text-mist transition-colors hover:border-white/15 hover:bg-navy/60 focus:border-white/30 focus:bg-navy/60 focus:outline-none"
+                    >
+                      <option value="contact">Team member</option>
+                      <option value="champion">Transf. Champion</option>
+                    </select>
+                    <span className="flex items-center justify-center">
+                      {member && <OnboardingChips member={member} />}
+                    </span>
+                    <button
+                      data-tip="Remove this assignment"
+                      onClick={async () => {
+                        if (
+                          await confirmDelete({
+                            name: member?.name ?? "this assignment",
+                            detail: `Takes them off this campaign's team only — they stay on ${client.shortName}'s members list.`,
+                            verb: "Remove",
+                          })
+                        )
+                          dispatch({
+                            type: "removeClientAssignment",
+                            clientId: client.id,
+                            campaignId: campaign.id,
+                            assignmentId: a.id,
+                          });
+                      }}
+                      className="cursor-pointer justify-self-end rounded p-1 text-mist/60 transition-colors hover:bg-[#eb320f]/20 hover:text-[#ff7a55]"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+              </div>
+              {pendingClientRow && (
+                <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
+                  <span className="text-[11px] tabular-nums text-mist/40">+</span>
+                  <MemberPicker
+                    nameOnly
+                    tip="Choose who joins this campaign — nothing is saved until you do"
+                    members={client.members}
+                    excludeIds={campaign.clientTeam.map((x) => x.memberId)}
+                    value=""
+                    onPick={(memberId) => {
                       dispatch({
                         type: "addClientAssignment",
                         clientId: client.id,
@@ -1002,214 +948,582 @@ export default function CampaignDetailPage() {
                         memberId,
                         role: "contact",
                       });
-                      setNewMember({ first: "", last: "", title: "", email: "" });
-                      setAddingMember(false);
+                      setPendingClientRow(false);
                     }}
-                    className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Add and assign
-                  </button>
+                  />
+                  <span className="truncate text-xs text-mist/40">—</span>
+                  <span className="text-xs text-mist/50">as team member</span>
+                  <span />
                   <button
-                    onClick={() => setAddingMember(false)}
-                    data-tip="Discard this person without adding them"
-                    className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                    data-tip="Never mind"
+                    onClick={() => setPendingClientRow(false)}
+                    className="cursor-pointer justify-self-end rounded p-1 text-mist/60 hover:bg-white/10 hover:text-paper"
                   >
-                    Cancel
+                    <X size={13} />
                   </button>
-                  <span className="text-[11px] text-mist">
-                    They join {client.name}&rsquo;s members list too.
+                </div>
+              )}
+              {campaign.clientTeam.length === 0 && !addingMember && !pendingClientRow && (
+                <p className="rounded-md border border-dashed border-white/10 px-3 py-4 text-center text-xs text-mist">
+                  No one assigned yet — add the Client Transformational Champion
+                  with the + above.
+                </p>
+              )}
+
+              {/* Create a person at the client and put them on this campaign in
+                  one step — no detour to the client page. */}
+              {addingMember && (
+                <div className="rounded-md border border-white/10 bg-white/3 p-3">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <input
+                      autoFocus
+                      value={newMember.first}
+                      onChange={(e) =>
+                        setNewMember({ ...newMember, first: e.target.value })
+                      }
+                      placeholder="First name"
+                      data-tip="What {{first_name}} in their emails becomes"
+                      className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                    />
+                    <input
+                      value={newMember.last}
+                      onChange={(e) =>
+                        setNewMember({ ...newMember, last: e.target.value })
+                      }
+                      placeholder="Last name"
+                      className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                    />
+                    <input
+                      value={newMember.title}
+                      onChange={(e) =>
+                        setNewMember({ ...newMember, title: e.target.value })
+                      }
+                      placeholder="Job title"
+                      data-tip="Shown beside their name, and used as their role if they ever send the campaign's emails"
+                      className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                    />
+                    <input
+                      type="email"
+                      value={newMember.email}
+                      onChange={(e) =>
+                        setNewMember({ ...newMember, email: e.target.value })
+                      }
+                      placeholder="name@company.com"
+                      data-tip="Where their lessons go, and where replies reach them if they are the sender"
+                      className="min-w-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1.5 text-xs focus:border-white/30 focus:outline-none"
+                    />
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    <button
+                      disabled={!newMember.first.trim() && !newMember.last.trim()}
+                      data-tip="Adds them to this client and puts them on this campaign as a team member"
+                      onClick={() => {
+                        const first = newMember.first.trim();
+                        const last = newMember.last.trim();
+                        if (!first && !last) return;
+                        const email = newMember.email.trim();
+                        const fullName = [first, last].filter(Boolean).join(" ");
+                        // never a second record for the same person: two of
+                        // them drift apart, and the older address keeps
+                        // being used somewhere
+                        const existing = client.members.find(
+                          (m) =>
+                            (email &&
+                              m.email &&
+                              m.email.toLowerCase() === email.toLowerCase()) ||
+                            m.name.trim().toLowerCase() === fullName.toLowerCase()
+                        );
+                        const memberId =
+                          existing?.id ?? `member-${Math.random().toString(36).slice(2, 9)}`;
+                        if (!existing)
+                          dispatch({
+                            type: "addMember",
+                            id: memberId,
+                            clientId: client.id,
+                            name: fullName,
+                            firstName: first,
+                            lastName: last,
+                            title: newMember.title.trim(),
+                            email,
+                            role: "participant",
+                          });
+                        if (campaign.clientTeam.some((a) => a.memberId === memberId)) {
+                          setNewMember({ first: "", last: "", title: "", email: "" });
+                          setAddingMember(false);
+                          return;
+                        }
+                        dispatch({
+                          type: "addClientAssignment",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          memberId,
+                          role: "contact",
+                        });
+                        setNewMember({ first: "", last: "", title: "", email: "" });
+                        setAddingMember(false);
+                      }}
+                      className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Add and assign
+                    </button>
+                    <button
+                      onClick={() => setAddingMember(false)}
+                      data-tip="Discard this person without adding them"
+                      className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+                    >
+                      Cancel
+                    </button>
+                    <span className="text-[11px] text-mist">
+                      They join {client.name}&rsquo;s members list too.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {client.members.length > 0 && !addingMember && (
+                <button
+                  onClick={() => setAddingMember(true)}
+                  data-tip="Create a person at this client and put them on this campaign in one step"
+                  className="w-fit cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
+                >
+                  Someone not on the list yet? Add them here
+                </button>
+              )}
+            </div>
+          </section>
+        </>
+      )}
+
+      {tab === "plan" && (
+        <div className="flex flex-col gap-6">
+          {/* Sessions — square, draggable cards */}
+          <section className="card p-5">
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="flex items-center gap-2 text-base font-bold">
+                <CalendarDays size={17} className="text-mist" /> Sessions
+                <span className="text-sm font-medium text-mist">
+                  ({campaign.sessions.length})
+                </span>
+              </h2>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {/* what the styling means */}
+                <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-mist">
+                  <span className="flex items-center gap-1.5" data-tip="Green card: the session coming up now">
+                    <span className="size-2 rounded-full bg-[#4ade80]" /> now
+                  </span>
+                  <span className="flex items-center gap-1.5" data-tip="Blue cards: still ahead">
+                    <span className="size-2 rounded-full bg-[#6ea8ff]" /> ahead
+                  </span>
+                  <span className="flex items-center gap-1.5" data-tip="Grey, faded cards already happened">
+                    <span className="size-2 rounded-full bg-[#7c7e8c]" /> done
+                  </span>
+                  <span data-tip="The line on the left and the number wear the colour of the series this session starts">
+                    edge = its series
                   </span>
                 </div>
-              </div>
-            )}
-
-            {client.members.length > 0 && !addingMember && (
-              <button
-                onClick={() => setAddingMember(true)}
-                data-tip="Create a person at this client and put them on this campaign in one step"
-                className="w-fit cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
-              >
-                Someone not on the list yet? Add them here
-              </button>
-            )}
-          </div>
-        </section>
-
-      <div className="flex flex-col gap-6">
-        {/* Sessions — square, draggable cards */}
-        <section className="card p-5">
-          <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-base font-bold">
-              <CalendarDays size={17} className="text-mist" /> Sessions
-              <span className="text-sm font-medium text-mist">
-                ({campaign.sessions.length})
-              </span>
-            </h2>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              {/* what the styling means */}
-              <div className="flex flex-wrap items-center gap-2.5 text-[11px] text-mist">
-                <span className="flex items-center gap-1.5" data-tip="Green card: the session coming up now">
-                  <span className="size-2 rounded-full bg-[#4ade80]" /> now
-                </span>
-                <span className="flex items-center gap-1.5" data-tip="Blue cards: still ahead">
-                  <span className="size-2 rounded-full bg-[#6ea8ff]" /> ahead
-                </span>
-                <span className="flex items-center gap-1.5" data-tip="Grey, faded cards already happened">
-                  <span className="size-2 rounded-full bg-[#7c7e8c]" /> done
-                </span>
-                <span data-tip="The line on the left and the number wear the colour of the series this session starts">
-                  edge = its series
-                </span>
-              </div>
-              <div className="flex divide-x divide-white/8 rounded-md border border-white/10">
-                {(
-                  [
-                    { key: "gallery", label: "Cards", Icon: LayoutGrid, tip: "Cards — good for moving sessions around" },
-                    { key: "list", label: "List", Icon: List, tip: "List — good for checking the order and the dates" },
-                  ] as const
-                ).map(({ key, label, Icon, tip }) => (
-                  <button
-                    key={key}
-                    data-tip={tip}
-                    onClick={() => setSessionView(key)}
-                    className={`flex cursor-pointer items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[5px] last:rounded-r-[5px] ${
-                      sessionView === key
-                        ? "bg-white/8 text-paper"
-                        : "text-mist hover:text-paper"
-                    }`}
-                  >
-                    <Icon size={12} /> {label}
-                  </button>
-                ))}
+                <div className="flex divide-x divide-white/8 rounded-md border border-white/10">
+                  {(
+                    [
+                      { key: "gallery", label: "Cards", Icon: LayoutGrid, tip: "Cards — good for moving sessions around" },
+                      { key: "list", label: "List", Icon: List, tip: "List — good for checking the order and the dates" },
+                    ] as const
+                  ).map(({ key, label, Icon, tip }) => (
+                    <button
+                      key={key}
+                      data-tip={tip}
+                      onClick={() => setSessionView(key)}
+                      className={`flex cursor-pointer items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold transition-colors first:rounded-l-[5px] last:rounded-r-[5px] ${
+                        sessionView === key
+                          ? "bg-white/8 text-paper"
+                          : "text-mist hover:text-paper"
+                      }`}
+                    >
+                      <Icon size={12} /> {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-          <p className="mb-4 text-xs text-mist">
-            The live and online meetings in this campaign. Drag to reorder — the
-            numbering follows. A session&rsquo;s date triggers the series bound to it.
-          </p>
-
-          {/* Day numbers — the campaign's rhythm, so a start date dates it all */}
-          <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-white/8 px-3 py-2.5">
-            <p className="min-w-0 flex-1 text-xs text-mist">
-              <span className="font-semibold text-paper">Day numbers.</span>{" "}
-              Each session can carry the number of days after the campaign
-              start on which it falls. Fill those in once and the next start
-              date dates the whole campaign in one click.
+            <p className="mb-4 text-xs text-mist">
+              The live and online meetings in this campaign. Drag to reorder — the
+              numbering follows. A session&rsquo;s date triggers the series bound to it.
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                data-tip={
-                  !campaign.startDate
-                    ? "Set the campaign start date first (top of this page)"
-                    : patternedCount === 0
-                      ? "No session has a day number yet — enter them on the cards, or save the current dates as the pattern"
-                      : `Date the ${patternedCount} session${patternedCount === 1 ? "" : "s"} that carry a day number`
-                }
-                disabled={!campaign.startDate || patternedCount === 0}
-                onClick={() => {
-                  setShift(null);
-                  dispatch({
-                    type: "fillSessionDates",
-                    clientId: client.id,
-                    campaignId: campaign.id,
-                  });
-                }}
-                className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {campaign.startDate
-                  ? `Fill the dates from ${fmtDateShort(new Date(`${campaign.startDate}T00:00:00`))}`
-                  : "Fill the dates from the start"}
-              </button>
-              <button
-                data-tip={
-                  !campaign.startDate
-                    ? "Set the campaign start date first (top of this page)"
-                    : "Record how many days after the start each dated session falls, so the same rhythm can be reused"
-                }
-                disabled={!campaign.startDate || datedSessionCount === 0}
-                onClick={() =>
-                  dispatch({
-                    type: "captureSessionOffsets",
-                    clientId: client.id,
-                    campaignId: campaign.id,
-                  })
-                }
-                className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Save these dates as the pattern
-              </button>
+
+            {/* Day numbers — the campaign's rhythm, so a start date dates it all */}
+            <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-white/8 px-3 py-2.5">
+              <p className="min-w-0 flex-1 text-xs text-mist">
+                <span className="font-semibold text-paper">Day numbers.</span>{" "}
+                Each session can carry the number of days after the campaign
+                start on which it falls. Fill those in once and the next start
+                date dates the whole campaign in one click.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  data-tip={
+                    !campaign.startDate
+                      ? "Set the campaign start date first (top of this page)"
+                      : patternedCount === 0
+                        ? "No session has a day number yet — enter them on the cards, or save the current dates as the pattern"
+                        : `Date the ${patternedCount} session${patternedCount === 1 ? "" : "s"} that carry a day number`
+                  }
+                  disabled={!campaign.startDate || patternedCount === 0}
+                  onClick={() => {
+                    setShift(null);
+                    dispatch({
+                      type: "fillSessionDates",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                    });
+                  }}
+                  className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {campaign.startDate
+                    ? `Fill the dates from ${fmtDateShort(new Date(`${campaign.startDate}T00:00:00`))}`
+                    : "Fill the dates from the start"}
+                </button>
+                <button
+                  data-tip={
+                    !campaign.startDate
+                      ? "Set the campaign start date first (top of this page)"
+                      : "Record how many days after the start each dated session falls, so the same rhythm can be reused"
+                  }
+                  disabled={!campaign.startDate || datedSessionCount === 0}
+                  onClick={() =>
+                    dispatch({
+                      type: "captureSessionOffsets",
+                      clientId: client.id,
+                      campaignId: campaign.id,
+                    })
+                  }
+                  className="cursor-pointer rounded-md border border-white/10 px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Save these dates as the pattern
+                </button>
+              </div>
             </div>
-          </div>
 
-          {sessionView === "gallery" ? (
-            <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-              {campaign.sessions.map((session, i) => {
-                const state = sessionState(session);
-                const tone = SESSION_STATE[state];
-                const bound = seriesOfSession(session.id);
-                // the left edge and number wear the series; the card
-                // background wears where it sits in time
-                const color = bound[0]?.color ?? "#7c7e8c";
-                const dragging = dragId === session.id;
-                const isOver = overIndex === i && dragId !== null && !dragging;
+            {sessionView === "gallery" ? (
+              <ol className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                {campaign.sessions.map((session, i) => {
+                  const state = sessionState(session);
+                  const tone = SESSION_STATE[state];
+                  const bound = seriesOfSession(session.id);
+                  // the left edge and number wear the series; the card
+                  // background wears where it sits in time
+                  const color = bound[0]?.color ?? "#7c7e8c";
+                  const dragging = dragId === session.id;
+                  const isOver = overIndex === i && dragId !== null && !dragging;
 
-                return (
-                  <li
-                    key={session.id}
-                    draggable
-                    {...dragProps(session.id, i)}
-                    style={
-                      {
-                        "--series-c": color,
-                        "--state-c": tone.color,
-                      } as CSSProperties
-                    }
-                    className={`session-card group relative flex min-h-32 cursor-grab flex-col p-2.5 transition-all active:cursor-grabbing ${
-                      state === "past" ? "opacity-60" : ""
-                    } ${dragging ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20" : ""} ${
-                      isOver ? "ring-2 ring-[#ff7a55]" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        data-tip={
-                          bound.length === 0
-                            ? "No series hangs off this session yet"
-                            : `Triggers ${bound.map((sr) => sr.code).join(" + ")} — the card wears that series' colour`
-                        }
-                        className="flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
-                        style={{ backgroundColor: color }}
-                      >
-                        {i + 1}
-                      </span>
-                      <button
-                        onClick={() =>
+                  return (
+                    <li
+                      key={session.id}
+                      draggable
+                      {...dragProps(session.id, i)}
+                      style={
+                        {
+                          "--series-c": color,
+                          "--state-c": tone.color,
+                        } as CSSProperties
+                      }
+                      className={`session-card group relative flex min-h-32 cursor-grab flex-col p-2.5 transition-all active:cursor-grabbing ${
+                        state === "past" ? "opacity-60" : ""
+                      } ${dragging ? "rotate-3 scale-105 opacity-70 shadow-2xl shadow-flame/20" : ""} ${
+                        isOver ? "ring-2 ring-[#ff7a55]" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          data-tip={
+                            bound.length === 0
+                              ? "No series hangs off this session yet"
+                              : `Triggers ${bound.map((sr) => sr.code).join(" + ")} — the card wears that series' colour`
+                          }
+                          className="flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
+                          style={{ backgroundColor: color }}
+                        >
+                          {i + 1}
+                        </span>
+                        <button
+                          onClick={() =>
+                            dispatch({
+                              type: "updateSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                              patch: {
+                                mode: session.mode === "virtual" ? "in-person" : "virtual",
+                              },
+                            })
+                          }
+                          data-tip="Click to switch between virtual and in person"
+                          className="cursor-pointer text-mist transition-colors hover:text-paper"
+                        >
+                          {session.mode === "virtual" ? (
+                            <Video size={11} />
+                          ) : (
+                            <MapPin size={11} />
+                          )}
+                        </button>
+                        <span className="ml-auto flex items-center gap-0.5">
+                          <span data-tip="Drag the card to another position to reorder">
+                            <GripVertical
+                              size={11}
+                              className="text-mist/40 group-hover:text-mist"
+                            />
+                          </span>
+                          <button
+                            data-tip="Delete this session — series bound to it fall back to unbound"
+                            onClick={async () => {
+                              if (
+                                await confirmDelete({
+                                  name: session.name,
+                                  detail: "Deletes this meeting from the campaign. Series bound to it lose their trigger and stop being scheduled until rebound.",
+                                })
+                              )
+                                dispatch({
+                                  type: "removeSession",
+                                  clientId: client.id,
+                                  campaignId: campaign.id,
+                                  sessionId: session.id,
+                                });
+                            }}
+                            className="hidden cursor-pointer rounded p-0.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </span>
+                      </div>
+
+                      <EditableText
+                        multiline
+                        value={session.name}
+                        onCommit={(v) =>
                           dispatch({
                             type: "updateSession",
                             clientId: client.id,
                             campaignId: campaign.id,
                             sessionId: session.id,
-                            patch: {
-                              mode: session.mode === "virtual" ? "in-person" : "virtual",
-                            },
+                            patch: { name: v },
                           })
                         }
-                        data-tip="Click to switch between virtual and in person"
-                        className="cursor-pointer text-mist transition-colors hover:text-paper"
+                        className="mt-1 text-[11px] font-semibold leading-snug"
+                      />
+
+                      {bound.length > 0 && (
+                        <p className="mt-1 flex flex-wrap gap-1">
+                          {bound.map((sr) => (
+                            <span
+                              key={sr.id}
+                              data-tip={`${sr.name} starts when this session is dated`}
+                              className="rounded px-1 py-px text-[9px] font-bold text-paper"
+                              style={{ backgroundColor: sr.color }}
+                            >
+                              {sr.code}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+
+                      <div className="mt-auto flex items-center gap-1 pt-2">
+                        <input
+                          type="date"
+                          title="The session's date — entering it schedules every series bound to this session"
+                          value={session.date ?? ""}
+                          onChange={(e) => setSessionDate(session, e.target.value)}
+                          className={`min-w-0 flex-1 cursor-pointer rounded border px-1 py-0.5 text-center text-[10px] font-bold tabular-nums focus:outline-none ${
+                            session.date
+                              ? "border-transparent text-paper"
+                              : "border-dashed border-white/15 text-mist/70"
+                          }`}
+                          style={
+                            session.date
+                              ? { backgroundColor: `${color}22` }
+                              : undefined
+                          }
+                        />
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          placeholder="d"
+                          data-tip="Day number: days after the campaign start"
+                          value={
+                            typeof session.offsetDays === "number" ? session.offsetDays : ""
+                          }
+                          onChange={(e) =>
+                            dispatch({
+                              type: "updateSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                              patch: {
+                                offsetDays:
+                                  e.target.value === "" ? null : Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="num-plain w-10 shrink-0 rounded border border-white/10 bg-navy/60 px-1 py-0.5 text-center text-[10px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+
+                {/* ghost card — add a session */}
+                <li>
+                  <button
+                    onClick={() =>
+                      dispatch({
+                        type: "addSession",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                      })
+                    }
+                    data-tip="Add a meeting to this campaign — you can drag it into place afterwards"
+                    className="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
+                  >
+                    <Plus size={16} />
+                    <span className="text-[11px] font-semibold">New session</span>
+                  </button>
+                </li>
+              </ol>
+            ) : (
+              /* List view — the order and the dates, one line each */
+              <div>
+                <div className="hidden grid-cols-[2rem_minmax(0,1fr)_5rem_9rem_4rem_6rem_2rem] items-center gap-3 border-b border-white/8 pb-1.5 text-[11px] font-medium text-mist lg:grid">
+                  <span>#</span>
+                  <span>Session</span>
+                  <span>Where</span>
+                  <span>Date</span>
+                  <span>Day</span>
+                  <span>Series</span>
+                  <span />
+                </div>
+                <ol className="flex flex-col">
+                  {campaign.sessions.map((session, i) => {
+                    const state = sessionState(session);
+                    const bound = seriesOfSession(session.id);
+                    const color = bound[0]?.color ?? "#7c7e8c";
+                    const dragging = dragId === session.id;
+                    const isOver = overIndex === i && dragId !== null && !dragging;
+
+                    return (
+                      <li
+                        key={session.id}
+                        draggable
+                        {...dragProps(session.id, i)}
+                        className={`group grid cursor-grab grid-cols-1 items-center gap-2 border-b border-white/6 py-2 last:border-b-0 active:cursor-grabbing lg:grid-cols-[2rem_minmax(0,1fr)_5rem_9rem_4rem_6rem_2rem] lg:gap-3 ${
+                          state === "past" ? "opacity-60" : ""
+                        } ${dragging ? "opacity-50" : ""} ${
+                          isOver ? "ring-1 ring-[#ff7a55]" : ""
+                        }`}
                       >
-                        {session.mode === "virtual" ? (
-                          <Video size={11} />
-                        ) : (
-                          <MapPin size={11} />
-                        )}
-                      </button>
-                      <span className="ml-auto flex items-center gap-0.5">
-                        <span data-tip="Drag the card to another position to reorder">
-                          <GripVertical
-                            size={11}
-                            className="text-mist/40 group-hover:text-mist"
-                          />
+                        <span
+                          data-tip={
+                            bound.length === 0
+                              ? "No series hangs off this session yet"
+                              : `Triggers ${bound.map((sr) => sr.code).join(" + ")}`
+                          }
+                          className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-paper"
+                          style={{ backgroundColor: color }}
+                        >
+                          {i + 1}
+                        </span>
+                        <EditableText
+                          value={session.name}
+                          onCommit={(v) =>
+                            dispatch({
+                              type: "updateSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                              patch: { name: v },
+                            })
+                          }
+                          className="text-xs font-semibold"
+                        />
+                        <button
+                          onClick={() =>
+                            dispatch({
+                              type: "updateSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                              patch: {
+                                mode:
+                                  session.mode === "virtual" ? "in-person" : "virtual",
+                              },
+                            })
+                          }
+                          data-tip="Click to switch between virtual and in person"
+                          className="flex w-fit cursor-pointer items-center gap-1 text-[11px] text-mist hover:text-paper"
+                        >
+                          {session.mode === "virtual" ? (
+                            <>
+                              <Video size={11} /> online
+                            </>
+                          ) : (
+                            <>
+                              <MapPin size={11} /> live
+                            </>
+                          )}
+                        </button>
+                        <input
+                          type="date"
+                          title="The session's date — entering it schedules every series bound to this session"
+                          value={session.date ?? ""}
+                          onChange={(e) => setSessionDate(session, e.target.value)}
+                          className={`cursor-pointer rounded border px-1.5 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
+                            session.date
+                              ? "border-transparent text-paper"
+                              : "border-dashed border-white/15 text-mist/70"
+                          }`}
+                          style={
+                            session.date ? { backgroundColor: `${color}22` } : undefined
+                          }
+                        />
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          placeholder="—"
+                          data-tip="Day number: days after the campaign start"
+                          value={
+                            typeof session.offsetDays === "number" ? session.offsetDays : ""
+                          }
+                          onChange={(e) =>
+                            dispatch({
+                              type: "updateSession",
+                              clientId: client.id,
+                              campaignId: campaign.id,
+                              sessionId: session.id,
+                              patch: {
+                                offsetDays:
+                                  e.target.value === "" ? null : Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="num-plain rounded border border-white/10 bg-navy/60 px-1 py-1 text-center text-[11px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
+                        />
+                        <span className="flex flex-wrap items-center gap-1">
+                          {state === "next" && (
+                            <span
+                              data-tip="The next session"
+                              className="size-1.5 rounded-full bg-[#4ade80]"
+                            />
+                          )}
+                          {bound.length === 0 ? (
+                            <span className="text-[11px] text-mist">—</span>
+                          ) : (
+                            bound.map((sr) => (
+                              <span
+                                key={sr.id}
+                                data-tip={`${sr.name} starts when this session is dated`}
+                                className="rounded px-1 py-px text-[9px] font-bold text-paper"
+                                style={{ backgroundColor: sr.color }}
+                              >
+                                {sr.code}
+                              </span>
+                            ))
+                          )}
                         </span>
                         <button
                           data-tip="Delete this session — series bound to it fall back to unbound"
@@ -1227,89 +1541,14 @@ export default function CampaignDetailPage() {
                                 sessionId: session.id,
                               });
                           }}
-                          className="hidden cursor-pointer rounded p-0.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                          className="cursor-pointer justify-self-end rounded p-1 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
                         >
-                          <Trash2 size={11} />
+                          <Trash2 size={13} />
                         </button>
-                      </span>
-                    </div>
-
-                    <EditableText
-                      multiline
-                      value={session.name}
-                      onCommit={(v) =>
-                        dispatch({
-                          type: "updateSession",
-                          clientId: client.id,
-                          campaignId: campaign.id,
-                          sessionId: session.id,
-                          patch: { name: v },
-                        })
-                      }
-                      className="mt-1 text-[11px] font-semibold leading-snug"
-                    />
-
-                    {bound.length > 0 && (
-                      <p className="mt-1 flex flex-wrap gap-1">
-                        {bound.map((sr) => (
-                          <span
-                            key={sr.id}
-                            data-tip={`${sr.name} starts when this session is dated`}
-                            className="rounded px-1 py-px text-[9px] font-bold text-paper"
-                            style={{ backgroundColor: sr.color }}
-                          >
-                            {sr.code}
-                          </span>
-                        ))}
-                      </p>
-                    )}
-
-                    <div className="mt-auto flex items-center gap-1 pt-2">
-                      <input
-                        type="date"
-                        title="The session's date — entering it schedules every series bound to this session"
-                        value={session.date ?? ""}
-                        onChange={(e) => setSessionDate(session, e.target.value)}
-                        className={`min-w-0 flex-1 cursor-pointer rounded border px-1 py-0.5 text-center text-[10px] font-bold tabular-nums focus:outline-none ${
-                          session.date
-                            ? "border-transparent text-paper"
-                            : "border-dashed border-white/15 text-mist/70"
-                        }`}
-                        style={
-                          session.date
-                            ? { backgroundColor: `${color}22` }
-                            : undefined
-                        }
-                      />
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="d"
-                        data-tip="Day number: days after the campaign start"
-                        value={
-                          typeof session.offsetDays === "number" ? session.offsetDays : ""
-                        }
-                        onChange={(e) =>
-                          dispatch({
-                            type: "updateSession",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            sessionId: session.id,
-                            patch: {
-                              offsetDays:
-                                e.target.value === "" ? null : Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="num-plain w-10 shrink-0 rounded border border-white/10 bg-navy/60 px-1 py-0.5 text-center text-[10px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-
-              {/* ghost card — add a session */}
-              <li>
+                      </li>
+                    );
+                  })}
+                </ol>
                 <button
                   onClick={() =>
                     dispatch({
@@ -1319,710 +1558,532 @@ export default function CampaignDetailPage() {
                     })
                   }
                   data-tip="Add a meeting to this campaign — you can drag it into place afterwards"
-                  className="flex min-h-32 w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed border-white/12 text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
+                  className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-white/12 py-2 text-[11px] font-semibold text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
                 >
-                  <Plus size={16} />
-                  <span className="text-[11px] font-semibold">New session</span>
+                  <Plus size={14} /> New session
                 </button>
-              </li>
-            </ol>
-          ) : (
-            /* List view — the order and the dates, one line each */
-            <div>
-              <div className="hidden grid-cols-[2rem_minmax(0,1fr)_5rem_9rem_4rem_6rem_2rem] items-center gap-3 border-b border-white/8 pb-1.5 text-[11px] font-medium text-mist lg:grid">
-                <span>#</span>
-                <span>Session</span>
-                <span>Where</span>
-                <span>Date</span>
-                <span>Day</span>
-                <span>Series</span>
-                <span />
               </div>
-              <ol className="flex flex-col">
-                {campaign.sessions.map((session, i) => {
-                  const state = sessionState(session);
-                  const bound = seriesOfSession(session.id);
-                  const color = bound[0]?.color ?? "#7c7e8c";
-                  const dragging = dragId === session.id;
-                  const isOver = overIndex === i && dragId !== null && !dragging;
+            )
+  }
+          </section>
 
-                  return (
-                    <li
-                      key={session.id}
-                      draggable
-                      {...dragProps(session.id, i)}
-                      className={`group grid cursor-grab grid-cols-1 items-center gap-2 border-b border-white/6 py-2 last:border-b-0 active:cursor-grabbing lg:grid-cols-[2rem_minmax(0,1fr)_5rem_9rem_4rem_6rem_2rem] lg:gap-3 ${
-                        state === "past" ? "opacity-60" : ""
-                      } ${dragging ? "opacity-50" : ""} ${
-                        isOver ? "ring-1 ring-[#ff7a55]" : ""
-                      }`}
+          {/* Campaign series */}
+          <section className="card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-base font-bold">
+                <Layers size={17} className="text-mist" /> Campaign series
+                <span className="text-sm font-medium text-mist">
+                  ({campaign.series.length})
+                </span>
+              </h2>
+              <GhostButton onClick={() => setPickingModule((v) => !v)}>
+                + Add series
+              </GhostButton>
+            </div>
+            <p className="mb-4 text-xs text-mist">
+              Click a series to see its lessons; drag it to change the order.
+            </p>
+
+            {pickingModule && (
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-white/10 p-3">
+                {unloaded.length === 0 && (
+                  <p className="text-xs text-mist">
+                    Every series from the library is already in this campaign.{" "}
+                    <Link
+                      href="/settings/campaigns"
+                      className="font-semibold text-paper underline"
                     >
-                      <span
-                        data-tip={
-                          bound.length === 0
-                            ? "No series hangs off this session yet"
-                            : `Triggers ${bound.map((sr) => sr.code).join(" + ")}`
-                        }
-                        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-paper"
-                        style={{ backgroundColor: color }}
-                      >
-                        {i + 1}
+                      Create a new series in Settings → Campaigns
+                    </Link>
+                  </p>
+                )}
+                {unloaded.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      dispatch({
+                        type: "loadSeries",
+                        clientId: client.id,
+                        campaignId: campaign.id,
+                        templateIds: [t.id],
+                      });
+                      setPickingModule(false);
+                    }}
+                    data-tip={`Add ${t.name} to this campaign — ${t.steps.length} lessons, usually triggered by the ${t.triggerLabel}`}
+                    className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
+                    style={{ backgroundColor: t.color }}
+                  >
+                    + {t.code} · {t.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              {campaign.series.map((loaded, i) => {
+                const series = findTemplate(templates, loaded.templateId);
+                if (!series) return null;
+                const p = seriesProgress(campaign, loaded, series, today);
+                const session = triggerSession(campaign, loaded);
+                const schedule = computeSchedule(campaign, loaded, series, today);
+                const isExpanded = expanded.has(loaded.templateId);
+                const dragging = seriesDragId === loaded.templateId;
+                const isOver =
+                  seriesOverIndex === i && seriesDragId !== null && !dragging;
+
+                return (
+                  <div
+                    key={loaded.templateId}
+                    draggable
+                    onDragStart={(e) => {
+                      setSeriesDragId(loaded.templateId);
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData("text/plain", `series:${loaded.templateId}`);
+                    }}
+                    onDragEnd={endSeriesDrag}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (seriesOverIndex !== i) setSeriesOverIndex(i);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const data = e.dataTransfer.getData("text/plain");
+                      const moved = data.startsWith("series:")
+                        ? data.slice(7)
+                        : seriesDragId;
+                      if (moved) {
+                        dispatch({
+                          type: "moveSeriesTo",
+                          clientId: client.id,
+                          campaignId: campaign.id,
+                          templateId: moved,
+                          toIndex: i,
+                        });
+                      }
+                      endSeriesDrag();
+                    }}
+                    className={`card group cursor-grab transition-all active:cursor-grabbing ${
+                      dragging
+                        ? "rotate-1 scale-[1.02] opacity-70 shadow-2xl shadow-flame/20"
+                        : ""
+                    } ${isOver ? "ring-2 ring-[#ff7a55]" : ""}`}
+                  >
+                    {/* header row — click to expand */}
+                    <div
+                      onClick={() => toggleExpanded(loaded.templateId)}
+                      className="flex cursor-pointer items-center gap-4 p-4"
+                    >
+                      <span data-tip="Drag to change the series order">
+                        <GripVertical
+                          size={14}
+                          className="shrink-0 text-mist/40 group-hover:text-mist"
+                        />
                       </span>
-                      <EditableText
-                        value={session.name}
-                        onCommit={(v) =>
-                          dispatch({
-                            type: "updateSession",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            sessionId: session.id,
-                            patch: { name: v },
-                          })
-                        }
-                        className="text-xs font-semibold"
-                      />
-                      <button
-                        onClick={() =>
-                          dispatch({
-                            type: "updateSession",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            sessionId: session.id,
-                            patch: {
-                              mode:
-                                session.mode === "virtual" ? "in-person" : "virtual",
-                            },
-                          })
-                        }
-                        data-tip="Click to switch between virtual and in person"
-                        className="flex w-fit cursor-pointer items-center gap-1 text-[11px] text-mist hover:text-paper"
+                      <div
+                        className="flex size-11 shrink-0 items-center justify-center rounded-md text-xs font-bold text-paper"
+                        style={{ backgroundColor: series.color }}
                       >
-                        {session.mode === "virtual" ? (
-                          <>
-                            <Video size={11} /> online
-                          </>
-                        ) : (
-                          <>
-                            <MapPin size={11} /> live
-                          </>
-                        )}
-                      </button>
-                      <input
-                        type="date"
-                        title="The session's date — entering it schedules every series bound to this session"
-                        value={session.date ?? ""}
-                        onChange={(e) => setSessionDate(session, e.target.value)}
-                        className={`cursor-pointer rounded border px-1.5 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
-                          session.date
-                            ? "border-transparent text-paper"
-                            : "border-dashed border-white/15 text-mist/70"
-                        }`}
-                        style={
-                          session.date ? { backgroundColor: `${color}22` } : undefined
-                        }
-                      />
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="—"
-                        data-tip="Day number: days after the campaign start"
-                        value={
-                          typeof session.offsetDays === "number" ? session.offsetDays : ""
-                        }
-                        onChange={(e) =>
-                          dispatch({
-                            type: "updateSession",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            sessionId: session.id,
-                            patch: {
-                              offsetDays:
-                                e.target.value === "" ? null : Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="num-plain rounded border border-white/10 bg-navy/60 px-1 py-1 text-center text-[11px] font-bold tabular-nums text-mist focus:border-white/30 focus:outline-none"
-                      />
-                      <span className="flex flex-wrap items-center gap-1">
-                        {state === "next" && (
-                          <span
-                            data-tip="The next session"
-                            className="size-1.5 rounded-full bg-[#4ade80]"
+                        {series.code}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold">
+                          {series.name}
+                          <span className="ml-2 font-medium text-mist">· {series.focus}</span>
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-mist">
+                          <span>Triggered by</span>
+                          <select
+                            title="The session whose date triggers this series — rebind to mix the order"
+                            value={loaded.sessionId ?? ""}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) =>
+                              dispatch({
+                                type: "bindSeries",
+                                clientId: client.id,
+                                campaignId: campaign.id,
+                                templateId: loaded.templateId,
+                                sessionId: e.target.value || null,
+                              })
+                            }
+                            className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
+                          >
+                            <option value="">— not bound —</option>
+                            {campaign.sessions.map((s, si) => (
+                              <option key={s.id} value={s.id}>
+                                {si + 1}. {s.name}
+                              </option>
+                            ))}
+                          </select>
+                          <span>
+                            {p.scheduled
+                              ? p.next
+                                ? `· next send ${fmtDate(p.next.date!)}`
+                                : p.sent === p.total
+                                  ? "· all sent"
+                                  : "· nothing left on the calendar"
+                              : session
+                                ? `· ${session.name} has no date yet`
+                                : "· bind to a session to schedule"}
+                          </span>
+                        </div>
+                        <div className="mt-2 max-w-72">
+                          <ProgressBar
+                            pct={p.total ? (p.sent / p.total) * 100 : 0}
+                            color={series.color}
                           />
-                        )}
-                        {bound.length === 0 ? (
-                          <span className="text-[11px] text-mist">—</span>
-                        ) : (
-                          bound.map((sr) => (
-                            <span
-                              key={sr.id}
-                              data-tip={`${sr.name} starts when this session is dated`}
-                              className="rounded px-1 py-px text-[9px] font-bold text-paper"
-                              style={{ backgroundColor: sr.color }}
-                            >
-                              {sr.code}
-                            </span>
-                          ))
-                        )}
-                      </span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-bold tabular-nums">
+                          {p.sent}/{p.total}
+                        </p>
+                        <p className="text-[11px] text-mist">sent</p>
+                      </div>
+
                       <button
-                        data-tip="Delete this session — series bound to it fall back to unbound"
-                        onClick={async () => {
+                        data-tip="Remove this series from the campaign (the blueprint stays in Settings)"
+                        onClick={async (e) => {
+                          e.stopPropagation();
                           if (
                             await confirmDelete({
-                              name: session.name,
-                              detail: "Deletes this meeting from the campaign. Series bound to it lose their trigger and stop being scheduled until rebound.",
+                              name: `${series.code} · ${series.name}`,
+                              detail: "Removes the series and its scheduled sends from this campaign. The blueprint in Settings is untouched — it can be added back.",
+                              verb: "Remove",
                             })
                           )
                             dispatch({
-                              type: "removeSession",
-                              clientId: client.id,
-                              campaignId: campaign.id,
-                              sessionId: session.id,
-                            });
-                        }}
-                        className="cursor-pointer justify-self-end rounded p-1 text-mist opacity-0 transition-opacity hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:opacity-100"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-              <button
-                onClick={() =>
-                  dispatch({
-                    type: "addSession",
-                    clientId: client.id,
-                    campaignId: campaign.id,
-                  })
-                }
-                data-tip="Add a meeting to this campaign — you can drag it into place afterwards"
-                className="mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-white/12 py-2 text-[11px] font-semibold text-mist/60 transition-colors hover:border-white/30 hover:text-paper"
-              >
-                <Plus size={14} /> New session
-              </button>
-            </div>
-          )
-}
-        </section>
-
-        {/* Campaign series */}
-        <section className="card p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-base font-bold">
-              <Layers size={17} className="text-mist" /> Campaign series
-              <span className="text-sm font-medium text-mist">
-                ({campaign.series.length})
-              </span>
-            </h2>
-            <GhostButton onClick={() => setPickingModule((v) => !v)}>
-              + Add series
-            </GhostButton>
-          </div>
-          <p className="mb-4 text-xs text-mist">
-            Click a series to see its lessons; drag it to change the order.
-          </p>
-
-          {pickingModule && (
-            <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-white/10 p-3">
-              {unloaded.length === 0 && (
-                <p className="text-xs text-mist">
-                  Every series from the library is already in this campaign.{" "}
-                  <Link
-                    href="/settings/campaigns"
-                    className="font-semibold text-paper underline"
-                  >
-                    Create a new series in Settings → Campaigns
-                  </Link>
-                </p>
-              )}
-              {unloaded.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    dispatch({
-                      type: "loadSeries",
-                      clientId: client.id,
-                      campaignId: campaign.id,
-                      templateIds: [t.id],
-                    });
-                    setPickingModule(false);
-                  }}
-                  data-tip={`Add ${t.name} to this campaign — ${t.steps.length} lessons, usually triggered by the ${t.triggerLabel}`}
-                  className="cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
-                  style={{ backgroundColor: t.color }}
-                >
-                  + {t.code} · {t.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
-            {campaign.series.map((loaded, i) => {
-              const series = findTemplate(templates, loaded.templateId);
-              if (!series) return null;
-              const p = seriesProgress(campaign, loaded, series, today);
-              const session = triggerSession(campaign, loaded);
-              const schedule = computeSchedule(campaign, loaded, series, today);
-              const isExpanded = expanded.has(loaded.templateId);
-              const dragging = seriesDragId === loaded.templateId;
-              const isOver =
-                seriesOverIndex === i && seriesDragId !== null && !dragging;
-
-              return (
-                <div
-                  key={loaded.templateId}
-                  draggable
-                  onDragStart={(e) => {
-                    setSeriesDragId(loaded.templateId);
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", `series:${loaded.templateId}`);
-                  }}
-                  onDragEnd={endSeriesDrag}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                    if (seriesOverIndex !== i) setSeriesOverIndex(i);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const data = e.dataTransfer.getData("text/plain");
-                    const moved = data.startsWith("series:")
-                      ? data.slice(7)
-                      : seriesDragId;
-                    if (moved) {
-                      dispatch({
-                        type: "moveSeriesTo",
-                        clientId: client.id,
-                        campaignId: campaign.id,
-                        templateId: moved,
-                        toIndex: i,
-                      });
-                    }
-                    endSeriesDrag();
-                  }}
-                  className={`card group cursor-grab transition-all active:cursor-grabbing ${
-                    dragging
-                      ? "rotate-1 scale-[1.02] opacity-70 shadow-2xl shadow-flame/20"
-                      : ""
-                  } ${isOver ? "ring-2 ring-[#ff7a55]" : ""}`}
-                >
-                  {/* header row — click to expand */}
-                  <div
-                    onClick={() => toggleExpanded(loaded.templateId)}
-                    className="flex cursor-pointer items-center gap-4 p-4"
-                  >
-                    <span data-tip="Drag to change the series order">
-                      <GripVertical
-                        size={14}
-                        className="shrink-0 text-mist/40 group-hover:text-mist"
-                      />
-                    </span>
-                    <div
-                      className="flex size-11 shrink-0 items-center justify-center rounded-md text-xs font-bold text-paper"
-                      style={{ backgroundColor: series.color }}
-                    >
-                      {series.code}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold">
-                        {series.name}
-                        <span className="ml-2 font-medium text-mist">· {series.focus}</span>
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-mist">
-                        <span>Triggered by</span>
-                        <select
-                          title="The session whose date triggers this series — rebind to mix the order"
-                          value={loaded.sessionId ?? ""}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) =>
-                            dispatch({
-                              type: "bindSeries",
+                              type: "unloadSeries",
                               clientId: client.id,
                               campaignId: campaign.id,
                               templateId: loaded.templateId,
-                              sessionId: e.target.value || null,
-                            })
-                          }
-                          className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-xs font-semibold text-paper focus:border-white/30 focus:outline-none"
-                        >
-                          <option value="">— not bound —</option>
-                          {campaign.sessions.map((s, si) => (
-                            <option key={s.id} value={s.id}>
-                              {si + 1}. {s.name}
-                            </option>
-                          ))}
-                        </select>
-                        <span>
-                          {p.scheduled
-                            ? p.next
-                              ? `· next send ${fmtDate(p.next.date!)}`
-                              : p.sent === p.total
-                                ? "· all sent"
-                                : "· nothing left on the calendar"
-                            : session
-                              ? `· ${session.name} has no date yet`
-                              : "· bind to a session to schedule"}
-                        </span>
-                      </div>
-                      <div className="mt-2 max-w-72">
-                        <ProgressBar
-                          pct={p.total ? (p.sent / p.total) * 100 : 0}
-                          color={series.color}
+                            });
+                        }}
+                        className="hidden shrink-0 cursor-pointer rounded p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+
+                      <span data-tip={isExpanded ? "Hide the lessons" : "Show the lessons in this series"}>
+                        <ChevronDown
+                          size={16}
+                          className={`shrink-0 text-mist transition-transform ${
+                            isExpanded ? "rotate-180" : ""
+                          }`}
                         />
-                      </div>
+                      </span>
                     </div>
 
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-bold tabular-nums">
-                        {p.sent}/{p.total}
-                      </p>
-                      <p className="text-[11px] text-mist">sent</p>
-                    </div>
-
-                    <button
-                      data-tip="Remove this series from the campaign (the blueprint stays in Settings)"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (
-                          await confirmDelete({
-                            name: `${series.code} · ${series.name}`,
-                            detail: "Removes the series and its scheduled sends from this campaign. The blueprint in Settings is untouched — it can be added back.",
-                            verb: "Remove",
-                          })
-                        )
-                          dispatch({
-                            type: "unloadSeries",
-                            clientId: client.id,
-                            campaignId: campaign.id,
-                            templateId: loaded.templateId,
-                          });
-                      }}
-                      className="hidden shrink-0 cursor-pointer rounded p-1.5 text-mist hover:bg-[#eb320f]/20 hover:text-[#ff7a55] group-hover:block"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-
-                    <span data-tip={isExpanded ? "Hide the lessons" : "Show the lessons in this series"}>
-                      <ChevronDown
-                        size={16}
-                        className={`shrink-0 text-mist transition-transform ${
-                          isExpanded ? "rotate-180" : ""
-                        }`}
-                      />
-                    </span>
-                  </div>
-
-                  {/* expanded: the meetup this series follows + its lessons */}
-                  {isExpanded && (
-                    <div className="border-t border-white/5 px-4 py-3">
-                      <ol className="flex flex-col">
-                        {session && (
-                          <li
-                            className="mb-1.5 flex items-center gap-3 rounded-md border px-2 py-2"
-                            style={{
-                              borderColor: `${series.color}55`,
-                              backgroundColor: `${series.color}14`,
-                            }}
-                          >
-                            <span
-                              className="flex size-5 shrink-0 items-center justify-center rounded-full text-paper"
-                              style={{ backgroundColor: series.color }}
+                    {/* expanded: the meetup this series follows + its lessons */}
+                    {isExpanded && (
+                      <div className="border-t border-white/5 px-4 py-3">
+                        <ol className="flex flex-col">
+                          {session && (
+                            <li
+                              className="mb-1.5 flex items-center gap-3 rounded-md border px-2 py-2"
+                              style={{
+                                borderColor: `${series.color}55`,
+                                backgroundColor: `${series.color}14`,
+                              }}
                             >
-                              {session.mode === "virtual" ? (
-                                <Video size={11} />
-                              ) : (
-                                <MapPin size={11} />
-                              )}
-                            </span>
-                            <span className="w-20 shrink-0 text-xs font-bold text-mist">
-                              {session.mode === "virtual" ? "Online" : "Live"}
-                            </span>
-                            <span className="min-w-0 flex-1 truncate text-xs font-semibold">
-                              {session.name}
-                              <span className="ml-1.5 hidden font-medium text-mist lg:inline">
-                                — the meetup that starts this series
-                              </span>
-                            </span>
-                            <input
-                              type="date"
-                              value={session.date ?? ""}
-                              title="Reschedule this session — every send below moves with it"
-                              onClick={(e) => e.stopPropagation()}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onChange={(e) => setSessionDate(session, e.target.value)}
-                              className="shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
-                            />
-                          </li>
-                        )}
-                        {schedule.map((item, si) => {
-                          const open = openLessonId === item.step.id;
-                          const ov = campaign.contentOverrides?.find(
-                            (o) =>
-                              o.stepId === item.step.id &&
-                              o.variant === "participant"
-                          );
-                          const subject =
-                            ov?.emailSubject ?? item.step.participant.emailSubject;
-                          const body =
-                            ov?.emailBody ?? item.step.participant.emailBody;
-                          const leaderDiffers =
-                            JSON.stringify(item.step.participant) !==
-                            JSON.stringify(item.step.leader);
-                          return (
-                            <li key={item.step.id} className="rounded-md hover:bg-white/4">
-                              <div
-                                data-tip={open ? undefined : "Read this email right here"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenLessonId(open ? null : item.step.id);
-                                }}
-                                className="flex cursor-pointer items-center gap-3 px-2 py-1.5"
+                              <span
+                                className="flex size-5 shrink-0 items-center justify-center rounded-full text-paper"
+                                style={{ backgroundColor: series.color }}
                               >
-                                <span
-                                  className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
-                                  style={{ backgroundColor: series.color }}
-                                >
-                                  {si + 1}
-                                </span>
-                                <span className="w-20 shrink-0 truncate text-xs font-bold text-mist">
-                                  {item.step.code}
-                                </span>
-                                <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                                  {item.step.title}
-                                </span>
-                                {item.step.leader.teamMeeting && (
-                                  <Chip color="#ff7a55">team meeting</Chip>
+                                {session.mode === "virtual" ? (
+                                  <Video size={11} />
+                                ) : (
+                                  <MapPin size={11} />
                                 )}
-                                <span
-                                  data-tip={
-                                    item.dateOverridden
-                                      ? "This email's date was picked by hand"
-                                      : undefined
-                                  }
-                                  className={`w-24 shrink-0 text-right text-[11px] tabular-nums ${
-                                    item.dateOverridden ? "font-semibold text-[#facc15]" : "text-mist"
-                                  }`}
-                                >
-                                  {item.date
-                                    ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
-                                    : "—"}
+                              </span>
+                              <span className="w-20 shrink-0 text-xs font-bold text-mist">
+                                {session.mode === "virtual" ? "Online" : "Live"}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate text-xs font-semibold">
+                                {session.name}
+                                <span className="ml-1.5 hidden font-medium text-mist lg:inline">
+                                  — the meetup that starts this series
                                 </span>
-                                <span className="w-24 shrink-0 text-right">
-                                  <StatusChip status={item.status} />
-                                </span>
-                                <ChevronDown
-                                  size={14}
-                                  className={`shrink-0 text-mist transition-transform ${
-                                    open ? "rotate-180" : ""
-                                  }`}
-                                />
-                              </div>
-
-                              {/* the email itself, right here in the list */}
-                              {open && (
-                                <div
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="mx-2 mb-2 rounded-md border border-white/8 bg-navy/40 px-4 py-3"
-                                >
-                                  <p className="text-sm font-bold leading-snug">
-                                    {subject || item.step.title}
-                                  </p>
-                                  {ov &&
-                                    (ov.emailSubject != null ||
-                                      ov.emailBody != null) && (
-                                      <p className="mt-1 text-[11px] font-semibold text-[var(--tone-indigo)]">
-                                        Own wording for this campaign — the master
-                                        template is untouched
-                                      </p>
-                                    )}
-                                  <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-paper/90">
-                                    {body}
-                                  </p>
-                                  {(item.step.participant.lesson ||
-                                    item.step.participant.attachment) && (
-                                    <p className="mt-2 text-[11px] text-mist">
-                                      Includes
-                                      {item.step.participant.lesson
-                                        ? ` the lesson “${item.step.participant.lesson.label}”`
-                                        : ""}
-                                      {item.step.participant.lesson &&
-                                      item.step.participant.attachment
-                                        ? " and"
-                                        : ""}
-                                      {item.step.participant.attachment
-                                        ? ` the attachment “${item.step.participant.attachment.label}”`
-                                        : ""}
-                                      .
-                                    </p>
-                                  )}
-                                  {leaderDiffers && (
-                                    <p className="mt-2 text-[11px] text-mist">
-                                      Leaders receive their own version — open the
-                                      Mailbox to read and edit both.
-                                    </p>
-                                  )}
-                                  {item.status !== "sent" &&
-                                    item.status !== "cancelled" && (
-                                      <p className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-mist">
-                                        Sends on
-                                        <input
-                                          type="date"
-                                          value={item.date ? isoDate(item.date) : ""}
-                                          data-tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
-                                          onChange={(e) =>
-                                            e.target.value &&
-                                            dispatch({
-                                              type: "setStepDate",
-                                              clientId: client.id,
-                                              campaignId: campaign.id,
-                                              stepId: item.step.id,
-                                              date: e.target.value,
-                                            })
-                                          }
-                                          className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
-                                        />
-                                        at {fmtSendTime(item.step.sendTime, campaign.timezone)}
-                                        {item.dateOverridden && (
-                                          <>
-                                            <span className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#facc15]">
-                                              moved by hand
-                                            </span>
-                                            <button
-                                              data-tip="Drop the hand-picked date — the automatic schedule decides again"
-                                              onClick={() =>
-                                                dispatch({
-                                                  type: "setStepDate",
-                                                  clientId: client.id,
-                                                  campaignId: campaign.id,
-                                                  stepId: item.step.id,
-                                                  date: null,
-                                                })
-                                              }
-                                              className="cursor-pointer font-semibold underline transition-colors hover:text-paper"
-                                            >
-                                              Back to automatic
-                                            </button>
-                                          </>
-                                        )}
-                                      </p>
-                                    )}
-                                  <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-2.5">
-                                    {item.status === "cancelled" ? (
-                                      <>
-                                        <span className="text-[11px] font-semibold text-mist">
-                                          Cancelled — this email will not be sent.
-                                        </span>
-                                        <button
-                                          data-tip="Put this email back on the schedule for this campaign"
-                                          onClick={() =>
-                                            dispatch({
-                                              type: "restoreStep",
-                                              clientId: client.id,
-                                              campaignId: campaign.id,
-                                              stepId: item.step.id,
-                                            })
-                                          }
-                                          className="cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
-                                        >
-                                          Restore it
-                                        </button>
-                                      </>
-                                    ) : item.status === "sent" ? (
-                                      <span className="text-[11px] font-semibold text-[var(--tone-green)]">
-                                        {(() => {
-                                          const rep = campaign.delivery?.[item.step.id];
-                                          if (!rep) return "Sent.";
-                                          const bits = [`Sent to ${rep.sent}`];
-                                          if (rep.delivered) bits.push(`${rep.delivered} delivered`);
-                                          if (rep.opened) bits.push(`${rep.opened} opened`);
-                                          if (rep.clicked) bits.push(`${rep.clicked} clicked`);
-                                          if (rep.bounced) bits.push(`${rep.bounced} bounced`);
-                                          return bits.join(" · ") + " — details in the Mailbox.";
-                                        })()}
-                                      </span>
-                                    ) : (
-                                      <button
-                                        data-tip="This campaign skips this lesson — it stays here as Cancelled, and can be restored"
-                                        onClick={async () => {
-                                          if (
-                                            await confirmDelete({
-                                              action: "cancel",
-                                              name: subject || item.step.title,
-                                              detail: `Nothing goes out for ${client.shortName}: the email stays in the list as Cancelled and the engine never sends it for this campaign. It can be restored any time.`,
-                                              verb: "Don't send it",
-                                            })
-                                          )
-                                            dispatch({
-                                              type: "skipStep",
-                                              clientId: client.id,
-                                              campaignId: campaign.id,
-                                              stepId: item.step.id,
-                                            });
-                                        }}
-                                        className="cursor-pointer rounded-md border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-mist transition-colors hover:border-[#ff7a55]/50 hover:text-[#ff7a55]"
-                                      >
-                                        Don&rsquo;t send this email
-                                      </button>
-                                    )}
-                                    {item.status !== "cancelled" && (
-                                      <SendNowButton
-                                        small
-                                        campaignId={campaign.id}
-                                        stepId={item.step.id}
-                                        subject={subject || item.step.title}
-                                        clientName={client.shortName}
-                                      />
-                                    )}
-                                    <Link
-                                      href="/mailbox"
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="ml-auto text-[11px] font-semibold text-mist transition-colors hover:text-paper"
-                                    >
-                                      Open in the Mailbox →
-                                    </Link>
-                                  </div>
-                                </div>
-                              )}
+                              </span>
+                              <input
+                                type="date"
+                                value={session.date ?? ""}
+                                title="Reschedule this session — every send below moves with it"
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onChange={(e) => setSessionDate(session, e.target.value)}
+                                className="shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                              />
                             </li>
-                          );
-                        })}
-                        {schedule.length === 0 && (
-                          <li className="px-2 py-2 text-xs text-mist">
-                            No lessons in this series yet.
-                          </li>
-                        )}
-                      </ol>
-                      <div className="mt-2 border-t border-white/5 pt-2 text-right">
-                        <Link
-                          href={`/settings/campaigns/${series.campaignTemplateId}/series/${series.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs font-semibold text-mist transition-colors hover:text-paper"
-                        >
-                          Edit lessons & emails →
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                          )}
+                          {schedule.map((item, si) => {
+                            const open = openLessonId === item.step.id;
+                            const ov = campaign.contentOverrides?.find(
+                              (o) =>
+                                o.stepId === item.step.id &&
+                                o.variant === "participant"
+                            );
+                            const subject =
+                              ov?.emailSubject ?? item.step.participant.emailSubject;
+                            const body =
+                              ov?.emailBody ?? item.step.participant.emailBody;
+                            const leaderDiffers =
+                              JSON.stringify(item.step.participant) !==
+                              JSON.stringify(item.step.leader);
+                            return (
+                              <li key={item.step.id} className="rounded-md hover:bg-white/4">
+                                <div
+                                  data-tip={open ? undefined : "Read this email right here"}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenLessonId(open ? null : item.step.id);
+                                  }}
+                                  className="flex cursor-pointer items-center gap-3 px-2 py-1.5"
+                                >
+                                  <span
+                                    className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-paper"
+                                    style={{ backgroundColor: series.color }}
+                                  >
+                                    {si + 1}
+                                  </span>
+                                  <span className="w-20 shrink-0 truncate text-xs font-bold text-mist">
+                                    {item.step.code}
+                                  </span>
+                                  <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                                    {item.step.title}
+                                  </span>
+                                  {item.step.leader.teamMeeting && (
+                                    <Chip color="#ff7a55">team meeting</Chip>
+                                  )}
+                                  <span
+                                    data-tip={
+                                      item.dateOverridden
+                                        ? "This email's date was picked by hand"
+                                        : undefined
+                                    }
+                                    className={`w-24 shrink-0 text-right text-[11px] tabular-nums ${
+                                      item.dateOverridden ? "font-semibold text-[#facc15]" : "text-mist"
+                                    }`}
+                                  >
+                                    {item.date
+                                      ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
+                                      : "—"}
+                                  </span>
+                                  <span className="w-24 shrink-0 text-right">
+                                    <StatusChip status={item.status} />
+                                  </span>
+                                  <ChevronDown
+                                    size={14}
+                                    className={`shrink-0 text-mist transition-transform ${
+                                      open ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                </div>
 
-            {campaign.series.length === 0 && (
-              <button
-                onClick={() => setPickingModule(true)}
-                data-tip="A campaign needs at least one series before anything can be sent"
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
-              >
-                <Plus size={15} /> Add a series to this campaign
-              </button>
-            )}
-          </div>
-        </section>
-      </div>
+                                {/* the email itself, right here in the list */}
+                                {open && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="mx-2 mb-2 rounded-md border border-white/8 bg-navy/40 px-4 py-3"
+                                  >
+                                    <p className="text-sm font-bold leading-snug">
+                                      {subject || item.step.title}
+                                    </p>
+                                    {ov &&
+                                      (ov.emailSubject != null ||
+                                        ov.emailBody != null) && (
+                                        <p className="mt-1 text-[11px] font-semibold text-[var(--tone-indigo)]">
+                                          Own wording for this campaign — the master
+                                          template is untouched
+                                        </p>
+                                      )}
+                                    <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-paper/90">
+                                      {body}
+                                    </p>
+                                    {(item.step.participant.lesson ||
+                                      item.step.participant.attachment) && (
+                                      <p className="mt-2 text-[11px] text-mist">
+                                        Includes
+                                        {item.step.participant.lesson
+                                          ? ` the lesson “${item.step.participant.lesson.label}”`
+                                          : ""}
+                                        {item.step.participant.lesson &&
+                                        item.step.participant.attachment
+                                          ? " and"
+                                          : ""}
+                                        {item.step.participant.attachment
+                                          ? ` the attachment “${item.step.participant.attachment.label}”`
+                                          : ""}
+                                        .
+                                      </p>
+                                    )}
+                                    {leaderDiffers && (
+                                      <p className="mt-2 text-[11px] text-mist">
+                                        Leaders receive their own version — open the
+                                        Mailbox to read and edit both.
+                                      </p>
+                                    )}
+                                    {item.status !== "sent" &&
+                                      item.status !== "cancelled" && (
+                                        <p className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-mist">
+                                          Sends on
+                                          <input
+                                            type="date"
+                                            value={item.date ? isoDate(item.date) : ""}
+                                            data-tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
+                                            onChange={(e) =>
+                                              e.target.value &&
+                                              dispatch({
+                                                type: "setStepDate",
+                                                clientId: client.id,
+                                                campaignId: campaign.id,
+                                                stepId: item.step.id,
+                                                date: e.target.value,
+                                              })
+                                            }
+                                            className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                                          />
+                                          at {fmtSendTime(item.step.sendTime, campaign.timezone)}
+                                          {item.dateOverridden && (
+                                            <>
+                                              <span className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[#facc15]">
+                                                moved by hand
+                                              </span>
+                                              <button
+                                                data-tip="Drop the hand-picked date — the automatic schedule decides again"
+                                                onClick={() =>
+                                                  dispatch({
+                                                    type: "setStepDate",
+                                                    clientId: client.id,
+                                                    campaignId: campaign.id,
+                                                    stepId: item.step.id,
+                                                    date: null,
+                                                  })
+                                                }
+                                                className="cursor-pointer font-semibold underline transition-colors hover:text-paper"
+                                              >
+                                                Back to automatic
+                                              </button>
+                                            </>
+                                          )}
+                                        </p>
+                                      )}
+                                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/5 pt-2.5">
+                                      {item.status === "cancelled" ? (
+                                        <>
+                                          <span className="text-[11px] font-semibold text-mist">
+                                            Cancelled — this email will not be sent.
+                                          </span>
+                                          <button
+                                            data-tip="Put this email back on the schedule for this campaign"
+                                            onClick={() =>
+                                              dispatch({
+                                                type: "restoreStep",
+                                                clientId: client.id,
+                                                campaignId: campaign.id,
+                                                stepId: item.step.id,
+                                              })
+                                            }
+                                            className="cursor-pointer text-[11px] font-semibold text-mist underline transition-colors hover:text-paper"
+                                          >
+                                            Restore it
+                                          </button>
+                                        </>
+                                      ) : item.status === "sent" ? (
+                                        <span className="text-[11px] font-semibold text-[var(--tone-green)]">
+                                          {(() => {
+                                            const rep = campaign.delivery?.[item.step.id];
+                                            if (!rep) return "Sent.";
+                                            const bits = [`Sent to ${rep.sent}`];
+                                            if (rep.delivered) bits.push(`${rep.delivered} delivered`);
+                                            if (rep.opened) bits.push(`${rep.opened} opened`);
+                                            if (rep.clicked) bits.push(`${rep.clicked} clicked`);
+                                            if (rep.bounced) bits.push(`${rep.bounced} bounced`);
+                                            return bits.join(" · ") + " — details in the Mailbox.";
+                                          })()}
+                                        </span>
+                                      ) : (
+                                        <button
+                                          data-tip="This campaign skips this lesson — it stays here as Cancelled, and can be restored"
+                                          onClick={async () => {
+                                            if (
+                                              await confirmDelete({
+                                                action: "cancel",
+                                                name: subject || item.step.title,
+                                                detail: `Nothing goes out for ${client.shortName}: the email stays in the list as Cancelled and the engine never sends it for this campaign. It can be restored any time.`,
+                                                verb: "Don't send it",
+                                              })
+                                            )
+                                              dispatch({
+                                                type: "skipStep",
+                                                clientId: client.id,
+                                                campaignId: campaign.id,
+                                                stepId: item.step.id,
+                                              });
+                                          }}
+                                          className="cursor-pointer rounded-md border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-mist transition-colors hover:border-[#ff7a55]/50 hover:text-[#ff7a55]"
+                                        >
+                                          Don&rsquo;t send this email
+                                        </button>
+                                      )}
+                                      {item.status !== "cancelled" && (
+                                        <SendNowButton
+                                          small
+                                          campaignId={campaign.id}
+                                          stepId={item.step.id}
+                                          subject={subject || item.step.title}
+                                          clientName={client.shortName}
+                                        />
+                                      )}
+                                      <Link
+                                        href="/mailbox"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="ml-auto text-[11px] font-semibold text-mist transition-colors hover:text-paper"
+                                      >
+                                        Open in the Mailbox →
+                                      </Link>
+                                    </div>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                          {schedule.length === 0 && (
+                            <li className="px-2 py-2 text-xs text-mist">
+                              No lessons in this series yet.
+                            </li>
+                          )}
+                        </ol>
+                        <div className="mt-2 border-t border-white/5 pt-2 text-right">
+                          <Link
+                            href={`/settings/campaigns/${series.campaignTemplateId}/series/${series.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs font-semibold text-mist transition-colors hover:text-paper"
+                          >
+                            Edit lessons & emails →
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {campaign.series.length === 0 && (
+                <button
+                  onClick={() => setPickingModule(true)}
+                  data-tip="A campaign needs at least one series before anything can be sent"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-white/10 py-6 text-sm font-semibold text-mist/60 transition-colors hover:border-white/25 hover:text-paper"
+                >
+                  <Plus size={15} /> Add a series to this campaign
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {/* Recalculate: one session moved, offer to carry the rest along.
           Fixed to the bottom because the date can be changed from either

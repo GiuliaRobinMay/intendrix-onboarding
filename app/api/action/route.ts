@@ -433,6 +433,16 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         a.assignmentId,
       ]);
       return;
+    case "addCampaignNote":
+      await tx.query(
+        `insert into campaign_notes (id, campaign_id, body, author, created_at)
+         values ($1, $2, $3, $4, coalesce($5::timestamptz, now()))`,
+        [a.id, a.campaignId, a.body, a.author ?? null, a.createdAt ?? null]
+      );
+      return;
+    case "removeCampaignNote":
+      await tx.query(`delete from campaign_notes where id = $1`, [a.noteId]);
+      return;
     case "addClientAssignment":
       await tx.query(
         `insert into campaign_client_assignments (id, campaign_id, member_id, role)

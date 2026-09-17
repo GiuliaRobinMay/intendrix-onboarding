@@ -237,6 +237,19 @@ create table campaign_client_assignments (
 );
 create index cca_campaign_idx on campaign_client_assignments (campaign_id);
 
+-- the running record the team keeps on a campaign: what was done, what
+-- the client asked for, what to watch out for next time. Never
+-- overwritten — each entry keeps its author and its date.
+create table campaign_notes (
+  id          text primary key default gen_random_uuid()::text,
+  campaign_id text not null references campaigns (id) on delete cascade,
+  body        text not null,
+  author      text,
+  created_at  timestamptz not null default now()
+);
+create index campaign_notes_campaign_idx
+  on campaign_notes (campaign_id, created_at desc);
+
 -- ——— email log (for the sending engine, phase 3) ——————————
 -- The Mailbox derives its view from the schedule; this table records what
 -- the engine actually sent, one row per member per send.

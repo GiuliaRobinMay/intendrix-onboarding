@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useData } from "@/lib/state";
 import { authConfigured, getSupabase } from "@/lib/supabase-browser";
+import { HelpButton } from "@/components/help";
 import {
   LayoutDashboard,
   LogOut,
@@ -229,8 +230,12 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* rarely used links live at the bottom */}
+      {/* rarely used links live at the bottom — with the one thing that
+          must never be hard to find sitting right on top of them */}
       <div className="mt-auto flex flex-col gap-0.5 border-t border-white/8 pt-3">
+        <div className="mb-1.5">
+          <HelpButton collapsed={collapsed} />
+        </div>
         <NavLink
           href="/settings"
           label="Settings"

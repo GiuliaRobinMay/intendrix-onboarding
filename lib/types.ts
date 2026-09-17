@@ -110,6 +110,14 @@ export type MemberStatus = "active" | "on_leave" | "inactive";
 
 /** A live or online meeting inside a campaign. Campaigns can have any
  *  number of sessions — zero, five, or more. */
+export interface CampaignNote {
+  id: string;
+  body: string;
+  /** who wrote it, as a name — kept even if they later leave */
+  author?: string | null;
+  createdAt: string;
+}
+
 export interface CampaignSession {
   id: string;
   name: string;
@@ -217,6 +225,10 @@ export interface Campaign {
    *  — the coordinator watching a live program from the outside.
    *  Comma-separated. They are never personalised or counted as members. */
   shadowEmails?: string | null;
+  /** the running record the team keeps on this campaign: what was
+   *  done, what the client asked for, what to watch next time.
+   *  Newest first, nothing ever overwritten. */
+  notes?: CampaignNote[];
   /** campaign runs from/to — shown as milestones in the Calendar */
   startDate?: string | null;
   endDate?: string | null;

@@ -5,7 +5,6 @@ import { SyncBanner } from "@/components/sync-banner";
 import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
 import { ConfirmProvider } from "@/components/confirm";
-import { HelpButton } from "@/components/help";
 
 export const metadata: Metadata = {
   title: "Intendrix · Team Backend",
@@ -51,7 +50,6 @@ export default function RootLayout({
               </main>
             </div>
             <SyncBanner />
-            <HelpButton />
             </ConfirmProvider>
           </DataProvider>
         </AuthGate>

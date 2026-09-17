@@ -40,7 +40,7 @@ function matchTopics(question: string): HelpTopic[] {
   return scored.slice(0, 2).map((x) => x.t);
 }
 
-export function HelpButton() {
+export function HelpButton({ collapsed = false }: { collapsed?: boolean }) {
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -112,10 +112,13 @@ export function HelpButton() {
         <button
           onClick={() => setOpen(true)}
           data-tip="Ask how anything in Intendrix works"
-          data-tip-pos="top"
-          className="brand-gradient fixed bottom-5 right-5 z-40 flex cursor-pointer items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-bold text-white shadow-xl shadow-black/40 transition-opacity hover:opacity-90"
+          data-tip-pos="right"
+          className={`brand-gradient flex w-full cursor-pointer items-center gap-2.5 rounded-md py-2 text-[13px] font-bold text-white transition-opacity hover:opacity-90 ${
+            collapsed ? "justify-center px-0" : "px-2.5"
+          }`}
         >
-          <HelpCircle size={16} /> Need help?
+          <HelpCircle size={15} strokeWidth={2.5} className="shrink-0" />
+          {!collapsed && "Need help?"}
         </button>
       )}
 
