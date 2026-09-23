@@ -162,7 +162,7 @@ export function CampaignNotes({
       {writing && (
         <div
           onClick={close}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 px-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}

@@ -69,7 +69,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {pending && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-6"
+          className="fixed inset-0 z-[55] flex items-center justify-center bg-black/55 px-6"
           onClick={() => answer(false)}
         >
           <div

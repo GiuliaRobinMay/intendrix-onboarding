@@ -19,7 +19,7 @@ export function SyncBanner() {
   if (!syncError || dismissed === syncError) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
+    <div className="fixed inset-x-0 bottom-0 z-[58] flex justify-center px-4 pb-4">
       <div className="flex w-full max-w-2xl items-start gap-3 rounded-lg border border-[#eb320f]/60 bg-[#2a1410] px-4 py-3 shadow-2xl shadow-black/50">
         <TriangleAlert size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
         <div className="min-w-0 flex-1">
