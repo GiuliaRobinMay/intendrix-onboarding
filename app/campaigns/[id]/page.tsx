@@ -125,6 +125,9 @@ function InlineSelect({
   );
 }
 
+/** how many participant rows the card always shows */
+const ROWS_SHOWN = 20;
+
 type CampaignTab = "info" | "plan" | "people";
 
 const TABS: Array<{ key: CampaignTab; label: string; tip: string }> = [
@@ -800,8 +803,13 @@ export default function CampaignDetailPage() {
                       disabled={missing.length === 0}
                       data-tip={
                         missing.length === 0
-                          ? `Everyone active at ${client.shortName} is already on this campaign`
-                          : `Put all ${missing.length} active team members on this campaign`
+                          ? `Nothing to bring over — everyone active at ${client.shortName} is already taking part`
+                          : `Bring over the ${missing.length} active ${
+                              missing.length === 1 ? "member" : "members"
+                            } of ${client.shortName} who are not taking part yet: ${missing
+                              .slice(0, 5)
+                              .map((m) => m.name)
+                              .join(", ")}${missing.length > 5 ? " …" : ""}`
                       }
                       onClick={() => {
                         for (const m of missing)
@@ -815,7 +823,7 @@ export default function CampaignDetailPage() {
                       }}
                       className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      <Users size={13} /> Add the whole team
+                      <Users size={13} /> Update from the client list
                       {missing.length > 0 ? ` (${missing.length})` : ""}
                     </button>
                   );
@@ -852,7 +860,7 @@ export default function CampaignDetailPage() {
             )}
             <div className="flex flex-col">
               {/* about five rows tall; the rest scrolls */}
-              <div className="flex max-h-[32rem] flex-col overflow-y-auto pr-1">
+              <div className="flex max-h-[41rem] flex-col overflow-y-auto pr-1">
               {[...campaign.clientTeam]
                 .sort((x, y) => {
                   const nx = client.members.find((m) => m.id === x.memberId)?.name ?? "";
@@ -927,6 +935,27 @@ export default function CampaignDetailPage() {
                   </div>
                 );
               })}
+            {/* the list keeps its height whatever it holds: twenty rows,
+                the unused ones simply empty. A card that grows and
+                shrinks with every add moves everything under it. */}
+            {Array.from({
+              length: Math.max(0, ROWS_SHOWN - campaign.clientTeam.length),
+            }).map((_, i) => (
+              <div
+                key={`blank-${i}`}
+                aria-hidden
+                className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0"
+              >
+                <span className="text-[11px] tabular-nums text-mist/25">
+                  {campaign.clientTeam.length + i + 1}
+                </span>
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+            ))}
               </div>
               {pendingClientRow && (
                 <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_minmax(0,1.2fr)_11rem_3.25rem_1.75rem] items-center gap-2 border-b border-white/5 py-1.5 last:border-b-0">
