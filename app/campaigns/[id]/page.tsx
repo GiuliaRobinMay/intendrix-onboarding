@@ -14,6 +14,7 @@ import {
   Mail,
   MapPin,
   Plus,
+  RotateCcw,
   Trash2,
   Users,
   Video,
@@ -1874,19 +1875,62 @@ export default function CampaignDetailPage() {
                                   {item.step.leader.teamMeeting && (
                                     <Chip color="#ff7a55">team meeting</Chip>
                                   )}
+                                  {/* One email's own date. Only this one moves;
+                                      the rest of the series keeps its chain
+                                      off the session. Clearing it hands the
+                                      email back to the automatic schedule. */}
                                   <span
-                                    data-tip={
-                                      item.dateOverridden
-                                        ? "This email's date was picked by hand"
-                                        : undefined
-                                    }
-                                    className={`w-24 shrink-0 text-right text-[11px] tabular-nums ${
-                                      item.dateOverridden ? "font-semibold text-[#facc15]" : "text-mist"
-                                    }`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex w-36 shrink-0 items-center justify-end gap-1"
                                   >
-                                    {item.date
-                                      ? `${fmtWeekday(item.date)} ${fmtDateShort(item.date)}`
-                                      : "—"}
+                                    <input
+                                      type="date"
+                                      value={
+                                        item.date
+                                          ? typeof item.date === "string"
+                                            ? item.date
+                                            : new Date(item.date)
+                                                .toISOString()
+                                                .slice(0, 10)
+                                          : ""
+                                      }
+                                      data-tip={
+                                        item.dateOverridden
+                                          ? "A date picked by hand for this campaign — clear it to go back to the automatic one"
+                                          : "Give this one email a date of its own; the others do not move"
+                                      }
+                                      onChange={(e) =>
+                                        dispatch({
+                                          type: "setStepDate",
+                                          clientId: client.id,
+                                          campaignId: campaign.id,
+                                          stepId: item.step.id,
+                                          date: e.target.value || null,
+                                        })
+                                      }
+                                      className={`w-28 cursor-pointer rounded border px-1 py-0.5 text-center text-[11px] tabular-nums focus:outline-none ${
+                                        item.dateOverridden
+                                          ? "border-[#facc15]/60 bg-[#facc15]/10 font-semibold text-[#facc15]"
+                                          : "border-transparent text-mist hover:border-white/20"
+                                      }`}
+                                    />
+                                    {item.dateOverridden && (
+                                      <button
+                                        data-tip="Back to the automatic date"
+                                        onClick={() =>
+                                          dispatch({
+                                            type: "setStepDate",
+                                            clientId: client.id,
+                                            campaignId: campaign.id,
+                                            stepId: item.step.id,
+                                            date: null,
+                                          })
+                                        }
+                                        className="cursor-pointer rounded p-0.5 text-mist transition-colors hover:text-paper"
+                                      >
+                                        <RotateCcw size={11} />
+                                      </button>
+                                    )}
                                   </span>
                                   <span className="w-24 shrink-0 text-right">
                                     <StatusChip status={item.status} />
