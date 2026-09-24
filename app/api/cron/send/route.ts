@@ -64,6 +64,37 @@ function daysBetween(fromIso: string, toIso: string): number {
   return Math.round((p(toIso) - p(fromIso)) / 86400000);
 }
 
+/** Every run leaves a line, and the last thirty stay.
+ *
+ *  One "last run" value was not enough. When the engine went quiet for
+ *  two weeks, the state was tidied up before anyone looked, and there
+ *  was nothing left to say what had happened — no way to tell a stopped
+ *  engine from an engine with nothing to do. A trail costs almost
+ *  nothing and is the difference between knowing and guessing. */
+async function recordRun(pool: any, run: Record<string, unknown>) {
+  const line = { at: new Date().toISOString(), ...run };
+  await pool
+    .query(
+      `insert into app_settings (key, value) values ('engineLastRun', $1)
+       on conflict (key) do update set value = excluded.value`,
+      [JSON.stringify(line)]
+    )
+    .catch(() => {});
+  await pool
+    .query(
+      `insert into app_settings (key, value) values ('engineRuns', $1)
+       on conflict (key) do update set value = (
+         select to_jsonb(array(
+           select x from jsonb_array_elements(
+             ($1::jsonb) || coalesce(app_settings.value::jsonb, '[]'::jsonb)
+           ) x limit 30
+         ))::text
+       )`,
+      [JSON.stringify([line])]
+    )
+    .catch(() => {});
+}
+
 export async function GET(req: Request) {
   // Vercel Cron authenticates with the CRON_SECRET env var
   const secret = process.env.CRON_SECRET;
@@ -94,13 +125,7 @@ export async function GET(req: Request) {
     .then((r) => r.rows[0]?.value === "on")
     .catch(() => false);
   if (!engineOn && !dryRun) {
-    await pool
-      .query(
-        `insert into app_settings (key, value) values ('engineLastRun', $1)
-         on conflict (key) do update set value = excluded.value`,
-        [JSON.stringify({ at: new Date().toISOString(), off: true })]
-      )
-      .catch(() => {});
+    await recordRun(pool, { off: true });
     return NextResponse.json({
       enabled: false,
       note: "email sending is switched OFF in Settings — nothing was sent, nothing was logged",
@@ -541,13 +566,7 @@ export async function GET(req: Request) {
   // A heartbeat, whatever this run did. An engine that has stopped and
   // an engine with nothing to do look identical from the outside, and
   // that cost two weeks of sends nobody knew were missing.
-  await pool
-    .query(
-      `insert into app_settings (key, value) values ('engineLastRun', $1)
-       on conflict (key) do update set value = excluded.value`,
-      [JSON.stringify({ at: new Date().toISOString(), sent, failed, held, dryRun })]
-    )
-    .catch(() => {});
+  await recordRun(pool, { sent, failed, held, dryRun });
 
   // While we are here: ask the community who has joined. It rides on
   // this run rather than a schedule of its own, because a plan can cap
