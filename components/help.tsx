@@ -1,12 +1,13 @@
 "use client";
 
-// "Need help?" — the bottom-right assistant. Ask in your own words and
+// "Need help?" — the assistant at the foot of the sidebar. Ask in your
 // get an answer about how this app works. With an assistant configured
 // (ANTHROPIC_API_KEY on the server) answers are conversational; without
 // one, questions are matched against the built-in guide, and the topic
 // list works either way.
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { HelpCircle, Send, X } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { HELP_TOPICS, type HelpTopic } from "@/lib/help-guide";
@@ -46,7 +47,10 @@ export function HelpButton({ collapsed = false }: { collapsed?: boolean }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [showTopics, setShowTopics] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -122,9 +126,11 @@ export function HelpButton({ collapsed = false }: { collapsed?: boolean }) {
         </button>
       )}
 
-      {open && (
-        // the panel opens beside the button it came from, clear of the
-        // sidebar, and never wider than the space actually left
+      {open && mounted && createPortal(
+        // The panel is drawn into the page body, not where the button
+        // lives. The sidebar carries a blur, and a blur makes a layer
+        // of its own: anything inside it is painted with the sidebar,
+        // so page cards covered this panel whatever z-index it had.
         <div
           style={{ left: collapsed ? "4.25rem" : "14.75rem" }}
           className="card fixed bottom-5 z-[52] flex h-[min(32rem,calc(100vh-2.5rem))] w-[min(24rem,calc(100vw-16rem))] flex-col overflow-hidden shadow-2xl shadow-black/50"
@@ -212,7 +218,8 @@ export function HelpButton({ collapsed = false }: { collapsed?: boolean }) {
               <Send size={14} />
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
