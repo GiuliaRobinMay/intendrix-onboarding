@@ -21,6 +21,16 @@ const BASE = (process.env.MIGHTY_API_BASE || "https://api.mn.co/admin/v1").repla
   ""
 );
 
+// Which path holds the roster. Mighty's admin API has renamed this
+// corner more than once, so rather than betting on one spelling the
+// reader tries each in turn and keeps the first that answers with a
+// list. MIGHTY_MEMBERS_PATH pins it once we know.
+const CANDIDATE_PATHS = (
+  process.env.MIGHTY_MEMBERS_PATH
+    ? [process.env.MIGHTY_MEMBERS_PATH]
+    : ["/members", "/network/members", "/memberships", "/people"]
+).map((p) => (p.startsWith("/") ? p : `/${p}`));
+
 export const mightyConfigured = Boolean(process.env.MIGHTY_API_TOKEN);
 
 export interface CommunityMember {
@@ -107,6 +117,90 @@ function nextPageOf(body: any): string | null {
  * the caller has to be able to tell "the community is empty" apart
  * from "we could not read the community".
  */
+/** One request, with everything api.mn.co insists on. */
+async function get(url: string, token: string) {
+  return fetch(url, {
+    headers: {
+      authorization: `Bearer ${token}`,
+      accept: "application/json",
+      // api.mn.co refuses a request without one
+      "user-agent": "Intendrix/1.0 (+https://team.intendrix.ai)",
+    },
+    cache: "no-store",
+  });
+}
+
+/** Read one path to the end, or say why it is not the one. */
+async function readAll(
+  path: string,
+  token: string
+): Promise<{ ok: true; members: CommunityMember[] } | { ok: false; reason: string }> {
+  const members: CommunityMember[] = [];
+  let cursor: string | null = null;
+  let page = 1;
+
+  // a hard stop, so a pagination field read wrongly cannot loop forever
+  for (let round = 0; round < 40; round++) {
+    const url = new URL(`${BASE}${path}`);
+    url.searchParams.set("per_page", "100");
+    url.searchParams.set("limit", "100");
+    if (cursor) url.searchParams.set("cursor", cursor);
+    else if (page > 1) url.searchParams.set("page", String(page));
+
+    let res: Response;
+    try {
+      res = await get(url.toString(), token);
+    } catch (err) {
+      return { ok: false, reason: `could not be reached — ${String(err).slice(0, 120)}` };
+    }
+
+    const text = await res.text();
+    if (!res.ok) return { ok: false, reason: `answered ${res.status} — ${text.slice(0, 140)}` };
+
+    let body: any;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      return { ok: false, reason: `did not answer with JSON — ${text.slice(0, 120)}` };
+    }
+
+    const rows = rowsOf(body);
+    if (!rows)
+      return {
+        ok: false,
+        reason: `no list in the answer — it held ${Object.keys(body ?? {}).slice(0, 8).join(", ") || "nothing"}`,
+      };
+
+    const mapped = rows.map(toMember).filter(Boolean) as CommunityMember[];
+    if (rows.length > 0 && mapped.length === 0)
+      return {
+        ok: false,
+        reason: `rows carried no email address — one row held ${Object.keys(rows[0] ?? {})
+          .slice(0, 10)
+          .join(", ")}`,
+      };
+
+    members.push(...mapped);
+    cursor = nextPageOf(body);
+    page += 1;
+    // no cursor and a short page means the end; a full page with no
+    // cursor means page numbers, so keep going
+    if (!cursor && rows.length < 100) break;
+    if (rows.length === 0) break;
+  }
+
+  return { ok: true, members };
+}
+
+/**
+ * Everyone in the community, with their email address.
+ *
+ * Never throws: a failure comes back as a reason in English, because
+ * the caller has to be able to tell "the community is empty" apart
+ * from "we could not read the community". The reason names every path
+ * tried and what each one said, so one failed run is enough to know
+ * exactly which spelling this network uses.
+ */
 export async function fetchCommunityRoster(): Promise<RosterResult> {
   const token = process.env.MIGHTY_API_TOKEN;
   if (!token)
@@ -116,69 +210,21 @@ export async function fetchCommunityRoster(): Promise<RosterResult> {
         "no Mighty Networks token yet — put MIGHTY_API_TOKEN in Vercel (Mighty Networks → Admin → Settings → API Keys) and redeploy",
     };
 
-  const members: CommunityMember[] = [];
-  let cursor: string | null = null;
-  // a hard stop, so a pagination field we misread cannot loop forever
-  for (let page = 0; page < 40; page++) {
-    const url = new URL(`${BASE}/members`);
-    url.searchParams.set("per_page", "100");
-    if (cursor) url.searchParams.set("cursor", cursor);
-
-    let res: Response;
-    try {
-      res = await fetch(url.toString(), {
-        headers: {
-          authorization: `Bearer ${token}`,
-          accept: "application/json",
-          // api.mn.co refuses requests without one
-          "user-agent": "Intendrix/1.0 (+https://team.intendrix.ai)",
-        },
-        cache: "no-store",
-      });
-    } catch (err) {
-      return { ok: false, reason: `could not reach Mighty Networks — ${String(err).slice(0, 160)}` };
+  const tried: string[] = [];
+  for (const path of CANDIDATE_PATHS) {
+    const out = await readAll(path, token);
+    if (out.ok && out.members.length > 0) return { ok: true, members: out.members };
+    // an empty list from a path that answered cleanly is still an
+    // answer — keep it in case every other path fails outright
+    if (out.ok) {
+      tried.push(`${path}: answered, but with nobody in it`);
+      continue;
     }
-
-    const text = await res.text();
-    if (!res.ok)
-      return {
-        ok: false,
-        reason: `Mighty Networks answered ${res.status} for ${url.pathname} — ${text.slice(0, 200)}`,
-      };
-
-    let body: any;
-    try {
-      body = JSON.parse(text);
-    } catch {
-      return { ok: false, reason: `Mighty Networks did not answer with JSON — ${text.slice(0, 160)}` };
-    }
-
-    const rows = rowsOf(body);
-    if (!rows)
-      return {
-        ok: false,
-        reason: `could not find the member list in the answer — it had ${Object.keys(
-          body ?? {}
-        )
-          .slice(0, 8)
-          .join(", ")}`,
-      };
-
-    const mapped = rows.map(toMember).filter(Boolean) as CommunityMember[];
-    if (rows.length > 0 && mapped.length === 0)
-      return {
-        ok: false,
-        reason: `the roster came back but no row carried an email address — a row had ${Object.keys(
-          rows[0] ?? {}
-        )
-          .slice(0, 10)
-          .join(", ")}`,
-      };
-
-    members.push(...mapped);
-    cursor = nextPageOf(body);
-    if (!cursor || rows.length === 0) break;
+    tried.push(`${path}: ${out.reason}`);
   }
 
-  return { ok: true, members };
+  return {
+    ok: false,
+    reason: `could not read the roster. ${tried.join(" · ")}`,
+  };
 }

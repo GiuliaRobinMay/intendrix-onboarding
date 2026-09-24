@@ -11,8 +11,9 @@
 // who were invited and have not walked through the door yet.
 
 import { useState } from "react";
-import { BellRing, DoorOpen, RefreshCw, ScrollText } from "lucide-react";
+import { BellRing, DoorOpen, RefreshCw, ScrollText, TriangleAlert } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
+import { useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
 import { TestSendButton } from "@/components/test-send";
 import type { Member } from "@/lib/types";
@@ -236,7 +237,19 @@ function OnboardingSendButton({
  *  individually — the roster is the only thing that knows. */
 function CheckCommunityButton() {
   const notice = useConfirm();
+  const { settings } = useData();
   const [busy, setBusy] = useState(false);
+
+  // how the last run went — the nightly one included, so a check that
+  // has been quietly failing for a week says so instead of looking
+  // like a community nobody has joined
+  let last: { ok?: boolean; at?: string; reason?: string } | null = null;
+  try {
+    last = settings.communitySyncLast ? JSON.parse(settings.communitySyncLast) : null;
+  } catch {
+    last = null;
+  }
+  const failing = last && last.ok === false;
 
   const run = async () => {
     if (busy) return;
@@ -278,11 +291,25 @@ function CheckCommunityButton() {
     <button
       onClick={run}
       disabled={busy}
-      data-tip="Ask the community who has joined, and mark them — runs by itself every night too"
-      className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/12 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/30 hover:text-paper disabled:cursor-not-allowed disabled:opacity-50"
+      data-tip={
+        failing
+          ? `The nightly check is failing — ${last?.reason ?? "unknown reason"}`
+          : last?.at
+            ? `Last checked ${new Date(last.at).toLocaleString("en-US")}. Runs by itself every night; press to check now.`
+            : "Ask the community who has joined, and mark them — runs by itself every night too"
+      }
+      className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        failing
+          ? "border-[#eb320f]/70 bg-[#eb320f]/10 text-[#ff7a55] hover:border-[#ff7a55]"
+          : "border-white/12 text-mist hover:border-white/30 hover:text-paper"
+      }`}
     >
-      <RefreshCw size={12} className={busy ? "animate-spin" : ""} />
-      {busy ? "Checking…" : "Check who joined"}
+      {failing ? (
+        <TriangleAlert size={12} />
+      ) : (
+        <RefreshCw size={12} className={busy ? "animate-spin" : ""} />
+      )}
+      {busy ? "Checking…" : failing ? "Community check failing" : "Check who joined"}
     </button>
   );
 }

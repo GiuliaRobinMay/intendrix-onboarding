@@ -26,8 +26,24 @@ async function run(dryRun: boolean) {
   if (!dbConfigured)
     return NextResponse.json({ ok: false, reason: "no database" }, { status: 503 });
 
+  const pool0 = getPool();
+  const remember = async (value: Record<string, unknown>) => {
+    // a nightly run nobody watches must leave a trace, or a broken
+    // integration looks exactly like a community nobody has joined
+    await pool0
+      .query(
+        `insert into app_settings (key, value) values ('communitySyncLast', $1)
+         on conflict (key) do update set value = excluded.value`,
+        [JSON.stringify({ at: new Date().toISOString(), ...value })]
+      )
+      .catch(() => {});
+  };
+
   const roster = await fetchCommunityRoster();
-  if (!roster.ok) return NextResponse.json({ ok: false, reason: roster.reason });
+  if (!roster.ok) {
+    if (!dryRun) await remember({ ok: false, reason: roster.reason });
+    return NextResponse.json({ ok: false, reason: roster.reason });
+  }
 
   const byEmail = new Map(roster.members.map((m) => [m.email, m]));
 
@@ -70,6 +86,14 @@ async function run(dryRun: boolean) {
   const unmatched = roster.members
     .filter((m) => !claimed.has(m.email))
     .map((m) => ({ email: m.email, name: m.name, plan: m.plan }));
+
+  if (!dryRun)
+    await remember({
+      ok: true,
+      inCommunity: roster.members.length,
+      newlyJoined: joined.length,
+      unmatched: unmatched.length,
+    });
 
   return NextResponse.json({
     ok: true,
