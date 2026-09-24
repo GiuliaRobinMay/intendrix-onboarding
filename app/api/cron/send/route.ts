@@ -16,6 +16,7 @@
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { defaultLogoUrl } from "@/lib/server/onboarding";
+import { syncCommunity } from "@/lib/server/community-sync";
 import { authEnforced } from "@/lib/server/auth";
 import {
   emailConfigured,
@@ -529,6 +530,12 @@ export async function GET(req: Request) {
     }
   }
 
+  // While we are here: ask the community who has joined. It rides on
+  // this run rather than a schedule of its own, because a plan can cap
+  // how many scheduled jobs a project may have, and a rejected
+  // deployment is a worse failure than a check an hour late.
+  const community = dryRun ? null : await syncCommunity(pool, false).catch(() => null);
+
   return NextResponse.json({
     configured: true,
     dryRun,
@@ -536,6 +543,7 @@ export async function GET(req: Request) {
     failed,
     held,
     skippedPaused,
+    ...(community ? { community } : {}),
     ...(dryRun ? { wouldSend: wouldSend.slice(0, 50), wouldSendCount: wouldSend.length } : {}),
   });
 }

@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/send",
       "schedule": "15 16 * * *"
-    },
-    {
-      "path": "/api/community-sync",
-      "schedule": "40 11 * * *"
     }
   ]
 }
