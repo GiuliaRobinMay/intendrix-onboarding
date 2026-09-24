@@ -93,7 +93,14 @@ export async function GET(req: Request) {
     .query(`select value from app_settings where key = 'sendingEnabled'`)
     .then((r) => r.rows[0]?.value === "on")
     .catch(() => false);
-  if (!engineOn && !dryRun)
+  if (!engineOn && !dryRun) {
+    await pool
+      .query(
+        `insert into app_settings (key, value) values ('engineLastRun', $1)
+         on conflict (key) do update set value = excluded.value`,
+        [JSON.stringify({ at: new Date().toISOString(), off: true })]
+      )
+      .catch(() => {});
     return NextResponse.json({
       enabled: false,
       note: "email sending is switched OFF in Settings — nothing was sent, nothing was logged",
@@ -101,6 +108,7 @@ export async function GET(req: Request) {
       failed: 0,
       held: 0,
     });
+  }
   const q = async (text: string, params: any[] = []) =>
     (await pool.query(text, params)).rows;
 
@@ -529,6 +537,17 @@ export async function GET(req: Request) {
       }
     }
   }
+
+  // A heartbeat, whatever this run did. An engine that has stopped and
+  // an engine with nothing to do look identical from the outside, and
+  // that cost two weeks of sends nobody knew were missing.
+  await pool
+    .query(
+      `insert into app_settings (key, value) values ('engineLastRun', $1)
+       on conflict (key) do update set value = excluded.value`,
+      [JSON.stringify({ at: new Date().toISOString(), sent, failed, held, dryRun })]
+    )
+    .catch(() => {});
 
   // While we are here: ask the community who has joined. It rides on
   // this run rather than a schedule of its own, because a plan can cap

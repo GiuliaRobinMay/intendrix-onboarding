@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Megaphone, Mail, ArrowRight } from "lucide-react";
 import { PageHeader, StatCard, Chip, StatusChip, ProgressBar, GradientButton } from "@/components/ui";
 import { useData } from "@/lib/state";
+import { EngineBanner } from "@/components/engine-banner";
 import {
   dashboardStats,
   upcomingSends,
@@ -30,6 +31,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <EngineBanner />
       <PageHeader
         title="Dashboard"
         subtitle={`Today is ${fmtDate(today)} — here's what's moving.`}
