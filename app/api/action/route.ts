@@ -135,6 +135,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
     case "updateClient":
       await patchRow(tx, "clients", a.clientId, a.patch, {
         name: "name",
+        shortName: "short_name",
         location: "location",
         state: "state",
         city: "city",

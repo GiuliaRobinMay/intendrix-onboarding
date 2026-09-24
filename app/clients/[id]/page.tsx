@@ -283,14 +283,60 @@ export default function ClientDetailPage() {
       </Link>
 
       <PageHeader
-        title={client.name}
-        subtitle={`${client.sector} · ${
-          client.city || client.state
-            ? [client.city, stateByCode(client.state)?.name]
-                .filter(Boolean)
-                .join(", ")
-            : client.location
-        }`}
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            <EditableText
+              value={client.name}
+              placeholder="The client's full name"
+              onCommit={(v) =>
+                v.trim() &&
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { name: v.trim() },
+                })
+              }
+              className="w-auto min-w-80 text-xl font-bold tracking-tight"
+            />
+            <EditableText
+              value={client.shortName}
+              placeholder="Short name"
+              onCommit={(v) =>
+                v.trim() &&
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { shortName: v.trim() },
+                })
+              }
+              className="w-auto max-w-44 text-sm font-semibold text-mist"
+            />
+          </span>
+        }
+        subtitle={
+          <span className="flex flex-wrap items-center gap-2 text-sm text-mist">
+            <EditableText
+              value={client.sector ?? ""}
+              placeholder="What they do, e.g. Community healthcare"
+              onCommit={(v) =>
+                dispatch({
+                  type: "updateClient",
+                  clientId: client.id,
+                  patch: { sector: v.trim() },
+                })
+              }
+              className="w-auto min-w-64 text-sm"
+            />
+            <span aria-hidden>·</span>
+            <span>
+              {client.city || client.state
+                ? [client.city, stateByCode(client.state)?.name]
+                    .filter(Boolean)
+                    .join(", ")
+                : client.location}
+            </span>
+          </span>
+        }
         action={
           <div className="flex items-center gap-3">
             <select

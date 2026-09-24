@@ -136,6 +136,7 @@ export type Action =
         Pick<
           Client,
           | "name"
+          | "shortName"
           | "location"
           | "state"
           | "city"
