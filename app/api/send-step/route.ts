@@ -142,7 +142,11 @@ export async function POST(req: Request) {
         [stepId]
       ),
       pool.query(
-        `select member_id, shadow_to from email_sends
+        // Only a send that actually left counts as done. A refusal —
+        // an unverified domain, a missing key — means the person never
+        // received this lesson, and a deliberate Send now is exactly
+        // the moment to try them again.
+        `select member_id, shadow_to, status from email_sends
           where campaign_id = $1 and step_id = $2`,
         [campaignId, stepId]
       ),
@@ -160,7 +164,9 @@ export async function POST(req: Request) {
 
   // whoever already has a log row for this lesson is never sent it again
   const already = new Set(
-    logged.map((r: any) => String(r.shadow_to ?? r.member_id))
+    logged
+      .filter((r: any) => r.status === "sent")
+      .map((r: any) => String(r.shadow_to ?? r.member_id))
   );
 
   // the same sender resolution the engine uses
