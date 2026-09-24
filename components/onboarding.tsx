@@ -11,7 +11,7 @@
 // who were invited and have not walked through the door yet.
 
 import { useState } from "react";
-import { BellRing, DoorOpen, ScrollText } from "lucide-react";
+import { BellRing, DoorOpen, RefreshCw, ScrollText } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { useConfirm } from "@/components/confirm";
 import { TestSendButton } from "@/components/test-send";
@@ -231,6 +231,62 @@ function OnboardingSendButton({
   );
 }
 
+/** Ask the community who is actually inside, and mark them joined.
+ *  The invitation is a shared plan link, so nobody is tracked
+ *  individually — the roster is the only thing that knows. */
+function CheckCommunityButton() {
+  const notice = useConfirm();
+  const [busy, setBusy] = useState(false);
+
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const out = await fetch("/api/community-sync", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({}),
+      }).then((r) => r.json());
+
+      if (!out.ok) {
+        void notice({ notice: true, name: "Could not read the community", detail: out.reason ?? "unknown reason" });
+        return;
+      }
+      const lines = [
+        out.newlyJoined
+          ? `${plural(out.newlyJoined, "person")} marked as joined: ${out.joined
+              .map((j: any) => `${j.name} (${j.client})`)
+              .join(", ")}.`
+          : "Nobody new — everyone already in the community was already marked.",
+        `${out.inCommunity} people are in the community altogether.`,
+        out.unmatched
+          ? `${plural(out.unmatched, "member")} of the community use an address nobody in the app has: ${out.unmatchedPeople
+              .slice(0, 6)
+              .map((u: any) => u.email)
+              .join(", ")}${out.unmatched > 6 ? " …" : ""}. Those stay for you to check by hand.`
+          : "",
+      ].filter(Boolean);
+      void notice({ notice: true, name: "Community checked", detail: lines.join(" ") });
+    } catch {
+      void notice({ notice: true, name: "Could not read the community", detail: "The server could not be reached — try again." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={run}
+      disabled={busy}
+      data-tip="Ask the community who has joined, and mark them — runs by itself every night too"
+      className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/12 px-2.5 py-1.5 text-[11px] font-semibold text-mist transition-colors hover:border-white/30 hover:text-paper disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <RefreshCw size={12} className={busy ? "animate-spin" : ""} />
+      {busy ? "Checking…" : "Check who joined"}
+    </button>
+  );
+}
+
 /** The three onboarding sends, as a row of buttons. They live in the
  *  header of the participants list, because that list is who they go
  *  to — the people put on this campaign, not everyone at the client. */
@@ -262,6 +318,7 @@ export function OnboardingButtons({
         />
         <TestSendButton campaignId={campaignId} kind="invite" remind compact tipPos="top" />
       </span>
+      <CheckCommunityButton />
       {!inviteUrl && (
         <span
           data-tip="Paste the client's plan link into the Invitation link field before inviting anyone"
