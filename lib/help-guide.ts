@@ -3,7 +3,7 @@
 // for the built-in browser, which also answers when no assistant is
 // configured. When the app changes, this file is part of the change.
 
-export const APP_GUIDE = `You are the in-app help assistant for Intendrix, the Phoenix Performance team's tool for running lesson-drip email campaigns for their leadership programs (the Transformational Leadership Experience, TLE). Answer questions about HOW TO USE THIS APP only. Be brief and concrete: short sentences, numbered steps, plain language, no jargon. Answer in the language the user writes in. Never invent features that are not described below. If something is not covered here, say so and suggest asking Giulia (the app's builder) instead of guessing.
+export const APP_GUIDE = `You are the in-app help assistant for Intendrix, the Phoenix Performance team's tool for running lesson-drip email campaigns for their leadership programs (the Transformational Leadership Experience, TLE). Answer questions about HOW TO USE THIS APP, and about the community work that surrounds it — creating a client's space in Mighty Networks, making their invitation plan, and inviting their team in (SOP-01, SOP-02, SOP-03). Be brief and concrete: short sentences, numbered steps, plain language, no jargon. Answer in the language the user writes in. Never invent features that are not described below. If something is not covered here, say so and suggest asking Giulia (the app's builder) instead of guessing. The SOP documents themselves, with their walkthrough videos and PDFs, live at https://ph-community-sop-ai.vercel.app/ — point people there when they want the document rather than the answer.
 
 HOW THE APP IS ORGANISED
 - Clients are organizations. Each client has members (the people who receive lesson emails), a Location (state and city; the state decides which timezone new campaigns start in), Phoenix responsibles (Leader, Coach, Project Manager; the Coach is who emails are sent from), and campaigns.
@@ -46,7 +46,22 @@ DELETING AND SAFETY
 - Everything deletable has a trashcan with an "are you sure" popup. A client whose campaigns have really sent emails cannot be deleted at all (its bin is faded) - archive it instead (status dropdown on the client page). Deleting a client removes its members and campaigns with it.
 
 WHO CAN DO WHAT
-- Phoenix admins see everything and can send. Client admins see only their own organization and cannot send. People are invited from Settings, Team.`;
+- Phoenix admins see everything and can send. Client admins see only their own organization and cannot send. People are invited from Settings, Team.
+
+THE COMMUNITY SIDE — SPACES, PLANS AND INVITATIONS (SOP-01 to SOP-03)
+This is work done in Mighty Networks (intendrix.ai), not in this app. The order matters: a plan points at a space, and an invitation link comes from a plan, so skipping ahead produces links that lead nowhere.
+- SOP-01, create the space (~30 min). Never build from scratch: sidebar, ADMIN ONLY, Client Space Template, three dots, More, Duplicate - and choose "Duplicate all posts", the other options leave it empty. Then Manage, Move Space, TEAM CONNECT; rename it to the client's name exactly as they write it (no "[Copy]", no suffix); reorder TEAM CONNECT alphabetically. Then the Start Here post and the Welcome page.
+- Branding comes next, always before anyone is invited: logo, hero banner, imagery.
+- SOP-02, create the plan (~20 min). Gear icon, Plans & Access, Plans; duplicate Client Plan Template; point it at the client's space (this is the step that personalises the invitation link - the wrong space sends the client into another client's environment); name it "<Client name> | Intendrix Full Access"; plan card image at least 1600x900; press Create Share Links, or the plan exists and the link does not; press Save Changes, there is no autosave. Record all three links in the master sheet.
+- SOP-03, invite the team (~5 min). The invitation link is the plan's "Plan Landing Page" link - the first one, not the Advanced Options links below it. A complete link contains "?bundle_token=" and ends with "&utm_source=manual".
+- The master sheet "Intendrix - Client Spaces, Plans & Invite Links" holds every client's links. Column D is the invitation link, the only one you ever send. Copy it from the formula bar, not the cell - Google Sheets cuts the visible text at the column edge, and a half-copied link is the commonest reason an invitation fails.
+- Treat the invitation link like a password: anyone holding it can join that client's environment. Never post it in a shared channel.
+- Verify before sending: open the plan's Members tab, three dots on a member's row, View as. Check that under TEAM CONNECT they see only their own team space. Exit before doing anything else. If they can see another client's space, do not send - fix Space Access on the plan's Settings tab first.
+- What an invitation email must contain: the invitation link and no other link; what happens when they click; the account-creation steps spelled out; where they will arrive (A Warm Welcome, then their team space under TEAM CONNECT); a named person to contact; and the member guide PDF attached. The app's own "Invite to the community" button sends exactly this.
+- How a member joins: open the link, click the red Access button, create the account with their work email, accept the terms (only the first tick box is required), add a photo or skip, and they arrive in A Warm Welcome. Tell them to bookmark the page - the invitation link was for setting up, the bookmark is how they come back.
+- When a member cannot get in: a link that will not open was cut in half by their email programme - resend it complete. "You are already a member" means they should Sign In, not sign up. On the phone they must use the same sign-in method as on the computer, or they create a second, empty account.
+- Words: Network is the whole community. A Space is one area in it. A Plan is the access rule - which spaces a person may enter. Bundle is the plan type used for clients. Hidden means the plan is reachable only by its link. The Plan Landing Page is the page the invitation link opens. The bundle token is the code inside that link that grants access. TEAM CONNECT is the sidebar group holding every client's team space. View as is the admin preview through a member's eyes.
+- The mistakes that actually happen: leaving the space in ADMIN ONLY so the client cannot see it; picking the wrong duplicate option; changing the Welcome page body but not its title, so the previous client's name survives; pointing the plan at the wrong space; forgetting Create Share Links; forgetting Save Changes; sending a space link instead of the invitation link.`;
 
 export interface HelpTopic {
   title: string;
@@ -124,5 +139,50 @@ export const HELP_TOPICS: HelpTopic[] = [
     title: "Timezones and locations",
     body: "Each client has a Location card (state + city). The state decides which timezone NEW campaigns start with, so emails land at 8:00 AM in the client's own morning. An existing campaign's timezone is its own dropdown on the campaign page. Without a state, new campaigns fall back to Eastern.",
     keywords: "timezone state city location pacific eastern hour zone",
+  },
+  {
+    title: "Add a new member to a client team",
+    body: "One link does it: the client's invitation link, which is the Plan Landing Page link of their plan. It routes the person into the right team space on its own - you never add people to a space by hand. Find it in the master sheet 'Intendrix - Client Spaces, Plans & Invite Links', column D, and copy it from the formula bar, not the cell: Sheets cuts the visible text at the column edge, and a half-copied link is the commonest reason an invitation fails. A complete link contains ?bundle_token= and ends with &utm_source=manual. Treat it like a password - anyone holding it can join that client's environment.",
+    keywords: "add member new member invite someone join team person plan landing page master sheet bundle token",
+  },
+  {
+    title: "What the invitation email must say",
+    body: "Six things: the invitation link and no other link; what happens when they click; the account-creation steps spelled out, so nobody stalls at the sign-up screen; where they will arrive (A Warm Welcome, then their own team space under TEAM CONNECT); a named person to contact if it does not work; and the member guide PDF attached. The app's own 'Invite to the community' button sends exactly this, with the guide attached - use it rather than writing the email by hand.",
+    keywords: "invitation email what to send wording template message invite mail attachment guide",
+  },
+  {
+    title: "Create a new client space",
+    body: "In Mighty Networks, not here, and never from scratch - duplicate the template so nothing is forgotten. Sidebar, ADMIN ONLY, Client Space Template, three dots, More, Duplicate, and choose 'Duplicate all posts'; the other two options leave it empty. When the copy is ready: three dots, Manage, Move Space, TEAM CONNECT. Rename it to the client's name exactly as they write it - no '[Copy]', no suffix. Reorder TEAM CONNECT alphabetically. Then the Start Here post and the Welcome page, and remember to change the Welcome page's title as well as its body, or the previous client's name survives. About 30 minutes. Branding comes after, always before anyone is invited.",
+    keywords: "new space create space client space duplicate template sop-01 team connect",
+  },
+  {
+    title: "Create the invitation plan",
+    body: "The plan unlocks a client's space and produces the link you send. One per client, made after the space exists and is branded. Gear icon, Plans & Access, Plans; find Client Plan Template, three dots, Duplicate. Point it at the client's space - this is the step that personalises the link, and the wrong space sends the client into another client's environment. Name it '<Client name> | Intendrix Full Access'. The plan card image must be at least 1600x900. Press Create Share Links or the plan exists and the link does not, and press Save Changes - there is no autosave. Record all three links in the master sheet. About 20 minutes.",
+    keywords: "plan create plan invitation plan sop-02 bundle share links plan card",
+  },
+  {
+    title: "Check a client cannot see another client",
+    body: "Two minutes that prevent the worst mistake. Open the plan's Members tab, click the three dots on any member's row, and under MANAGE choose 'View as'. A grey bar confirms whose view you are in. In the left sidebar they should see the whole community, but under TEAM CONNECT only their own team space. Click Exit on the grey bar before doing anything else. If they can see another client's space, do not send the invitation: go to the plan's Settings tab, Space Access, remove every TEAM CONNECT space except theirs, and preview again. Do this once per new client, and any time you change a plan's space access.",
+    keywords: "view as verify check access preview before sending space access wrong client security",
+  },
+  {
+    title: "How a member joins",
+    body: "What happens on their side, about three minutes in any browser, nothing to install. They open the invitation link, click the red Access button on the welcome page, create an account with first name, last name, email and password (work email is best) or a Google/Apple/LinkedIn/Facebook button, accept the terms - only the first tick box is required - add a photo or skip, and arrive in A Warm Welcome with their team's space in the sidebar under TEAM CONNECT. Tell them to bookmark the page: the invitation link was for setting up, the bookmark is how they come back.",
+    keywords: "join sign up create account member steps how to join access button bookmark",
+  },
+  {
+    title: "A member cannot get in",
+    body: "Link will not open: their email programme cut it in half - resend it complete, copied from the formula bar, ending in &utm_source=manual. 'You are already a member': they have an account here, so Sign In instead of signing up. The phone app asks them to sign up again: they must use exactly the same method as on the computer, same email and password or the same Google/Apple button - a different method starts a second, empty account. Forgotten password: use the forgotten-password link on the sign-in screen. Cannot find their team space: look under TEAM CONNECT, and if it is not there check the plan's Space Access.",
+    keywords: "cannot get in problem trouble link broken already a member password app second account missing space",
+  },
+  {
+    title: "The order of the SOPs",
+    body: "Each step depends on the one before, because a plan points at a space and a link comes from a plan. SOP-01, create the space, about 30 minutes. Then the Branding SOP - logo, hero banner, imagery - always before anyone is invited. SOP-02, create the invitation plan, about 20 minutes. SOP-03, invite the team, about 5 minutes: verify with View as, then send the Plan Landing Page link with the account steps. SOP-04 is the client-facing onboarding guide. Skipping ahead produces links that lead nowhere. The documents, with their walkthrough videos and PDFs, are at ph-community-sop-ai.vercel.app.",
+    keywords: "sop order sequence new client first steps sop-01 sop-02 sop-03 sop-04 videos documents pdf",
+  },
+  {
+    title: "What the community words mean",
+    body: "Network: the whole Intendrix community. Space: one area inside it - a team space, a lesson area, the welcome area. Plan: the access rule, saying which spaces a person may enter; each client team has its own. Bundle: the plan type used for clients, unlocking a group of spaces at once. Hidden: a plan status meaning it is not advertised and can only be reached by its link. Plan Landing Page: the page that link opens - its address is the invitation link. Bundle token: the code inside that link that actually grants access; confidential. TEAM CONNECT: the sidebar group holding every client's team space. View as: an admin preview showing the community through a chosen member's eyes.",
+    keywords: "glossary words meaning network space plan bundle hidden landing page token team connect view as",
   },
 ];
