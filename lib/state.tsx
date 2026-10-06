@@ -1185,7 +1185,12 @@ function reducer(db: DB, action: Action): DB {
 
 /** Where the data lives: the shared database (Supabase) when the server
  *  is configured, otherwise this browser's storage (prototype mode). */
-export type Backend = "loading" | "database" | "browser";
+/** "denied" is its own answer on purpose. The database is there and the
+ *  server understood the request — it refused this account. Treating
+ *  that as "no database" showed the signed-in person the built-in demo
+ *  clients, which look exactly like real ones, and three of the team
+ *  worked from them for weeks without knowing. */
+export type Backend = "loading" | "database" | "browser" | "denied";
 
 interface DataContextValue {
   /** the Phoenix team — assignable people and sign-in accounts in one list */
@@ -1197,9 +1202,10 @@ interface DataContextValue {
   /** app-wide values — absent keys simply mean "not set yet" */
   settings: Record<string, string>;
   backend: Backend;
-  /** true when a change could not be saved to the database */
   /** what the last failed save said, or null when all is well */
   syncError: string | null;
+  /** why the server refused this account, when it did */
+  accessError: string | null;
   dispatch: (action: Action) => void;
 }
 
@@ -1273,6 +1279,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [db, rawDispatch] = useReducer(reducer, undefined, seed);
   const [backend, setBackend] = useState<Backend>("loading");
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const dbRef = useRef(db);
   const backendRef = useRef(backend);
@@ -1313,6 +1320,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
             db: { seedVersion: SEED_VERSION, ...res.db },
           });
           setBackend("database");
+        } else if (res.configured) {
+          // the database is there and said no to this account. Showing
+          // demo clients here is how a locked-out person spends weeks
+          // believing they are looking at their own work.
+          setAccessError(
+            typeof res.error === "string" && res.error
+              ? res.error
+              : "this account has no access yet"
+          );
+          setBackend("denied");
         } else {
           hydrateFromBrowser();
         }
@@ -1418,6 +1435,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         templates: db.templates,
         settings: db.settings ?? {},
         backend,
+        accessError,
         syncError,
         dispatch,
       }}

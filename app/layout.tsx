@@ -3,6 +3,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { SyncBanner } from "@/components/sync-banner";
 import { DemoBanner } from "@/components/demo-banner";
+import { AccessGate } from "@/components/access-gate";
 import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
 import { ConfirmProvider } from "@/components/confirm";
@@ -42,6 +43,7 @@ export default function RootLayout({
         <AuthGate>
           <DataProvider>
             <ConfirmProvider>
+            <AccessGate>
             <div className="flex min-h-screen">
               <Sidebar />
               <main className="min-w-0 flex-1">
@@ -51,6 +53,7 @@ export default function RootLayout({
                 </div>
               </main>
             </div>
+            </AccessGate>
             <SyncBanner />
             </ConfirmProvider>
           </DataProvider>
