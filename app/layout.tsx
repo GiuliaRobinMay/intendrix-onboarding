@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { SyncBanner } from "@/components/sync-banner";
+import { DemoBanner } from "@/components/demo-banner";
 import { AuthGate } from "@/components/auth-gate";
 import { DataProvider } from "@/lib/state";
 import { ConfirmProvider } from "@/components/confirm";
@@ -45,6 +46,7 @@ export default function RootLayout({
               <Sidebar />
               <main className="min-w-0 flex-1">
                 <div className="mx-auto max-w-350 px-6 py-6 lg:px-8">
+                  <DemoBanner />
                   {children}
                 </div>
               </main>
