@@ -26,6 +26,7 @@ import { SendNowButton } from "@/components/send-now";
 import { OnboardingButtons, OnboardingChips } from "@/components/onboarding";
 import { ClientFactsCard } from "@/components/client-facts";
 import { CampaignNotes } from "@/components/campaign-notes";
+import { ClientViewCard } from "@/components/client-view-card";
 import { MemberPicker } from "@/components/member-picker";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
@@ -766,8 +767,9 @@ export default function CampaignDetailPage() {
           <ClientFactsCard client={client} fromCampaign />
         </div>
 
-          <div className="mb-6">
+          <div className="mb-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
             <CampaignNotes clientId={client.id} campaign={campaign} />
+            <ClientViewCard clientId={client.id} campaign={campaign} />
           </div>
         </>
       )}

@@ -99,11 +99,20 @@ export async function GET(req: Request) {
       // (0015) and status/note (0016) arrive by hand-run migration, so
       // a deploy that lands first must not take the app down
       q(`select * from members order by created_at, id`),
+      // share_token arrives by hand-run migration (0019), so a deploy
+      // that lands first must not take the app down
       q(`select id, client_id, template_id, code, name, timezone,
-                status_override, sender_member_id, shadow_emails,
+                status_override, sender_member_id, shadow_emails, share_token,
                 start_date::text as start_date,
                 end_date::text as end_date
-           from campaigns order by created_at, id`),
+           from campaigns order by created_at, id`)
+        .catch(() =>
+          q(`select id, client_id, template_id, code, name, timezone,
+                    status_override, sender_member_id, shadow_emails,
+                    start_date::text as start_date,
+                    end_date::text as end_date
+               from campaigns order by created_at, id`)
+        ),
       q(`select id, campaign_id, name, session_date::text as session_date,
                 mode, kind, offset_days
            from campaign_sessions order by campaign_id, sort_order, created_at`),
@@ -337,6 +346,7 @@ export async function GET(req: Request) {
         ...(c.status_override ? { statusOverride: c.status_override } : {}),
         senderMemberId: c.sender_member_id,
         shadowEmails: c.shadow_emails,
+        shareToken: c.share_token ?? null,
         notes: notesByCampaign.get(c.id) ?? [],
         startDate: c.start_date,
         endDate: c.end_date,

@@ -225,6 +225,9 @@ export interface Campaign {
    *  — the coordinator watching a live program from the outside.
    *  Comma-separated. They are never personalised or counted as members. */
   shadowEmails?: string | null;
+  /** the secret in this campaign's public /journey link — the page the
+   *  client team sees in their own space. Null means the page is off. */
+  shareToken?: string | null;
   /** the running record the team keeps on this campaign: what was
    *  done, what the client asked for, what to watch next time.
    *  Newest first, nothing ever overwritten. */
