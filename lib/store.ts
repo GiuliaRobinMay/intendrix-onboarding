@@ -163,6 +163,11 @@ export function computeSchedule(
     // with a real delivery behind it may claim it went out
     const delivered = (campaign.delivered?.[step.id] ?? 0) > 0;
     const skipped = campaign.skippedStepIds?.includes(step.id) ?? false;
+    // we tried and the provider refused. Nobody received it, so it is
+    // not Sent — but it is not "nothing happened" either, and the two
+    // used to look identical on the row.
+    const failure = campaign.failures?.[step.id];
+    const refused = !delivered && !skipped && (failure?.count ?? 0) > 0;
     // a hand-picked date moves exactly this email; the chain for the
     // later steps keeps computing from the automatic dates
     const pinned = campaign.stepDates?.[step.id];
@@ -171,8 +176,10 @@ export function computeSchedule(
         ? ("sent" as const)
         : skipped
           ? ("cancelled" as const)
-          : ("unscheduled" as const);
-      return { step, series, date: null, status };
+          : refused
+            ? ("failed" as const)
+            : ("unscheduled" as const);
+      return { step, series, date: null, status, ...(refused ? { failure } : {}) };
     }
     if (cursor) cursor = addWorkdays(cursor, step.offsetDays);
     const iso = pinned ?? cursor!;
@@ -181,10 +188,19 @@ export function computeSchedule(
       ? ("sent" as const)
       : skipped
         ? ("cancelled" as const)
-        : date < dayStart
-          ? ("missed" as const)
-          : ("scheduled" as const);
-    return { step, series, date, status, ...(pinned ? { dateOverridden: true } : {}) };
+        : refused
+          ? ("failed" as const)
+          : date < dayStart
+            ? ("missed" as const)
+            : ("scheduled" as const);
+    return {
+      step,
+      series,
+      date,
+      status,
+      ...(pinned ? { dateOverridden: true } : {}),
+      ...(refused ? { failure } : {}),
+    };
   });
 }
 
@@ -316,9 +332,11 @@ export interface MailboxItem {
   series: SeriesTemplate;
   step: import("./types").SeriesStep;
   date: Date | null;
-  status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled";
+  status: "sent" | "failed" | "missed" | "cancelled" | "scheduled" | "unscheduled";
   /** true when the date was picked by hand instead of computed */
   dateOverridden?: boolean;
+  /** set on a refused lesson: how many attempts, and what the provider said */
+  failure?: { count: number; error: string | null };
   /** the Phoenix person responsible for this campaign (campaign manager,
    *  falling back to account manager, then the client-level responsibles) */
   sender?: StaffMember;
@@ -419,6 +437,7 @@ export function mailboxItems(
             date: item.date,
             status: item.status,
             ...(item.dateOverridden ? { dateOverridden: true } : {}),
+            ...(item.failure ? { failure: item.failure } : {}),
             sender,
             from,
           });

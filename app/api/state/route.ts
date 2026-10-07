@@ -150,18 +150,24 @@ export async function GET(req: Request) {
            from campaign_step_dates`).catch(() => []),
       // what has REALLY been delivered — only these may show as Sent —
       // with the provider's delivery reports when those columns exist
-      q(`select campaign_id, step_id, count(*)::int as n,
-                count(*) filter (where last_event in ('delivered','opened','clicked'))::int as delivered,
-                count(*) filter (where last_event in ('opened','clicked'))::int as opened,
-                count(*) filter (where last_event = 'clicked')::int as clicked,
-                count(*) filter (where last_event in ('bounced','complained','failed'))::int as bounced
+      q(`select campaign_id, step_id,
+                count(*) filter (where status = 'sent')::int as n,
+                count(*) filter (where status = 'failed')::int as failed,
+                max(error) filter (where status = 'failed') as last_error,
+                count(*) filter (where status = 'sent' and last_event in ('delivered','opened','clicked'))::int as delivered,
+                count(*) filter (where status = 'sent' and last_event in ('opened','clicked'))::int as opened,
+                count(*) filter (where status = 'sent' and last_event = 'clicked')::int as clicked,
+                count(*) filter (where status = 'sent' and last_event in ('bounced','complained','failed'))::int as bounced
            from email_sends
-          where status = 'sent' and shadow_to is null
+          where shadow_to is null
           group by campaign_id, step_id`)
         .catch(() =>
-          q(`select campaign_id, step_id, count(*)::int as n
+          q(`select campaign_id, step_id,
+                    count(*) filter (where status = 'sent')::int as n,
+                    count(*) filter (where status = 'failed')::int as failed,
+                    max(error) filter (where status = 'failed') as last_error
                from email_sends
-              where status = 'sent' and shadow_to is null
+              where shadow_to is null
               group by campaign_id, step_id`).catch(() => [])
         ),
       // the last word on each person's address — kept only when it is
@@ -285,10 +291,19 @@ export async function GET(req: Request) {
 
     const deliveredByCampaign = new Map<string, Record<string, number>>();
     const deliveryByCampaign = new Map<string, Record<string, any>>();
+    // sends we tried and the provider refused. Kept apart from the
+    // deliveries so a lesson that was attempted and bounced off the
+    // provider can say so, instead of looking like one nobody sent.
+    const failedByCampaign = new Map<string, Record<string, any>>();
     for (const d of deliveredRows) {
       const map = deliveredByCampaign.get(d.campaign_id) ?? {};
       map[d.step_id] = d.n;
       deliveredByCampaign.set(d.campaign_id, map);
+      if (d.failed > 0) {
+        const bad = failedByCampaign.get(d.campaign_id) ?? {};
+        bad[d.step_id] = { count: d.failed, error: d.last_error ?? null };
+        failedByCampaign.set(d.campaign_id, bad);
+      }
       const rep = deliveryByCampaign.get(d.campaign_id) ?? {};
       rep[d.step_id] = {
         sent: d.n,
@@ -357,6 +372,7 @@ export async function GET(req: Request) {
         stepDates: datesByCampaign.get(c.id) ?? {},
         delivered: deliveredByCampaign.get(c.id) ?? {},
         delivery: deliveryByCampaign.get(c.id) ?? {},
+        failures: failedByCampaign.get(c.id) ?? {},
         series: seriesByCampaign.get(c.id) ?? [],
       };
       const list = campaignsByClient.get(c.client_id) ?? [];

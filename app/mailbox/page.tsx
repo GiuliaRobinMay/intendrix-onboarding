@@ -18,6 +18,9 @@ import { authHeaders } from "@/lib/supabase-browser";
 import { EditableText } from "@/components/editable";
 import { useConfirm } from "@/components/confirm";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
+import { DateField } from "@/components/date-field";
+import { RefusedNote } from "@/components/refused-note";
+import { isoDay } from "@/lib/dates";
 import { useData } from "@/lib/state";
 import {
   campaignStatus,
@@ -35,21 +38,17 @@ import type { StepContent } from "@/lib/types";
 type Scope = "today" | "week" | "upcoming" | "sent" | "notsent" | "awaiting";
 type SendStatus =
   | "sent"
+  | "failed"
   | "missed"
   | "cancelled"
   | "scheduled"
   | "unscheduled"
   | "paused";
 
-function iso(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-}
-
 const DOT: Record<SendStatus, { color: string; tip: string }> = {
   sent: { color: "var(--tone-green)", tip: "Sent — really delivered, the send log has it" },
   missed: { color: "#ff7a55", tip: "Not sent — the date passed but nothing went out" },
+  failed: { color: "#f87171", tip: "Refused — we tried and the provider turned it back" },
   cancelled: { color: "var(--color-mist)", tip: "Cancelled — this campaign never sends this lesson" },
   scheduled: { color: "var(--tone-indigo)", tip: "Scheduled — sends automatically on its date" },
   unscheduled: { color: "var(--color-mist)", tip: "Awaiting date — its trigger session isn't planned yet" },
@@ -340,21 +339,20 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
           <dd className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-mist">
             {item.status !== "sent" && item.status !== "cancelled" ? (
               <>
-                <input
-                  type="date"
-                  value={item.date ? iso(item.date) : ""}
-                  data-tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
-                  onChange={(e) =>
-                    e.target.value &&
+                <DateField
+                  value={item.date ? isoDay(item.date) : ""}
+                  tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
+                  onChange={(v) =>
+                    v &&
                     dispatch({
                       type: "setStepDate",
                       clientId: item.client.id,
                       campaignId: item.campaign.id,
                       stepId: item.step.id,
-                      date: e.target.value,
+                      date: v,
                     })
                   }
-                  className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                  className="rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold"
                 />
                 <span>at {fmtSendTime(item.step.sendTime, item.campaign.timezone)}</span>
                 {item.dateOverridden && (
@@ -406,7 +404,9 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
         </div>
       </dl>
 
-      {item.status === "sent" && <DeliveryPanel item={item} />}
+      {(item.status === "sent" || item.failure) && <DeliveryPanel item={item} />}
+
+      {item.failure && <RefusedNote failure={item.failure} />}
 
       {item.status === "cancelled" && (
         <p className="mt-3 flex flex-wrap items-center gap-2 text-[11px]">
@@ -581,7 +581,7 @@ function ReadingPane({ item, paused }: { item: MailboxItem; paused: boolean }) {
 export default function MailboxPage() {
   const { clients, templates, staff } = useData();
   const today = new Date();
-  const todayIso = iso(today);
+  const todayIso = isoDay(today);
 
   const [scope, setScope] = useState<Scope>("upcoming");
   const [clientFilter, setClientFilter] = useState("all");
@@ -637,15 +637,20 @@ export default function MailboxPage() {
   const periodActive = from !== "" || to !== "";
 
   const counts = {
-    today: items.filter((i) => i.date && iso(i.date) === todayIso).length,
+    today: items.filter((i) => i.date && isoDay(i.date) === todayIso).length,
     week: items.filter(
       (i) => i.date && i.date >= weekStart && i.date <= addDays(weekEnd, 1)
     ).length,
     upcoming: items.filter((i) => i.status === "scheduled").length,
     sent: items.filter(
-      (i) => i.status === "sent" || i.status === "missed" || i.status === "cancelled"
+      (i) =>
+        i.status === "sent" ||
+        i.status === "missed" ||
+        i.status === "failed" ||
+        i.status === "cancelled"
     ).length,
-    notsent: items.filter((i) => i.status === "missed").length,
+    notsent: items.filter((i) => i.status === "missed" || i.status === "failed")
+      .length,
     awaiting: items.filter((i) => i.status === "unscheduled").length,
   };
 
@@ -669,7 +674,7 @@ export default function MailboxPage() {
 
     if (periodActive) {
       if (!i.date) return false;
-      const dIso = iso(i.date);
+      const dIso = isoDay(i.date);
       if (from && dIso < from) return false;
       if (to && dIso > to) return false;
       return true;
@@ -677,17 +682,20 @@ export default function MailboxPage() {
 
     switch (scope) {
       case "today":
-        return i.date !== null && iso(i.date) === todayIso;
+        return i.date !== null && isoDay(i.date) === todayIso;
       case "week":
         return i.date !== null && i.date >= weekStart && i.date <= addDays(weekEnd, 1);
       case "upcoming":
         return i.status === "scheduled";
       case "sent":
         return (
-          i.status === "sent" || i.status === "missed" || i.status === "cancelled"
+          i.status === "sent" ||
+          i.status === "missed" ||
+          i.status === "failed" ||
+          i.status === "cancelled"
         );
       case "notsent":
-        return i.status === "missed";
+        return i.status === "missed" || i.status === "failed";
       case "awaiting":
         return i.status === "unscheduled";
     }
@@ -780,20 +788,18 @@ export default function MailboxPage() {
             <span className="text-[11px] font-medium text-mist">
               Period
             </span>
-            <input
-              type="date"
+            <DateField
               value={from}
-              title="Show communications from this date"
-              onChange={(e) => setFrom(e.target.value)}
-              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+              tip="Show communications from this date"
+              onChange={setFrom}
+              className="rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold"
             />
             <span className="text-xs text-mist">→</span>
-            <input
-              type="date"
+            <DateField
               value={to}
-              title="…until this date"
-              onChange={(e) => setTo(e.target.value)}
-              className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+              tip="…until this date"
+              onChange={setTo}
+              className="rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-semibold"
             />
             {periodActive && (
               <button

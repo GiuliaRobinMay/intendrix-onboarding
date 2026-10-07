@@ -260,6 +260,10 @@ export interface Campaign {
     string,
     { sent: number; delivered: number; opened: number; clicked: number; bounced: number }
   >;
+  /** per lesson id, the sends we tried and the provider refused. A lesson
+   *  with these and no deliveries was attempted and did not leave — which
+   *  is a different thing from one nobody ever sent, and has to say so. */
+  failures?: Record<string, { count: number; error: string | null }>;
 }
 
 export type ClientStatus = "active" | "onboarding" | "archived";
@@ -309,9 +313,12 @@ export interface ScheduledStep {
   step: SeriesStep;
   series: SeriesTemplate;
   date: Date | null;
-  /** sent = the send log has a real delivery; missed = the date passed
-   *  with nothing delivered; cancelled = never send this one */
-  status: "sent" | "missed" | "cancelled" | "scheduled" | "unscheduled";
+  /** sent = the send log has a real delivery; failed = we tried and the
+   *  provider refused; missed = the date passed with nothing delivered
+   *  and nothing even attempted; cancelled = never send this one */
+  status: "sent" | "failed" | "missed" | "cancelled" | "scheduled" | "unscheduled";
   /** true when the date was picked by hand instead of computed */
   dateOverridden?: boolean;
+  /** set on a failed lesson: how many refusals, and what the provider said */
+  failure?: { count: number; error: string | null };
 }

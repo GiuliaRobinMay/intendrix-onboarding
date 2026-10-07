@@ -93,10 +93,21 @@ export function SendNowButton({ campaignId, stepId, subject, clientName, small }
         setState("idle");
         return;
       }
+      // a refusal is not a send. Saying "failed for 24" and reloading
+      // left the row reading "Not sent" with no reason anywhere, so the
+      // provider's own words stay on screen until they are read.
+      if (out.failed) {
+        setError(
+          `${out.sent ? `Sent to ${out.sent}. ` : ""}${out.failed} refused — ${
+            out.error ?? "no reason given"
+          }`
+        );
+        setState("idle");
+        if (out.sent) setTimeout(() => window.location.reload(), 6000);
+        return;
+      }
       setState("done");
-      setMsg(
-        `Sent to ${out.sent}${out.failed ? `, failed for ${out.failed}` : ""} — updating…`
-      );
+      setMsg(`Sent to ${out.sent} — updating…`);
       setTimeout(() => window.location.reload(), 2500);
     } catch {
       setError("could not reach the server");

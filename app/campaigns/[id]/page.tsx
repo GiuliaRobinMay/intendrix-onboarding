@@ -28,6 +28,9 @@ import { ClientFactsCard } from "@/components/client-facts";
 import { CampaignNotes } from "@/components/campaign-notes";
 import { ClientViewCard } from "@/components/client-view-card";
 import { MemberPicker } from "@/components/member-picker";
+import { DateField } from "@/components/date-field";
+import { RefusedNote } from "@/components/refused-note";
+import { isoDay } from "@/lib/dates";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
 import {
@@ -63,11 +66,6 @@ const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: stri
 const STATUS_ORDER: CampaignStatus[] = ["upcoming", "active", "paused", "closed"];
 
 /** Where a session sits in time. One colour each, nothing else. */
-const isoDate = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-
 const SESSION_STATE = {
   past: { color: "#7c7e8c", label: "Done", tip: "Already happened" },
   next: { color: "#4ade80", label: "Next", tip: "The next session — this is what's coming up" },
@@ -125,18 +123,6 @@ function InlineSelect({
       </select>
     </label>
   );
-}
-
-/** A date as the calendar sees it, not as UTC does.
- *
- *  toISOString() converts to UTC first, so a date standing for local
- *  midnight comes back as the day before for anyone east of Greenwich —
- *  and a lesson sending on the 7th showed the 6th in its own date box.
- *  The send date is a day on a calendar, never an instant. */
-function isoDay(d: Date | string): string {
-  if (typeof d === "string") return d.slice(0, 10);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /** how many participant rows the card always shows */
@@ -485,34 +471,32 @@ export default function CampaignDetailPage() {
               </span>
               <span className="flex items-center gap-1.5 text-mist">
                 <span>Runs</span>
-                <input
-                  type="date"
-                  title="Campaign start date — shown as a milestone in the Calendar"
+                <DateField
+                  tip="Campaign start date — shown as a milestone in the Calendar"
                   value={campaign.startDate ?? ""}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     dispatch({
                       type: "updateCampaign",
                       clientId: client.id,
                       campaignId: campaign.id,
-                      patch: { startDate: e.target.value || null },
+                      patch: { startDate: v || null },
                     })
                   }
-                  className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                  className="rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold text-paper"
                 />
                 <span>→</span>
-                <input
-                  type="date"
-                  title="Campaign end date — shown as a milestone in the Calendar"
+                <DateField
+                  tip="Campaign end date — shown as a milestone in the Calendar"
                   value={campaign.endDate ?? ""}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     dispatch({
                       type: "updateCampaign",
                       clientId: client.id,
                       campaignId: campaign.id,
-                      patch: { endDate: e.target.value || null },
+                      patch: { endDate: v || null },
                     })
                   }
-                  className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold tabular-nums text-paper focus:border-white/30 focus:outline-none"
+                  className="rounded-md border border-white/10 bg-navy/60 px-1.5 py-1 text-[11px] font-bold text-paper"
                 />
               </span>
             </div>
@@ -1412,12 +1396,12 @@ export default function CampaignDetailPage() {
                       )}
 
                       <div className="mt-auto flex items-center gap-1 pt-2">
-                        <input
-                          type="date"
-                          title="The session's date — entering it schedules every series bound to this session"
+                        <DateField
+                          icon={false}
+                          tip="The session's date — entering it schedules every series bound to this session"
                           value={session.date ?? ""}
-                          onChange={(e) => setSessionDate(session, e.target.value)}
-                          className={`min-w-0 flex-1 cursor-pointer rounded border px-1 py-0.5 text-center text-[10px] font-bold tabular-nums focus:outline-none ${
+                          onChange={(v) => setSessionDate(session, v)}
+                          className={`min-w-0 flex-1 rounded border px-1 py-0.5 text-[10px] font-bold ${
                             session.date
                               ? "border-transparent text-paper"
                               : "border-dashed border-white/15 text-mist/70"
@@ -1554,12 +1538,11 @@ export default function CampaignDetailPage() {
                             </>
                           )}
                         </button>
-                        <input
-                          type="date"
-                          title="The session's date — entering it schedules every series bound to this session"
+                        <DateField
+                          tip="The session's date — entering it schedules every series bound to this session"
                           value={session.date ?? ""}
-                          onChange={(e) => setSessionDate(session, e.target.value)}
-                          className={`cursor-pointer rounded border px-1.5 py-1 text-center text-[11px] font-bold tabular-nums focus:outline-none ${
+                          onChange={(v) => setSessionDate(session, v)}
+                          className={`rounded border px-1.5 py-1 text-[11px] font-bold ${
                             session.date
                               ? "border-transparent text-paper"
                               : "border-dashed border-white/15 text-mist/70"
@@ -1894,14 +1877,11 @@ export default function CampaignDetailPage() {
                                   — the meetup that starts this series
                                 </span>
                               </span>
-                              <input
-                                type="date"
+                              <DateField
                                 value={session.date ?? ""}
-                                title="Reschedule this session — every send below moves with it"
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                onChange={(e) => setSessionDate(session, e.target.value)}
-                                className="shrink-0 cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                                tip="Reschedule this session — every send below moves with it"
+                                onChange={(v) => setSessionDate(session, v)}
+                                className="shrink-0 rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold"
                               />
                             </li>
                           )}
@@ -1952,26 +1932,23 @@ export default function CampaignDetailPage() {
                                     onClick={(e) => e.stopPropagation()}
                                     className="flex w-36 shrink-0 items-center justify-end gap-1"
                                   >
-                                    <input
-                                      type="date"
-                                      value={
-                                        item.date ? isoDay(item.date) : ""
-                                      }
-                                      data-tip={
+                                    <DateField
+                                      value={item.date ? isoDay(item.date) : ""}
+                                      tip={
                                         item.dateOverridden
                                           ? "A date picked by hand for this campaign — clear it to go back to the automatic one"
                                           : "Give this one email a date of its own; the others do not move"
                                       }
-                                      onChange={(e) =>
+                                      onChange={(v) =>
                                         dispatch({
                                           type: "setStepDate",
                                           clientId: client.id,
                                           campaignId: campaign.id,
                                           stepId: item.step.id,
-                                          date: e.target.value || null,
+                                          date: v || null,
                                         })
                                       }
-                                      className={`w-28 cursor-pointer rounded border px-1 py-0.5 text-center text-[11px] tabular-nums focus:outline-none ${
+                                      className={`w-28 rounded border px-1 py-0.5 text-[11px] ${
                                         item.dateOverridden
                                           ? "border-[#facc15]/60 bg-[#facc15]/10 font-semibold text-[#facc15]"
                                           : "border-transparent text-mist hover:border-white/20"
@@ -2049,25 +2026,27 @@ export default function CampaignDetailPage() {
                                         Mailbox to read and edit both.
                                       </p>
                                     )}
+                                    {item.failure && (
+                                      <RefusedNote failure={item.failure} />
+                                    )}
                                     {item.status !== "sent" &&
                                       item.status !== "cancelled" && (
                                         <p className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-mist">
                                           Sends on
-                                          <input
-                                            type="date"
-                                            value={item.date ? isoDate(item.date) : ""}
-                                            data-tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
-                                            onChange={(e) =>
-                                              e.target.value &&
+                                          <DateField
+                                            value={item.date ? isoDay(item.date) : ""}
+                                            tip="Pick the date this one email goes out — only this email moves, the rest of the series keeps its automatic schedule"
+                                            onChange={(v) =>
+                                              v &&
                                               dispatch({
                                                 type: "setStepDate",
                                                 clientId: client.id,
                                                 campaignId: campaign.id,
                                                 stepId: item.step.id,
-                                                date: e.target.value,
+                                                date: v,
                                               })
                                             }
-                                            className="cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold tabular-nums focus:border-white/30 focus:outline-none"
+                                            className="rounded-md border border-white/10 bg-navy/60 px-2 py-1 text-[11px] font-semibold"
                                           />
                                           at {fmtSendTime(item.step.sendTime, campaign.timezone)}
                                           {item.dateOverridden && (

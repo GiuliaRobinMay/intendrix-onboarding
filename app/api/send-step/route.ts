@@ -345,6 +345,9 @@ export async function POST(req: Request) {
 
   let sent = 0;
   let failed = 0;
+  // the provider's own words on the first refusal, so the person who
+  // pressed the button is told why instead of just how many
+  let firstError: string | null = null;
 
   for (const member of toMembers) {
     const variant = member.role === "participant" ? "participant" : "leader";
@@ -379,7 +382,10 @@ export async function POST(req: Request) {
       result.id ?? null
     );
     if (result.ok) sent++;
-    else failed++;
+    else {
+      failed++;
+      firstError ??= result.error ?? "unknown error";
+    }
   }
 
   for (const address of toWatchers) {
@@ -407,13 +413,17 @@ export async function POST(req: Request) {
       result.id ?? null
     );
     if (result.ok) sent++;
-    else failed++;
+    else {
+      failed++;
+      firstError ??= result.error ?? "unknown error";
+    }
   }
 
   return NextResponse.json({
     ok: true,
     sent,
     failed,
+    error: firstError,
     alreadySent: already.size,
     engineOn,
   });
