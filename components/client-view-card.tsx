@@ -26,9 +26,11 @@ function newToken(): string {
 
 export function ClientViewCard({
   clientId,
+  clientName,
   campaign,
 }: {
   clientId: string;
+  clientName: string;
   campaign: Campaign;
 }) {
   const { dispatch } = useData();
@@ -38,10 +40,13 @@ export function ClientViewCard({
   const token = campaign.shareToken ?? null;
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const url = token ? `${origin}/journey/${token}` : "";
-  // Mighty Networks takes a plain iframe. The title and the rounded
-  // corner are what make it look like part of the space rather than a
-  // window cut into it.
-  const embed = `<iframe src="${url}" title="Your programme" style="width:100%;height:820px;border:none;border-radius:14px" loading="lazy"></iframe>`;
+  // Mighty Networks takes a plain iframe. The title names this client
+  // and this programme, so what lands on the clipboard is finished —
+  // a placeholder in copied code reads as a blank to fill in, and the
+  // person pasting it has no way of knowing it is not.
+  const embed =
+    `<iframe src="${url}" title="${campaign.name} — ${clientName}" ` +
+    `style="width:100%;height:820px;border:none;border-radius:14px" loading="lazy"></iframe>`;
 
   const copy = (what: "link" | "embed") => {
     navigator.clipboard?.writeText(what === "link" ? url : embed);
@@ -109,7 +114,7 @@ export function ClientViewCard({
               data-tip="The whole embed code, ready for the space"
               className="cursor-pointer rounded-md border border-white/12 px-2.5 py-1 text-[11px] font-semibold text-mist transition-colors hover:border-white/30 hover:text-paper"
             >
-              {copied === "embed" ? "Copied" : "Copy the embed code"}
+              {copied === "embed" ? "Copied — paste it as it is" : "Copy the embed code"}
             </button>
             <button
               onClick={async () => {
@@ -135,8 +140,9 @@ export function ClientViewCard({
           </div>
 
           <p className="mt-2 text-[11px] leading-relaxed text-mist/70">
-            Anyone with the link can read it, so it belongs in their space and
-            not on a public page.
+            Paste the embed code into the space exactly as it is — there is
+            nothing to fill in. Anyone with the link can read it, so it belongs
+            in their space and not on a public page.
           </p>
         </>
       )}

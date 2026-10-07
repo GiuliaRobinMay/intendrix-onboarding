@@ -769,7 +769,11 @@ export default function CampaignDetailPage() {
 
           <div className="mb-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
             <CampaignNotes clientId={client.id} campaign={campaign} />
-            <ClientViewCard clientId={client.id} campaign={campaign} />
+            <ClientViewCard
+              clientId={client.id}
+              clientName={client.shortName}
+              campaign={campaign}
+            />
           </div>
         </>
       )}
