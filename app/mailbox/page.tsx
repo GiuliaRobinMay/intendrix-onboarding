@@ -32,7 +32,7 @@ import {
 } from "@/lib/store";
 import type { StepContent } from "@/lib/types";
 
-type Scope = "today" | "week" | "upcoming" | "sent" | "awaiting";
+type Scope = "today" | "week" | "upcoming" | "sent" | "notsent" | "awaiting";
 type SendStatus =
   | "sent"
   | "missed"
@@ -645,6 +645,7 @@ export default function MailboxPage() {
     sent: items.filter(
       (i) => i.status === "sent" || i.status === "missed" || i.status === "cancelled"
     ).length,
+    notsent: items.filter((i) => i.status === "missed").length,
     awaiting: items.filter((i) => i.status === "unscheduled").length,
   };
 
@@ -685,13 +686,18 @@ export default function MailboxPage() {
         return (
           i.status === "sent" || i.status === "missed" || i.status === "cancelled"
         );
+      case "notsent":
+        return i.status === "missed";
       case "awaiting":
         return i.status === "unscheduled";
     }
   });
 
-  // sent scope reads best newest-first
-  const ordered = scope === "sent" && !periodActive ? [...filtered].reverse() : filtered;
+  // what has already happened reads best newest-first
+  const ordered =
+    (scope === "sent" || scope === "notsent") && !periodActive
+      ? [...filtered].reverse()
+      : filtered;
 
   const keyOf = (i: MailboxItem) => `${i.campaign.id}-${i.step.id}`;
   const isPaused = (i: MailboxItem) =>
@@ -710,6 +716,7 @@ export default function MailboxPage() {
     { key: "week", label: "This week" },
     { key: "upcoming", label: "Upcoming" },
     { key: "sent", label: "Sent" },
+    { key: "notsent", label: "Not sent" },
     { key: "awaiting", label: "No date" },
   ];
 
@@ -732,7 +739,8 @@ export default function MailboxPage() {
                   today: "Emails going out today",
                   week: "Everything leaving this week",
                   upcoming: "All scheduled future sends",
-                  sent: "What went out — and what didn't (Not sent, Cancelled)",
+                  sent: "What went out, newest first",
+                  notsent: "The date passed and nothing left the building — these are the ones to follow up",
                   awaiting: "Sends whose trigger session has no date yet",
                 }[t.key]}
                 onClick={() => {
@@ -743,11 +751,23 @@ export default function MailboxPage() {
                 className={
                   on
                     ? "brand-gradient-soft cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold text-paper"
-                    : "cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold text-mist transition-colors hover:bg-white/5 hover:text-paper"
+                    : `cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/5 hover:text-paper ${
+                        t.key === "notsent" && counts.notsent > 0
+                          ? "text-[#ff7a55]"
+                          : "text-mist"
+                      }`
                 }
               >
                 {t.label}
-                <span className={on ? "ml-1.5 opacity-80" : "ml-1.5 text-mist/60"}>
+                <span
+                  className={
+                    on
+                      ? "ml-1.5 opacity-80"
+                      : t.key === "notsent" && counts.notsent > 0
+                        ? "ml-1.5 font-bold text-[#ff7a55]"
+                        : "ml-1.5 text-mist/60"
+                  }
+                >
                   {counts[t.key]}
                 </span>
               </button>
