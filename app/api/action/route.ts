@@ -418,6 +418,17 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
 
     // ——— campaign assignments ———
     case "addPhoenixAssignment":
+      // One holder per role. Two Coaches on one campaign is not a
+      // richer team, it is an unanswerable question: the emails go out
+      // from exactly one address, and the engine was answering it by
+      // taking whichever row was older — so naming a new Coach changed
+      // nothing, silently, and the mail kept coming from the person
+      // before. Naming someone replaces whoever held the role.
+      await tx.query(
+        `delete from campaign_phoenix_assignments
+          where campaign_id = $1 and role = $2`,
+        [a.campaignId, a.role]
+      );
       await tx.query(
         `insert into campaign_phoenix_assignments (id, campaign_id, staff_id, role)
          values ($1, $2, $3, $4)`,
@@ -425,6 +436,15 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       );
       return;
     case "updatePhoenixAssignment":
+      // changing a row's role can collide with the holder of that role
+      // just as adding one can, so it clears the way the same
+      if (a.patch?.role)
+        await tx.query(
+          `delete from campaign_phoenix_assignments
+            where campaign_id = (select campaign_id from campaign_phoenix_assignments where id = $1)
+              and role = $2 and id <> $1`,
+          [a.assignmentId, a.patch.role]
+        );
       await patchRow(tx, "campaign_phoenix_assignments", a.assignmentId, a.patch, {
         staffId: "staff_id",
         role: "role",

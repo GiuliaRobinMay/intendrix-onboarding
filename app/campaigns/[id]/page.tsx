@@ -716,16 +716,39 @@ export default function CampaignDetailPage() {
             </select>
 
             {emailSender ? (
-              <p
-                data-tip={
-                  emailSender.isClientMember
-                    ? `Replies go to ${emailSender.replyTo}`
-                    : "The address recipients see"
-                }
-                className="mt-2 truncate text-[11px] text-mist"
-              >
-                {emailSender.name} &lt;{emailSender.address}&gt;
-              </p>
+              <>
+                <p
+                  data-tip={
+                    emailSender.isClientMember
+                      ? `Replies go to ${emailSender.replyTo}`
+                      : "The address recipients see"
+                  }
+                  className="mt-2 truncate text-[11px] text-mist"
+                >
+                  {emailSender.name} &lt;{emailSender.address}&gt;
+                </p>
+                {/* Two people holding one role is how mail went out for
+                    weeks under a name nobody had chosen. New assignments
+                    replace rather than pile up now, but anything already
+                    in the database says so here instead of deciding
+                    quietly. */}
+                {(() => {
+                  const coaches = campaign.phoenixTeam.filter(
+                    (a) => a.role === "phoenix_coach"
+                  );
+                  if (coaches.length < 2) return null;
+                  const names = coaches
+                    .map((a) => findStaff(team, a.staffId)?.name ?? "someone")
+                    .join(" and ");
+                  return (
+                    <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[#ff7a55]">
+                      {names} are both set as Coach. Emails go out as{" "}
+                      {emailSender.name} — remove the other one on the Phoenix
+                      team card.
+                    </p>
+                  );
+                })()}
+              </>
             ) : (
               <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
                 No sender yet

@@ -896,10 +896,11 @@ function reducer(db: DB, action: Action): DB {
     // ——— campaign assignments ——————————————————————————————
 
     case "addPhoenixAssignment":
+      // one holder per role — see the server action for why
       return mapCampaign(db, action.clientId, action.campaignId, (c) => ({
         ...c,
         phoenixTeam: [
-          ...c.phoenixTeam,
+          ...c.phoenixTeam.filter((x) => x.role !== action.role),
           { id: action.id ?? uid("pa"), staffId: action.staffId, role: action.role },
         ],
       }));
