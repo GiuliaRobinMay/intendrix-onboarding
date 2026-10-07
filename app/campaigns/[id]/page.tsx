@@ -127,6 +127,18 @@ function InlineSelect({
   );
 }
 
+/** A date as the calendar sees it, not as UTC does.
+ *
+ *  toISOString() converts to UTC first, so a date standing for local
+ *  midnight comes back as the day before for anyone east of Greenwich —
+ *  and a lesson sending on the 7th showed the 6th in its own date box.
+ *  The send date is a day on a calendar, never an instant. */
+function isoDay(d: Date | string): string {
+  if (typeof d === "string") return d.slice(0, 10);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 /** how many participant rows the card always shows */
 const ROWS_SHOWN = 20;
 
@@ -1943,13 +1955,7 @@ export default function CampaignDetailPage() {
                                     <input
                                       type="date"
                                       value={
-                                        item.date
-                                          ? typeof item.date === "string"
-                                            ? item.date
-                                            : new Date(item.date)
-                                                .toISOString()
-                                                .slice(0, 10)
-                                          : ""
+                                        item.date ? isoDay(item.date) : ""
                                       }
                                       data-tip={
                                         item.dateOverridden
