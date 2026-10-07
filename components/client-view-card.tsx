@@ -38,7 +38,10 @@ export function ClientViewCard({
   const token = campaign.shareToken ?? null;
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const url = token ? `${origin}/journey/${token}` : "";
-  const embed = `<iframe src="${url}" style="width:100%;height:760px;border:0" loading="lazy"></iframe>`;
+  // Mighty Networks takes a plain iframe. The title and the rounded
+  // corner are what make it look like part of the space rather than a
+  // window cut into it.
+  const embed = `<iframe src="${url}" title="Your programme" style="width:100%;height:820px;border:none;border-radius:14px" loading="lazy"></iframe>`;
 
   const copy = (what: "link" | "embed") => {
     navigator.clipboard?.writeText(what === "link" ? url : embed);

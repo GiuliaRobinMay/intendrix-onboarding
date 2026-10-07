@@ -52,7 +52,7 @@ function shell(title: string, inner: string): NextResponse {
   *{box-sizing:border-box}
   body{margin:0;background:#f6f6f8;color:#1a1b2e;
        font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1.55}
-  .wrap{max-width:720px;margin:0 auto;padding:28px 18px 64px}
+  .wrap{max-width:720px;margin:0 auto;padding:22px 18px 40px}
   .top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
   .logo{height:38px;width:auto}
   h1{font-size:21px;margin:0 0 2px;letter-spacing:-.01em}
@@ -89,7 +89,29 @@ function shell(title: string, inner: string): NextResponse {
   .ahead .dot{border-style:dashed}
   .empty{background:#fff;border:1px solid #e4e4ea;border-radius:10px;padding:26px;text-align:center;color:#6b6c80}
   .foot{margin-top:26px;text-align:center;font-size:12px;color:#9a9bab}
-</style></head><body><div class="wrap">${inner}</div></body></html>`,
+</style></head><body><div class="wrap">${inner}</div>
+<script>
+// Tell the page we are embedded in how tall we are, so the frame can
+// grow with the content instead of showing a scrollbar inside a
+// scrollbar. Platforms that ignore it simply keep their fixed height,
+// and the page scrolls on its own — no worse than before.
+(function(){
+  if (window.parent === window) return;
+  var last = 0;
+  function tell(){
+    var h = Math.ceil(document.documentElement.scrollHeight);
+    if (Math.abs(h - last) < 8) return;
+    last = h;
+    try { window.parent.postMessage({ type: 'intendrix:height', height: h }, '*'); } catch (e) {}
+  }
+  tell();
+  window.addEventListener('load', tell);
+  document.addEventListener('toggle', function(){ setTimeout(tell, 60); }, true);
+  if (window.ResizeObserver) new ResizeObserver(tell).observe(document.body);
+  setInterval(tell, 1500);
+})();
+</script>
+</body></html>`,
     { headers: { "content-type": "text/html; charset=utf-8" } }
   );
 }
