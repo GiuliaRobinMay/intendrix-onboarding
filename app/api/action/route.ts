@@ -260,6 +260,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         timezone: "timezone",
         statusOverride: "status_override",
         senderMemberId: "sender_member_id",
+        senderStaffId: "sender_staff_id",
         shareToken: "share_token",
         shadowEmails: "shadow_emails",
         startDate: "start_date",

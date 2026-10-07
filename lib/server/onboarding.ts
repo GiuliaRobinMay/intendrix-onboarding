@@ -54,6 +54,7 @@ export async function campaignContext(
 ): Promise<CampaignContext | { error: string }> {
   const { rows: campaignRows } = await pool.query(
     `select c.id, c.code, c.name, c.status_override, c.sender_member_id,
+            c.sender_staff_id,
             cl.id as client_id, cl.name as client_name,
             cl.short_name as client_short_name, cl.invite_url,
             cl.phoenix_leader_id, cl.phoenix_coach_id, cl.project_manager_id
@@ -72,6 +73,7 @@ export async function campaignContext(
   const pick = (role: string, fallback: string | null) =>
     assignments.find((a: any) => a.role === role)?.staff_id ?? fallback;
   const staffId =
+    campaign.sender_staff_id ??
     pick("phoenix_coach", campaign.phoenix_coach_id) ??
     pick("phoenix_leader", campaign.phoenix_leader_id) ??
     pick("project_manager", campaign.project_manager_id);

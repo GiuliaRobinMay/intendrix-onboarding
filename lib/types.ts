@@ -220,6 +220,11 @@ export interface Campaign {
    *  coach — e.g. the Transformational Champion on a second-level
    *  program. Their name is what recipients see; the address stays on
    *  the sending domain, with their own address as reply-to. */
+  /** the Phoenix person these emails come from. Null falls back to
+   *  whoever holds the Coach role, which is how it used to be decided
+   *  for every campaign — and why adding a colleague to a team could
+   *  change who the mail appeared to be from. */
+  senderStaffId?: string | null;
   senderMemberId?: string | null;
   /** addresses that receive one copy of every lesson this campaign sends
    *  — the coordinator watching a live program from the outside.

@@ -379,7 +379,15 @@ export function senderFor(
   campaign: Campaign,
   staff: StaffMember[]
 ): StaffMember | undefined {
-  // the Coach is the one the emails go out from
+  // Named outright on the campaign, that is the answer — a role is a
+  // job on a team, not an instruction about whose name goes on the
+  // mail, and inferring one from the other meant adding a colleague
+  // could change who a client heard from.
+  if (campaign.senderStaffId) {
+    const chosen = findStaff(staff, campaign.senderStaffId);
+    if (chosen) return chosen;
+  }
+  // nothing named: the Coach, as it always was
   return (
     effectiveRole(client, campaign, "phoenixCoachId", staff) ??
     effectiveRole(client, campaign, "phoenixLeaderId", staff) ??

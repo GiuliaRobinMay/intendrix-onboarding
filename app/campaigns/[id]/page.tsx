@@ -690,29 +690,54 @@ export default function CampaignDetailPage() {
               <Mail size={17} className="text-mist" /> Emails sent from
             </h2>
 
+            {/* Who sends is chosen here, outright. It used to be deduced
+                from who held the Coach role on the team card, so putting
+                a colleague on a campaign could change the name a client
+                saw — and with two people in that role the mail went out
+                under whichever had been added first. */}
             <select
-              data-tip="Who this campaign's emails appear to come from — normally the Phoenix Coach, or the client's own champion when the program is introduced from inside their organisation"
-              value={campaign.senderMemberId ?? ""}
-              onChange={(e) =>
+              data-tip="Who this campaign's emails come from. Anyone at Phoenix, or the client's own champion when the program is introduced from inside their organisation."
+              value={
+                campaign.senderMemberId
+                  ? `member:${campaign.senderMemberId}`
+                  : campaign.senderStaffId
+                    ? `staff:${campaign.senderStaffId}`
+                    : ""
+              }
+              onChange={(e) => {
+                const [kind, id] = e.target.value.split(":");
                 dispatch({
                   type: "updateCampaign",
                   clientId: client.id,
                   campaignId: campaign.id,
-                  patch: { senderMemberId: e.target.value || null },
-                })
-              }
+                  patch: {
+                    senderMemberId: kind === "member" ? id : null,
+                    senderStaffId: kind === "staff" ? id : null,
+                  },
+                });
+              }}
               className="w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
             >
               <option value="">
-                The Phoenix Coach
-                {phoenixSender ? ` — ${phoenixSender.name}` : " — none assigned"}
+                Whoever is Phoenix Coach
+                {phoenixSender ? ` — now ${phoenixSender.name}` : " — none assigned"}
               </option>
-              {client.members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                  {m.title ? ` — ${m.title}` : ""} (at {client.shortName})
-                </option>
-              ))}
+              <optgroup label="Someone at Phoenix">
+                {team.map((p) => (
+                  <option key={p.id} value={`staff:${p.id}`}>
+                    {p.name}
+                    {p.role ? ` — ${p.role}` : ""}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label={`Someone at ${client.shortName}`}>
+                {client.members.map((m) => (
+                  <option key={m.id} value={`member:${m.id}`}>
+                    {m.name}
+                    {m.title ? ` — ${m.title}` : ""}
+                  </option>
+                ))}
+              </optgroup>
             </select>
 
             {emailSender ? (
@@ -733,6 +758,9 @@ export default function CampaignDetailPage() {
                     in the database says so here instead of deciding
                     quietly. */}
                 {(() => {
+                  // only when nobody was named: then a role still
+                  // decides, and two holders of it is a coin toss
+                  if (campaign.senderStaffId || campaign.senderMemberId) return null;
                   const coaches = campaign.phoenixTeam.filter(
                     (a) => a.role === "phoenix_coach"
                   );

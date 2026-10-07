@@ -102,7 +102,7 @@ export async function GET(req: Request) {
       // share_token arrives by hand-run migration (0019), so a deploy
       // that lands first must not take the app down
       q(`select id, client_id, template_id, code, name, timezone,
-                status_override, sender_member_id, shadow_emails, share_token,
+                status_override, sender_member_id, sender_staff_id, shadow_emails, share_token,
                 start_date::text as start_date,
                 end_date::text as end_date
            from campaigns order by created_at, id`)
@@ -347,6 +347,7 @@ export async function GET(req: Request) {
         senderMemberId: c.sender_member_id,
         shadowEmails: c.shadow_emails,
         shareToken: c.share_token ?? null,
+        senderStaffId: c.sender_staff_id ?? null,
         notes: notesByCampaign.get(c.id) ?? [],
         startDate: c.start_date,
         endDate: c.end_date,

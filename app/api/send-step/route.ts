@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
   const { rows: campaignRows } = await pool.query(
     `select c.id, c.code, c.name, c.timezone, c.status_override,
-            c.sender_member_id, c.shadow_emails,
+            c.sender_member_id, c.sender_staff_id, c.shadow_emails,
             cl.id as client_id, cl.name as client_name,
             cl.phoenix_leader_id, cl.phoenix_coach_id, cl.project_manager_id
        from campaigns c join clients cl on cl.id = c.client_id
@@ -169,10 +169,12 @@ export async function POST(req: Request) {
       .map((r: any) => String(r.shadow_to ?? r.member_id))
   );
 
-  // the same sender resolution the engine uses
+  // the same sender resolution the engine uses: named on the campaign
+  // first, a role only when nothing was named
   const pickStaffId = (role: string, fallback: string | null) =>
     assignments.find((a: any) => a.role === role)?.staff_id ?? fallback;
   const staffId =
+    campaign.sender_staff_id ??
     pickStaffId("phoenix_coach", campaign.phoenix_coach_id) ??
     pickStaffId("phoenix_leader", campaign.phoenix_leader_id) ??
     pickStaffId("project_manager", campaign.project_manager_id);

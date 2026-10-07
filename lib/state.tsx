@@ -211,6 +211,7 @@ export type Action =
           | "timezone"
           | "statusOverride"
           | "senderMemberId"
+          | "senderStaffId"
           | "shareToken"
           | "shadowEmails"
           | "startDate"

@@ -140,7 +140,7 @@ export async function GET(req: Request) {
   const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows, skipRows, dateRows] =
     await Promise.all([
       q(`select id, client_id, code, name, timezone, status_override,
-                sender_member_id, shadow_emails from campaigns`),
+                sender_member_id, sender_staff_id, shadow_emails from campaigns`),
       q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
       // select * so a database without the status column still answers;
       // people who left the team are filtered out below
@@ -254,6 +254,11 @@ export async function GET(req: Request) {
   }
 
   const senderFor = (campaign: any): any | null => {
+    // named outright on the campaign wins over any role
+    if (campaign.sender_staff_id) {
+      const chosen = staffById.get(campaign.sender_staff_id);
+      if (chosen) return chosen;
+    }
     const client = clientById.get(campaign.client_id);
     const pick = (role: string, fallbackId?: string | null) => {
       const a = assignments.find(
