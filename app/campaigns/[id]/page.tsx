@@ -33,6 +33,7 @@ import { DateField } from "@/components/date-field";
 import { RefusedNote } from "@/components/refused-note";
 import { SenderPicker } from "@/components/sender-picker";
 import { isoDay } from "@/lib/dates";
+import { TIMEZONES } from "@/lib/timezones";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
 import {
@@ -81,16 +82,6 @@ const STATUS_TIP: Record<CampaignStatus, string> = {
   paused: "Pause the campaign — every send is on hold until you reopen it",
   closed: "Finished — nothing more will be sent",
 };
-
-const TIMEZONES = [
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "America/Anchorage",
-  "Pacific/Honolulu",
-  "Europe/Brussels",
-];
 
 /** Small inline select that reads as text until you use it. */
 function InlineSelect({
@@ -343,6 +334,7 @@ export default function CampaignDetailPage() {
               onClick={async () => {
                 if (
                   !(await confirmDuplicate({
+                    action: "duplicate",
                     name: campaign.name,
                     detail:
                       "You get a copy with the same series, sessions, participants, Phoenix team and tailored wording. Every date is left empty — session dates and hand-picked ones — so the copy cannot send anything until you plan it.",
@@ -432,7 +424,7 @@ export default function CampaignDetailPage() {
                 patch: { timezone: v || "America/New_York" },
               })
             }
-            options={TIMEZONES.map((tz) => ({ value: tz, label: tz }))}
+            options={TIMEZONES.map((tz) => ({ value: tz.value, label: tz.label }))}
           />
         </div>
       </div>

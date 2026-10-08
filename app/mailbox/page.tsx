@@ -20,6 +20,7 @@ import { useConfirm } from "@/components/confirm";
 import { PageHeader, Chip, StatusChip } from "@/components/ui";
 import { DateField } from "@/components/date-field";
 import { RefusedNote } from "@/components/refused-note";
+import { TrackingBanner } from "@/components/tracking-banner";
 import { isoDay } from "@/lib/dates";
 import { useData } from "@/lib/state";
 import {
@@ -734,6 +735,8 @@ export default function MailboxPage() {
         title="Mailbox"
         subtitle="Every communication that goes out to members — sent by the system from the Phoenix Coach's address."
       />
+
+      <TrackingBanner clients={clients} />
 
       {/* Filters */}
       <div className="card mb-5 flex flex-wrap items-center justify-between gap-4 p-4">

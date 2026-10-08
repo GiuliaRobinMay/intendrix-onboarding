@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import { CalendarDays, ChevronRight, Layers, Search, Users } from "lucide-react";
 import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
-import { NewCampaignForm } from "@/components/campaign-form";
+import { NewCampaignWizard } from "@/components/new-campaign-wizard";
 import { useData } from "@/lib/state";
 import {
   campaignCompletion,
@@ -95,6 +96,7 @@ function FilterSelect({
 export default function CampaignsPage() {
   const { clients, templates, staff } = useData();
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
+  const router = useRouter();
   const [status, setStatus] = useState<"all" | CampaignStatus>("all");
   const [leaderFilter, setLeaderFilter] = useState("all");
   const [coachFilter, setCoachFilter] = useState("all");
@@ -208,7 +210,11 @@ export default function CampaignsPage() {
               ))}
             </select>
           </div>
-          <NewCampaignForm clientId={creatingFor} onClose={() => setCreatingFor(null)} />
+          <NewCampaignWizard
+            clientId={creatingFor}
+            onClose={() => setCreatingFor(null)}
+            onCreated={(id) => router.push(`/campaigns/${id}`)}
+          />
         </div>
       )}
 

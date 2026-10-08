@@ -2,51 +2,13 @@
 
 import Link from "next/link";
 import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, Megaphone, Search, Trash2, Users, X } from "lucide-react";
 import { PageHeader, StatusChip, GradientButton } from "@/components/ui";
-import { Field } from "@/components/editable";
 import { useConfirm } from "@/components/confirm";
+import { NewClientWizard } from "@/components/new-client-wizard";
 import { useData } from "@/lib/state";
 import { campaignStatus, findStaff } from "@/lib/store";
-
-function NewClientForm({ onClose }: { onClose: () => void }) {
-  const { dispatch } = useData();
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [sector, setSector] = useState("");
-
-  return (
-    <div className="card mb-6 p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-bold">New client organization</h2>
-        <button
-          data-tip="Close without creating"
-          onClick={onClose}
-          className="cursor-pointer rounded-md p-1 text-mist hover:bg-white/5 hover:text-paper"
-        >
-          <X size={16} />
-        </button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Field label="Organization name" value={name} onChange={setName} placeholder="e.g. CareSouth Carolina" />
-        <Field label="Location" value={location} onChange={setLocation} placeholder="e.g. South Carolina, USA" />
-        <Field label="Sector" value={sector} onChange={setSector} placeholder="e.g. Community healthcare" />
-      </div>
-      <div className="mt-4">
-        <GradientButton
-          onClick={() => {
-            if (!name.trim()) return;
-            dispatch({ type: "addClient", name: name.trim(), location, sector });
-            onClose();
-          }}
-        >
-          Create client
-        </GradientButton>
-      </div>
-    </div>
-  );
-}
 
 function ResponsibleName({ id }: { id?: string }) {
   const { staff } = useData();
@@ -64,6 +26,7 @@ function ClientsContent() {
   const { clients, templates, staff, dispatch } = useData();
   const confirmDelete = useConfirm();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [showForm, setShowForm] = useState(searchParams.get("new") === "1");
   const [responsible, setResponsible] = useState("all");
   const [activeOnly, setActiveOnly] = useState(false);
@@ -112,7 +75,10 @@ function ClientsContent() {
         }
       />
 
-      {showForm && <NewClientForm onClose={() => setShowForm(false)} />}
+      {showForm && <NewClientWizard
+          onClose={() => setShowForm(false)}
+          onCreated={(id) => router.push(`/clients/${id}`)}
+        />}
 
       {/* Filters */}
       <div className="card mb-5 flex flex-wrap items-center justify-between gap-4 p-4">

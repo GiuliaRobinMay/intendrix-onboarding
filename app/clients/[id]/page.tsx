@@ -30,7 +30,7 @@ import {
   GhostButton,
 } from "@/components/ui";
 import { EditableText } from "@/components/editable";
-import { NewCampaignForm } from "@/components/campaign-form";
+import { NewCampaignWizard } from "@/components/new-campaign-wizard";
 import { MembersSection } from "@/components/members-table";
 import { ClientFactsCard } from "@/components/client-facts";
 import { useData } from "@/lib/state";
@@ -363,7 +363,11 @@ export default function ClientDetailPage() {
       />
 
       {addingCampaign && (
-        <NewCampaignForm clientId={client.id} onClose={() => setAddingCampaign(false)} />
+        <NewCampaignWizard
+          clientId={client.id}
+          onClose={() => setAddingCampaign(false)}
+          onCreated={(id) => router.push(`/campaigns/${id}`)}
+        />
       )}
 
       <div className="flex flex-col gap-6">

@@ -11,6 +11,7 @@ import type {
   SeriesTemplate,
   StaffMember,
 } from "./types";
+import { tzLabel } from "./timezones";
 import { addWorkdays } from "./workdays";
 
 export function findStaff(
@@ -44,21 +45,14 @@ export function fmtWeekday(d: Date): string {
   return d.toLocaleDateString("en-US", { weekday: "short" });
 }
 
-const TZ_LABEL: Record<string, string> = {
-  "America/New_York": "Eastern",
-  "America/Chicago": "Central",
-  "America/Denver": "Mountain",
-  "America/Phoenix": "Arizona",
-  "America/Los_Angeles": "Pacific",
-};
+
 
 /** "08:00" in a campaign timezone → "8:00 AM Eastern". */
 export function fmtSendTime(time: string, timezone: string): string {
   const [h, m] = time.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 === 0 ? 12 : h % 12;
-  const zone =
-    TZ_LABEL[timezone] ?? timezone.split("/").pop()?.replace(/_/g, " ") ?? timezone;
+  const zone = tzLabel(timezone);
   return `${h12}:${String(m).padStart(2, "0")} ${ampm} ${zone}`;
 }
 
