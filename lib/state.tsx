@@ -454,6 +454,14 @@ export type Action =
     }
   | { type: "removeInvitation"; invitationId: string }
   // campaign blueprints
+  | {
+      type: "duplicateCampaign";
+      id?: string;
+      clientId: string;
+      campaignId: string;
+      name: string;
+      code: string;
+    }
   | { type: "addCampaignTemplate"; id?: string; name: string; code: string; description: string }
   | { type: "duplicateCampaignTemplate"; templateId: string; plan?: DuplicatePlan }
   | { type: "removeCampaignTemplate"; templateId: string }
@@ -593,6 +601,48 @@ function reducer(db: DB, action: Action): DB {
 
     // ——— campaigns —————————————————————————————————————————
 
+    case "duplicateCampaign": {
+      const source = db.clients
+        .find((c) => c.id === action.clientId)
+        ?.campaigns.find((c) => c.id === action.campaignId);
+      if (!source) return db;
+      // the same programme for the next cohort. Dates are what a new run
+      // never inherits: no session dates, no hand-picked ones, no record
+      // of anything sent.
+      const sessionIds = new Map(source.sessions.map((s) => [s.id, uid("session")]));
+      const copy: Campaign = {
+        ...source,
+        id: action.id ?? uid("campaign"),
+        code: action.code,
+        name: action.name,
+        statusOverride: undefined,
+        // fresh ids for the copied rows: the server mints its own, and
+        // two React keys that are the same make a mess until it answers
+        phoenixTeam: source.phoenixTeam.map((x) => ({ ...x, id: uid("pa") })),
+        clientTeam: source.clientTeam.map((x) => ({ ...x, id: uid("ca") })),
+        startDate: null,
+        endDate: null,
+        shareToken: null,
+        notes: [],
+        delivered: {},
+        delivery: {},
+        failures: {},
+        stepDates: {},
+        sessions: source.sessions.map((s) => ({
+          ...s,
+          id: sessionIds.get(s.id)!,
+          date: null,
+        })),
+        series: source.series.map((l) => ({
+          ...l,
+          sessionId: l.sessionId ? (sessionIds.get(l.sessionId) ?? null) : null,
+        })),
+      };
+      return mapClient(db, action.clientId, (c) => ({
+        ...c,
+        campaigns: [...c.campaigns, copy],
+      }));
+    }
     case "addCampaign": {
       const sessions: CampaignSession[] = action.withStandardSessions
         ? STANDARD_SESSIONS.map((s, i) => ({
@@ -1232,6 +1282,8 @@ function prepareAction(action: Action, db: DB): Action {
             ? STANDARD_SESSIONS.map(() => uid("session"))
             : []),
       };
+    case "duplicateCampaign":
+      return { ...action, id: action.id ?? uid("campaign") };
     case "addSession":
       return { ...action, id: action.id ?? uid("session") };
     case "addPhoenixAssignment":

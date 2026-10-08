@@ -269,6 +269,91 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
       return;
 
     // ——— sessions ———
+    case "duplicateCampaign": {
+      // A copy for the next cohort: the same programme, the same people
+      // responsible, the same tailored wording — and no dates, because
+      // dates are the one thing a new run never shares with the old one.
+      // Nothing can send until they are filled in, which is the point.
+      const copyCampaign = async (withExtras: boolean) =>
+        tx.query(
+          `insert into campaigns (id, client_id, template_id, code, name, timezone${
+            withExtras ? ", sender_staff_id, sender_member_id, shadow_emails" : ""
+          })
+           select $1, client_id, template_id, $3, $4, timezone${
+             withExtras ? ", sender_staff_id, sender_member_id, shadow_emails" : ""
+           }
+             from campaigns where id = $2`,
+          [a.id, a.campaignId, a.code, a.name]
+        );
+      // a database without the newer columns still copies the rest
+      await copyCampaign(true).catch(() => copyCampaign(false));
+
+      // sessions keep their shape and lose their dates; everything that
+      // points at a session has to be pointed at the new one
+      const { rows: oldSessions } = await tx.query(
+        `select id, name, mode, kind, sort_order from campaign_sessions
+          where campaign_id = $1 order by sort_order`,
+        [a.campaignId]
+      );
+      const sessionMap = new Map<string, string>();
+      for (const s of oldSessions) {
+        const { rows } = await tx.query(
+          `insert into campaign_sessions (campaign_id, name, mode, kind, sort_order)
+           values ($1, $2, $3, $4, $5) returning id`,
+          [a.id, s.name, s.mode, s.kind, s.sort_order]
+        );
+        sessionMap.set(s.id, rows[0].id);
+      }
+
+      await tx.query(
+        `insert into campaign_series (campaign_id, series_template_id, trigger_session_id, sort_order)
+         select $1, series_template_id, null, sort_order
+           from campaign_series where campaign_id = $2`,
+        [a.id, a.campaignId]
+      );
+      for (const [oldId, newId] of sessionMap) {
+        await tx.query(
+          `update campaign_series cs
+              set trigger_session_id = $1
+            where cs.campaign_id = $2
+              and cs.series_template_id in (
+                select series_template_id from campaign_series
+                 where campaign_id = $3 and trigger_session_id = $4)`,
+          [newId, a.id, a.campaignId, oldId]
+        );
+      }
+
+      await tx.query(
+        `insert into campaign_phoenix_assignments (campaign_id, staff_id, role)
+         select $1, staff_id, role from campaign_phoenix_assignments where campaign_id = $2`,
+        [a.id, a.campaignId]
+      );
+      await tx.query(
+        `insert into campaign_client_assignments (campaign_id, member_id, role)
+         select $1, member_id, role from campaign_client_assignments where campaign_id = $2`,
+        [a.id, a.campaignId]
+      );
+      // the tailored wording and the cancelled lessons are part of how
+      // this programme is run, so they come along; hand-picked dates do
+      // not, for the same reason the session dates do not
+      await tx
+        .query(
+          `insert into campaign_step_content (campaign_id, step_id, variant, email_subject, email_body)
+           select $1, step_id, variant, email_subject, email_body
+             from campaign_step_content where campaign_id = $2`,
+          [a.id, a.campaignId]
+        )
+        .catch(() => {});
+      await tx
+        .query(
+          `insert into campaign_step_skips (campaign_id, step_id)
+           select $1, step_id from campaign_step_skips where campaign_id = $2`,
+          [a.id, a.campaignId]
+        )
+        .catch(() => {});
+      return;
+    }
+
     case "addSession": {
       const sort = await nextSort(tx, "campaign_sessions", "campaign_id", a.campaignId);
       await tx.query(

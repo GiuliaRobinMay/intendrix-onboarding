@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
   ChevronDown,
+  CopyPlus,
   GripVertical,
   Layers,
   LayoutGrid,
@@ -30,6 +31,7 @@ import { ClientViewCard } from "@/components/client-view-card";
 import { MemberPicker } from "@/components/member-picker";
 import { DateField } from "@/components/date-field";
 import { RefusedNote } from "@/components/refused-note";
+import { SenderPicker } from "@/components/sender-picker";
 import { isoDay } from "@/lib/dates";
 import { daysBetweenIso, useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
@@ -152,6 +154,8 @@ export default function CampaignDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { clients, templates, staff: team, dispatch } = useData();
   const confirmDelete = useConfirm();
+  const confirmDuplicate = useConfirm();
+  const router = useRouter();
   // which of the three faces of this page you are looking at
   const [tab, setTab] = useState<CampaignTab>("info");
   const [pickingModule, setPickingModule] = useState(false);
@@ -334,6 +338,33 @@ export default function CampaignDetailPage() {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
             <Chip color="#a3a4f0">{campaign.code}</Chip>
+            <button
+              data-tip="Make the same programme again for the next group — same series, same people responsible, same wording. Dates are left empty, so nothing can go out until you fill them in."
+              onClick={async () => {
+                if (
+                  !(await confirmDuplicate({
+                    name: campaign.name,
+                    detail:
+                      "You get a copy with the same series, sessions, participants, Phoenix team and tailored wording. Every date is left empty — session dates and hand-picked ones — so the copy cannot send anything until you plan it.",
+                    verb: "Duplicate",
+                  }))
+                )
+                  return;
+                const id = crypto.randomUUID();
+                dispatch({
+                  type: "duplicateCampaign",
+                  id,
+                  clientId: client.id,
+                  campaignId: campaign.id,
+                  name: `${campaign.name} (copy)`,
+                  code: campaign.code,
+                });
+                router.push(`/campaigns/${id}`);
+              }}
+              className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/12 px-2 py-1 text-[11px] font-semibold text-mist transition-colors hover:border-white/30 hover:text-paper"
+            >
+              <CopyPlus size={12} /> Duplicate
+            </button>
           </div>
           <p className="mt-1 text-sm text-mist">
             <Link href={`/clients/${client.id}`} className="hover:text-paper hover:underline">
@@ -681,134 +712,12 @@ export default function CampaignDetailPage() {
           </section>
 
           {/* Who the emails come from */}
-          <section className="card p-4">
-            <h2 className="mb-3 flex items-center gap-2 text-base font-bold">
-              <Mail size={17} className="text-mist" /> Emails sent from
-            </h2>
-
-            {/* Who sends is chosen here, outright. It used to be deduced
-                from who held the Coach role on the team card, so putting
-                a colleague on a campaign could change the name a client
-                saw — and with two people in that role the mail went out
-                under whichever had been added first. */}
-            <select
-              data-tip="Who this campaign's emails come from. Anyone at Phoenix, or the client's own champion when the program is introduced from inside their organisation."
-              value={
-                campaign.senderMemberId
-                  ? `member:${campaign.senderMemberId}`
-                  : campaign.senderStaffId
-                    ? `staff:${campaign.senderStaffId}`
-                    : ""
-              }
-              onChange={(e) => {
-                const [kind, id] = e.target.value.split(":");
-                dispatch({
-                  type: "updateCampaign",
-                  clientId: client.id,
-                  campaignId: campaign.id,
-                  patch: {
-                    senderMemberId: kind === "member" ? id : null,
-                    senderStaffId: kind === "staff" ? id : null,
-                  },
-                });
-              }}
-              className="w-full cursor-pointer rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs font-semibold focus:border-white/30 focus:outline-none"
-            >
-              <option value="">
-                Whoever is Phoenix Coach
-                {phoenixSender ? ` — now ${phoenixSender.name}` : " — none assigned"}
-              </option>
-              <optgroup label="Someone at Phoenix">
-                {team.map((p) => (
-                  <option key={p.id} value={`staff:${p.id}`}>
-                    {p.name}
-                    {p.role ? ` — ${p.role}` : ""}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label={`Someone at ${client.shortName}`}>
-                {client.members.map((m) => (
-                  <option key={m.id} value={`member:${m.id}`}>
-                    {m.name}
-                    {m.title ? ` — ${m.title}` : ""}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-
-            {emailSender ? (
-              <>
-                <p
-                  data-tip={
-                    emailSender.isClientMember
-                      ? `Replies go to ${emailSender.replyTo}`
-                      : "The address recipients see"
-                  }
-                  className="mt-2 truncate text-[11px] text-mist"
-                >
-                  {emailSender.name} &lt;{emailSender.address}&gt;
-                </p>
-                {/* Two people holding one role is how mail went out for
-                    weeks under a name nobody had chosen. New assignments
-                    replace rather than pile up now, but anything already
-                    in the database says so here instead of deciding
-                    quietly. */}
-                {(() => {
-                  // only when nobody was named: then a role still
-                  // decides, and two holders of it is a coin toss
-                  if (campaign.senderStaffId || campaign.senderMemberId) return null;
-                  const coaches = campaign.phoenixTeam.filter(
-                    (a) => a.role === "phoenix_coach"
-                  );
-                  if (coaches.length < 2) return null;
-                  const names = coaches
-                    .map((a) => findStaff(team, a.staffId)?.name ?? "someone")
-                    .join(" and ");
-                  return (
-                    <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[#ff7a55]">
-                      {names} are both set as Coach. Emails go out as{" "}
-                      {emailSender.name} — remove the other one on the Phoenix
-                      team card.
-                    </p>
-                  );
-                })()}
-              </>
-            ) : (
-              <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
-                No sender yet
-              </p>
-            )}
-
-            {emailSender?.isClientMember && !emailSender.replyTo.includes("@") && (
-              <p className="mt-2 text-[11px] font-semibold text-[#ff7a55]">
-                {emailSender.name} has no address — replies have nowhere to go.
-              </p>
-            )}
-
-            {/* Watching from the outside: one copy per lesson, not per member */}
-            <label className="mt-4 block border-t border-white/8 pt-3">
-              <span className="text-[11px] font-medium text-mist">
-                Send a copy of everything to
-              </span>
-              <input
-                type="text"
-                defaultValue={campaign.shadowEmails ?? ""}
-                placeholder="amber@phoenixperform.com"
-                data-tip="Comma-separated. One copy of each lesson, once — not one per member, no personalisation, and they stay off the participants list."
-                onBlur={(e) => {
-                  const next = e.target.value.trim();
-                  if (next === (campaign.shadowEmails ?? "").trim()) return;
-                  dispatch({
-                    type: "updateCampaign",
-                    clientId: client.id,
-                    campaignId: campaign.id,
-                    patch: { shadowEmails: next || null },
-                  });
-                }}
-                className="mt-1 w-full rounded-md border border-white/10 bg-navy/60 px-2.5 py-1.5 text-xs focus:border-white/30 focus:outline-none"
-              />
-            </label>
-          </section>
+          <SenderPicker
+            client={client}
+            campaign={campaign}
+            team={team}
+            emailSender={emailSender}
+          />
 
           {/* the client's own details, so nobody has to go and look them up */}
           <ClientFactsCard client={client} fromCampaign />
@@ -1930,7 +1839,7 @@ export default function CampaignDetailPage() {
                                       email back to the automatic schedule. */}
                                   <span
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex w-36 shrink-0 items-center justify-end gap-1"
+                                    className="flex w-60 shrink-0 items-center justify-end gap-1"
                                   >
                                     <DateField
                                       value={item.date ? isoDay(item.date) : ""}
@@ -1954,6 +1863,18 @@ export default function CampaignDetailPage() {
                                           : "border-transparent text-mist hover:border-white/20"
                                       }`}
                                     />
+                                    {/* The hour and the zone, on the row.
+                                        Without them the same lesson read
+                                        differently to someone in Michigan
+                                        and someone in Europe, and neither
+                                        could tell which one the engine
+                                        meant. */}
+                                    <span
+                                      data-tip="The hour this lesson leaves, in the campaign's own timezone — the same for everyone, wherever they are reading this"
+                                      className="shrink-0 text-[10px] font-semibold whitespace-nowrap text-mist/70"
+                                    >
+                                      {fmtSendTime(item.step.sendTime, campaign.timezone)}
+                                    </span>
                                     {item.dateOverridden && (
                                       <button
                                         data-tip="Back to the automatic date"
