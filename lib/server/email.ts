@@ -185,7 +185,9 @@ export function renderInviteEmail(opts: {
       li(
         `Click the button below. It opens your team's welcome page, with ${escHtml(opts.clientName)}'s name on it.`
       ) +
-      li(`On that page, click the red <strong>Access</strong> button.`) +
+      li(
+        `On that page, click the big red <strong>Access</strong> button. Not <strong>Sign in</strong> at the top — that one is for people who already have an account, so on your first visit it cannot work.`
+      ) +
       li(
         `Create your account: your name, your <strong>work email</strong>, and a password you'll remember — or use the Google, LinkedIn, Facebook or Apple button instead.`
       ) +
@@ -197,6 +199,9 @@ export function renderInviteEmail(opts: {
       ) +
       `</ol>`,
     BUTTON(opts.inviteUrl, "Open your invitation"),
+    P(
+      `If you find yourself on a screen asking for a password you never chose, you have pressed <strong>Sign in</strong>. Go back and press <strong>Access</strong> instead — that is the one that makes the account.`
+    ),
     P(
       `The attached guide, <em>Welcome to Intendrix</em>, walks through the same steps with screenshots — and shows how to put Intendrix on your phone.`
     ),
