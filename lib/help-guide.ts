@@ -67,122 +67,233 @@ export interface HelpTopic {
   title: string;
   body: string;
   keywords: string;
+  /** which group it sits under on the Help page */
+  category: HelpCategory;
 }
+
+/** The six groups the Help page is built from, in the order it shows
+ *  them. A topic with no obvious home belongs in "Day to day" — the
+ *  list is for finding things, not for filing them. */
+export const HELP_CATEGORIES = [
+  "Getting started",
+  "Setting up a client",
+  "The community",
+  "Emails and scheduling",
+  "Day to day",
+  "When something looks wrong",
+] as const;
+
+export type HelpCategory = (typeof HELP_CATEGORIES)[number];
 
 export const HELP_TOPICS: HelpTopic[] = [
   {
     title: "When do emails go out?",
     body: "Every lesson sends at 8:00 AM in its campaign's timezone (the dropdown on the campaign page). The engine passes twice a day and sends in the first pass after 8:00 local - Eastern campaigns around 8:15 AM Eastern, Pacific around 9:15 AM Pacific. The master switch in Settings must be ON for the engine to send anything.",
     keywords: "time hour when send morning 8am timezone engine schedule",
+    category: "Emails and scheduling",
   },
   {
     title: "Move one email to another date",
     body: "Open the email (in the Mailbox, or via the arrow on the campaign's lesson row) and pick a date on its Date line. Only that email moves - it gets a yellow 'moved by hand' mark, and 'Back to automatic' returns it to the calculated date. Moving a session's date moves all its lessons at once instead.",
     keywords: "date change move reschedule pin individual email later earlier",
+    category: "Emails and scheduling",
   },
   {
     title: "Send an email right now",
     body: "Open the email and press 'Send to everyone now'. A popup shows exactly who will get it before anything leaves. People who already received it are skipped, so pressing it again is harmless - and it is also how you catch up someone who was added later. It works even when the master switch is OFF.",
     keywords: "send now immediately button manual everyone catch up",
+    category: "Emails and scheduling",
   },
   {
     title: "Stop an email from being sent",
     body: "Open the email and press 'Don't send this email'. It stays in the list with the status Cancelled and the engine never sends it for that campaign. 'Restore it' undoes the cancel. To stop a whole campaign, set its status to Paused on the campaign page. To stop everything, switch Email sending OFF in Settings.",
     keywords: "cancel stop don't send skip pause hold block",
+    category: "Emails and scheduling",
   },
   {
     title: "Change an email's text for one campaign",
     body: "Open the email in the Mailbox and click its subject or text to edit. Your wording applies to that campaign only - the master template stays untouched, and the email shows 'Own wording for this campaign' with a 'Reset to master' link. To change the wording for every campaign, edit the master under Settings > Campaigns.",
     keywords: "edit text subject wording copy template master change email",
+    category: "Emails and scheduling",
   },
   {
     title: "What the statuses mean",
     body: "Scheduled: on the calendar, will send on its date. Sent (green): really delivered - it comes from the send log, never just the calendar. Not sent (orange): the date passed but nothing went out. Cancelled: never sends for this campaign. Awaiting date: the trigger session has no date yet.",
     keywords: "status not sent cancelled scheduled awaiting green orange meaning why says shows",
+    category: "Emails and scheduling",
   },
   {
     title: "Did someone get their email?",
     body: "Per email: open it and look at the Delivery panel - sent, delivered, opened, clicked, bounced, and 'Who?' lists every person. Per person: on the client page, open the info button on their member row to see every email they received. Opens undercount because many mail programs block the tracking image - clicks are the reliable signal. Bounced (red) means the address is bad: fix it on the member and use 'Send to everyone now' to resend to just them.",
     keywords: "delivered opened clicked bounced received check person individual delivery report",
+    category: "When something looks wrong",
   },
   {
     title: "Test an email on yourself",
     body: "Open the email and press 'Send me a test'. It goes only to your own inbox, marked TEST in the subject with a banner, so it can never be mistaken for the real thing. Members never see test sends.",
     keywords: "test preview try myself inbox check before",
+    category: "Day to day",
   },
   {
     title: "Add people to a client",
     body: "On the client page, use the + next to Members, or ask Giulia to import a list. Each person has a role: Participant gets the normal emails, Leader gets the Leader version with the Leaders Guides, Coach gets a copy of every send. Everyone in the member list receives the client's campaign emails - the small team table on the campaign page is only for coordinators.",
     keywords: "add member people import participant leader role team",
+    category: "Setting up a client",
   },
   {
     title: "Who emails are sent from",
     body: "The campaign's Phoenix Coach (set on the client or campaign page). A campaign can instead nominate one of the client's own people in 'Emails sent by' - recipients see that person's name and replies reach them, while the address stays on the sending domain. Signatures and the company logo live under Settings > Team.",
     keywords: "sender from coach champion reply signature logo who sends",
+    category: "Setting up a client",
   },
   {
     title: "Copies for people watching a campaign",
     body: "On the campaign page, the field 'Send a copy of everything to' takes comma-separated addresses. Each gets one copy of every lesson as it goes out - without being a member, without personalisation, marked with the client's name in the subject. Remove an address from the field to stop the copies.",
     keywords: "copy watcher cc shadow monitor coordinator receive everything",
+    category: "Day to day",
   },
   {
     title: "The master switch",
     body: "Settings > Email sending. OFF means the daily engine never sends anything, no matter what is due. ON means everything scheduled goes out automatically on its date. The 'Send to everyone now' button works in both positions, because it sends only what you explicitly confirm. An email more than 2 days overdue is never auto-sent even when ON - it is held, to prevent backlog floods.",
     keywords: "switch on off master engine automatic sending enable disable",
+    category: "Day to day",
   },
   {
     title: "Deleting things safely",
     body: "Everything deletable has a trashcan with an 'are you sure' popup naming what goes. A client whose campaigns have really sent emails cannot be deleted at all (faded bin) - archive it instead via the status dropdown on its page. Removing a member stops their future emails; what they already received stays in the log.",
     keywords: "delete remove trash bin faded archive cannot protect",
+    category: "Day to day",
   },
   {
     title: "Timezones and locations",
     body: "Each client has a Location card (state + city). The state decides which timezone NEW campaigns start with, so emails land at 8:00 AM in the client's own morning. An existing campaign's timezone is its own dropdown on the campaign page. Without a state, new campaigns fall back to Eastern.",
     keywords: "timezone state city location pacific eastern hour zone",
+    category: "Setting up a client",
   },
   {
     title: "Add a new member to a client team",
     body: "One link does it: the client's invitation link, which is the Plan Landing Page link of their plan. It routes the person into the right team space on its own - you never add people to a space by hand. Find it in the master sheet 'Intendrix - Client Spaces, Plans & Invite Links', column D, and copy it from the formula bar, not the cell: Sheets cuts the visible text at the column edge, and a half-copied link is the commonest reason an invitation fails. A complete link contains ?bundle_token= and ends with &utm_source=manual. Treat it like a password - anyone holding it can join that client's environment.",
     keywords: "add member new member invite someone join team person plan landing page master sheet bundle token",
+    category: "The community",
   },
   {
     title: "What the invitation email must say",
     body: "Six things: the invitation link and no other link; what happens when they click; the account-creation steps spelled out, so nobody stalls at the sign-up screen; where they will arrive (A Warm Welcome, then their own team space under TEAM CONNECT); a named person to contact if it does not work; and the member guide PDF attached. The app's own 'Invite to the community' button sends exactly this, with the guide attached - use it rather than writing the email by hand.",
     keywords: "invitation email what to send wording template message invite mail attachment guide",
+    category: "The community",
   },
   {
     title: "Create a new client space",
     body: "In Mighty Networks, not here, and never from scratch - duplicate the template so nothing is forgotten. Sidebar, ADMIN ONLY, Client Space Template, three dots, More, Duplicate, and choose 'Duplicate all posts'; the other two options leave it empty. When the copy is ready: three dots, Manage, Move Space, TEAM CONNECT. Rename it to the client's name exactly as they write it - no '[Copy]', no suffix. Reorder TEAM CONNECT alphabetically. Then the Start Here post and the Welcome page, and remember to change the Welcome page's title as well as its body, or the previous client's name survives. About 30 minutes. Branding comes after, always before anyone is invited.",
     keywords: "new space create space client space duplicate template sop-01 team connect",
+    category: "The community",
   },
   {
     title: "Create the invitation plan",
     body: "The plan unlocks a client's space and produces the link you send. One per client, made after the space exists and is branded. Gear icon, Plans & Access, Plans; find Client Plan Template, three dots, Duplicate. Point it at the client's space - this is the step that personalises the link, and the wrong space sends the client into another client's environment. Name it '<Client name> | Intendrix Full Access'. The plan card image must be at least 1600x900. Press Create Share Links or the plan exists and the link does not, and press Save Changes - there is no autosave. Record all three links in the master sheet. About 20 minutes.",
     keywords: "plan create plan invitation plan sop-02 bundle share links plan card",
+    category: "The community",
   },
   {
     title: "Check a client cannot see another client",
     body: "Two minutes that prevent the worst mistake. Open the plan's Members tab, click the three dots on any member's row, and under MANAGE choose 'View as'. A grey bar confirms whose view you are in. In the left sidebar they should see the whole community, but under TEAM CONNECT only their own team space. Click Exit on the grey bar before doing anything else. If they can see another client's space, do not send the invitation: go to the plan's Settings tab, Space Access, remove every TEAM CONNECT space except theirs, and preview again. Do this once per new client, and any time you change a plan's space access.",
     keywords: "view as verify check access preview before sending space access wrong client security",
+    category: "The community",
   },
   {
     title: "How a member joins",
     body: "What happens on their side, about three minutes in any browser, nothing to install. They open the invitation link, click the red Access button on the welcome page, create an account with first name, last name, email and password (work email is best) or a Google/Apple/LinkedIn/Facebook button, accept the terms - only the first tick box is required - add a photo or skip, and arrive in A Warm Welcome with their team's space in the sidebar under TEAM CONNECT. Tell them to bookmark the page: the invitation link was for setting up, the bookmark is how they come back.",
     keywords: "join sign up create account member steps how to join access button bookmark",
+    category: "The community",
   },
   {
     title: "A member cannot get in",
     body: "Link will not open: their email programme cut it in half - resend it complete, copied from the formula bar, ending in &utm_source=manual. 'You are already a member': they have an account here, so Sign In instead of signing up. The phone app asks them to sign up again: they must use exactly the same method as on the computer, same email and password or the same Google/Apple button - a different method starts a second, empty account. Forgotten password: use the forgotten-password link on the sign-in screen. Cannot find their team space: look under TEAM CONNECT, and if it is not there check the plan's Space Access.",
     keywords: "cannot get in problem trouble link broken already a member password app second account missing space",
+    category: "When something looks wrong",
   },
   {
     title: "The order of the SOPs",
     body: "Each step depends on the one before, because a plan points at a space and a link comes from a plan. SOP-01, create the space, about 30 minutes. Then the Branding SOP - logo, hero banner, imagery - always before anyone is invited. SOP-02, create the invitation plan, about 20 minutes. SOP-03, invite the team, about 5 minutes: verify with View as, then send the Plan Landing Page link with the account steps. SOP-04 is the client-facing onboarding guide. Skipping ahead produces links that lead nowhere. The documents, with their walkthrough videos and PDFs, are at ph-community-sop-ai.vercel.app.",
     keywords: "sop order sequence new client first steps sop-01 sop-02 sop-03 sop-04 videos documents pdf",
+    category: "The community",
   },
   {
     title: "What the community words mean",
     body: "Network: the whole Intendrix community. Space: one area inside it - a team space, a lesson area, the welcome area. Plan: the access rule, saying which spaces a person may enter; each client team has its own. Bundle: the plan type used for clients, unlocking a group of spaces at once. Hidden: a plan status meaning it is not advertised and can only be reached by its link. Plan Landing Page: the page that link opens - its address is the invitation link. Bundle token: the code inside that link that actually grants access; confidential. TEAM CONNECT: the sidebar group holding every client's team space. View as: an admin preview showing the community through a chosen member's eyes.",
     keywords: "glossary words meaning network space plan bundle hidden landing page token team connect view as",
+    category: "The community",
+  },
+  {
+    title: "Where do I start with a new client?",
+    body: "In order: 1. Clients → New client. The wizard asks for the organization, the state they are in, their space and invitation links, and who at Phoenix is responsible. 2. On their client page, add the team - the people who will receive the lessons. 3. New campaign on that client. That wizard asks which programme, which sessions and series, what time the emails leave, who runs it and who the emails come from. 4. Date the sessions. Dating a session is what puts its lesson emails on the calendar. Nothing sends until step 4.",
+    keywords: "start begin new client first steps order how do i start onboarding setup",
+    category: "Getting started",
+  },
+  {
+    title: "Create a new client, step by step",
+    body: "Clients → New client, and answer three screens. The organization: its name, the short name used in lists, sector, city and state. The state is not cosmetic - it decides the timezone their campaigns send in, and without it everything falls back to Eastern. Their space: the space link and the invitation link, both from Mighty Networks; without the invitation link the invitation email has nowhere to send anyone. Who at Phoenix: Leader, Coach and Project Manager. Everything except the name can be left empty, and each screen says in amber what it costs you later.",
+    keywords: "new client create wizard organization state space invitation link responsible",
+    category: "Getting started",
+  },
+  {
+    title: "Add the client's team",
+    body: "Open the client and use the Members table. Each person needs a name, an email address and a role: Participant gets the normal lessons, Leader gets the Leader version with the Leaders Guides, Coach gets a copy of every send. The member list is what decides who receives email - not the small coordinator table on the campaign page. Someone added halfway through a programme can be caught up with 'Send to everyone now' on each lesson they missed; people who already have it are skipped.",
+    keywords: "add team members people participants leaders roles client list email addresses",
+    category: "Setting up a client",
+  },
+  {
+    title: "Create a campaign, step by step",
+    body: "From the client page or Campaigns → New campaign. Four screens. Which programme: a blueprint brings its series with it, or start blank. Sessions and series: the five standard meetings, and which series of lessons to load. What time they go out: the timezone, which starts from the client's state. Who runs it and who it comes from: the Phoenix three, then - separately - the person the emails are actually from, and the client's own champion. The last two are different questions and the app never answers one from the other.",
+    keywords: "new campaign create wizard blueprint series sessions timezone sender steps",
+    category: "Getting started",
+  },
+  {
+    title: "The three onboarding emails",
+    body: "On the campaign's participants card: the user agreement, the community invitation, and the reminder. The agreement asks a person to accept the terms and records the date they do. The invitation sends them the client's invitation link so they can make an account and land in their own team space - it needs the invitation link on the client page to exist. Each person's card shows where they are: not sent, sent and waiting, or done. Nobody is sent the same one twice by accident.",
+    keywords: "onboarding invitation agreement welcome reminder invite send buttons participants accepted",
+    category: "The community",
+  },
+  {
+    title: "Who is on a campaign",
+    body: "The Participants tab on a campaign. A campaign that nobody has been put on reaches the whole client - that way turning this on never silently stops a programme already running. Once anybody is on the list, only that list gets the lessons. 'Update' pulls in people added to the client since. Twenty rows always show, blanks included, so you can see at a glance how full the group is.",
+    keywords: "participants who gets campaign list members update rows blank group",
+    category: "Setting up a client",
+  },
+  {
+    title: "Check who has joined the community",
+    body: "'Check who joined' on the participants card asks Mighty Networks for its member roster and marks everyone whose address matches. It also runs by itself each night. The button turns orange when the nightly check is failing, and hovering it says why. People who joined with a private address instead of the work one you invited will not match - those are reported as 'community members nobody in the app claims', and are worth a minute by hand.",
+    keywords: "joined community check mighty networks roster sync nightly matched members",
+    category: "The community",
+  },
+  {
+    title: "Duplicate a campaign for the next group",
+    body: "The Duplicate button beside a campaign's name. You get the same series, sessions, participants, Phoenix team, sender and tailored wording. Every date is left empty - the session dates and any hand-picked ones - because dates are the one thing a new run never inherits. That also means the copy cannot send anything until you plan it, which is the point.",
+    keywords: "duplicate copy campaign again next cohort group repeat clone",
+    category: "Day to day",
+  },
+  {
+    title: "An email says Refused - what now?",
+    body: "Refused means we tried and the provider turned it back: nobody received it. That is different from Not sent, which means nothing was ever attempted. Open the lesson and it prints the provider's own words, plus the per-person list showing exactly who was refused. Fix what it names, then press 'Send to everyone now' - only people with no successful send on record are tried again, so nothing arrives twice.",
+    keywords: "refused failed error bounced not sent provider rejected retry again",
+    category: "When something looks wrong",
+  },
+  {
+    title: "My colleague sees a different date than I do",
+    body: "Dates are written month first everywhere - 10/07/2026 is the seventh of October - whatever country the browser thinks it is in. Each lesson row also shows the hour and the timezone it sends in, and that is the campaign's zone, not yours: a lesson at 8:00 AM Eastern is 8:00 AM Eastern for everyone looking at it, in Michigan or in Europe. If two people still disagree, they are reading two different rows.",
+    keywords: "date different colleague europe america format timezone confusing mm dd yyyy",
+    category: "When something looks wrong",
+  },
+  {
+    title: "Why are there no opens or clicks?",
+    body: "Opens and clicks are recorded end to end, but they arrive through a tracking subdomain - links.phoenixperform.com - which rewrites every link and serves the invisible open image. While that DNS record is unverified every email stops at 'delivered' however many people read it. The Mailbox says so out loud once enough mail has gone out for the silence to mean something. Nothing in the app needs changing; it starts working by itself when the record resolves.",
+    keywords: "opens clicks tracking delivered only not showing links dns cname resend",
+    category: "When something looks wrong",
+  },
+  {
+    title: "The team's own page",
+    body: "Each campaign can publish one page for that team's space in the community: every lesson they have been sent, newest open, the rest to walk back through. Nothing still to come is shown, so it cannot spoil a lesson or promise one that has not arrived. Create it on the campaign's information tab, copy the embed code, and paste it into their space exactly as it is. 'Take it down' stops the link working everywhere at once.",
+    keywords: "team page client facing embed iframe mighty space roadmap journey share link",
+    category: "Day to day",
   },
 ];
