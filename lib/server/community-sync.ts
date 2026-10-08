@@ -27,6 +27,9 @@ export interface SyncResult {
   newlyJoined?: number;
   joined?: Array<{ name: string; client: string; email: string; at: string | null }>;
   unmatched?: number;
+  /** roster rows that carried no address — these can never match, and a
+   *  token that is not a Network Host gets the whole roster this way */
+  withoutEmail?: number;
   unmatchedPeople?: Array<{ email: string; name: string | null; plan: string | null }>;
   dryRun?: boolean;
 }
@@ -51,7 +54,10 @@ export async function syncCommunity(pool: Pool, dryRun: boolean): Promise<SyncRe
     return { ok: false, reason: roster.reason };
   }
 
-  const byEmail = new Map(roster.members.map((m) => [m.email, m]));
+  const withoutEmail = roster.members.filter((m) => !m.email).length;
+  const byEmail = new Map(
+    roster.members.filter((m) => m.email).map((m) => [m.email, m])
+  );
 
   const { rows: members } = await pool
     .query(
@@ -87,7 +93,7 @@ export async function syncCommunity(pool: Pool, dryRun: boolean): Promise<SyncRe
   }
 
   const unmatched = roster.members
-    .filter((m) => !claimed.has(m.email))
+    .filter((m) => m.email && !claimed.has(m.email))
     .map((m) => ({ email: m.email, name: m.name, plan: m.plan }));
 
   if (!dryRun)
@@ -96,6 +102,7 @@ export async function syncCommunity(pool: Pool, dryRun: boolean): Promise<SyncRe
       inCommunity: roster.members.length,
       newlyJoined: joined.length,
       unmatched: unmatched.length,
+      withoutEmail,
     });
 
   return {
@@ -105,6 +112,7 @@ export async function syncCommunity(pool: Pool, dryRun: boolean): Promise<SyncRe
     newlyJoined: joined.length,
     joined,
     unmatched: unmatched.length,
+    withoutEmail,
     unmatchedPeople: unmatched.slice(0, 50),
   };
 }

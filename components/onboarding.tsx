@@ -278,6 +278,9 @@ function CheckCommunityButton() {
               .map((u: any) => u.email)
               .join(", ")}${out.unmatched > 6 ? " …" : ""}. Those stay for you to check by hand.`
           : "",
+        out.withoutEmail
+          ? `${plural(out.withoutEmail, "community member")} came back without an address, so they can never be matched — that usually means the API token is not a Network Host.`
+          : "",
       ].filter(Boolean);
       void notice({ notice: true, name: "Community checked", detail: lines.join(" ") });
     } catch {
