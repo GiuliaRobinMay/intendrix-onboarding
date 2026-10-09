@@ -4,23 +4,15 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, Megaphone, Search, Trash2, Users, X } from "lucide-react";
-import { PageHeader, StatusChip, GradientButton } from "@/components/ui";
+import { PageHeader, GradientButton } from "@/components/ui";
 import { useConfirm } from "@/components/confirm";
 import { NewClientWizard } from "@/components/new-client-wizard";
+import {
+  ClientRoleSelect,
+  ClientStatusSelect,
+} from "@/components/row-editors";
 import { useData } from "@/lib/state";
-import { campaignStatus, findStaff } from "@/lib/store";
-
-function ResponsibleName({ id }: { id?: string }) {
-  const { staff } = useData();
-  const person = findStaff(staff, id);
-  if (!person)
-    return <p className="text-[11px] italic text-mist/50">Unassigned</p>;
-  return (
-    <p data-tip={person.role} className="w-fit max-w-full truncate text-xs font-medium">
-      {person.name}
-    </p>
-  );
-}
+import { campaignStatus } from "@/lib/store";
 
 function ClientsContent() {
   const { clients, templates, staff, dispatch } = useData();
@@ -134,7 +126,7 @@ function ClientsContent() {
 
       {/* List */}
       <div className="card overflow-hidden">
-        <div className="hidden grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,2fr)_8rem_minmax(0,1.4fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client</span>
           <span>Status</span>
           <span>Active campaigns</span>
@@ -147,16 +139,23 @@ function ClientsContent() {
         <ul className="divide-y divide-white/5">
           {filtered.map(({ client, activeCount }) => (
             <li key={client.id}>
-              <Link
-                href={`/clients/${client.id}`}
-                data-tip="Open this client"
-                data-tip-pos="bottom"
-                className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.2fr)_6rem_minmax(0,1.5fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] lg:gap-4"
+              <div
+                className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2fr)_8rem_minmax(0,1.4fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] lg:gap-4"
               >
-                <p className="truncate text-sm font-bold">{client.name}</p>
+                {/* only the name and the arrow navigate: the cells
+                    between them are editable now, and a dropdown
+                    inside a link cannot be used */}
+                <Link
+                  href={`/clients/${client.id}`}
+                  data-tip="Open this client"
+                  data-tip-pos="bottom"
+                  className="truncate text-sm font-bold hover:underline"
+                >
+                  {client.name}
+                </Link>
 
-                <div>
-                  <StatusChip status={client.status} />
+                <div className="min-w-0">
+                  <ClientStatusSelect client={client} />
                 </div>
 
                 <div className="min-w-0">
@@ -182,8 +181,8 @@ function ClientsContent() {
                   </span>
                 </div>
 
-                <ResponsibleName id={client.phoenixLeaderId} />
-                <ResponsibleName id={client.phoenixCoachId} />
+                <ClientRoleSelect client={client} role="phoenixLeaderId" staff={staff} />
+                <ClientRoleSelect client={client} role="phoenixCoachId" staff={staff} />
 
                 <span className="hidden items-center gap-1 lg:flex">
                   {(() => {
@@ -222,9 +221,15 @@ function ClientsContent() {
                       </button>
                     );
                   })()}
-                  <ChevronRight size={16} className="text-mist" />
+                  <Link
+                    href={`/clients/${client.id}`}
+                    data-tip="Open this client"
+                    className="text-mist hover:text-paper"
+                  >
+                    <ChevronRight size={16} />
+                  </Link>
                 </span>
-              </Link>
+              </div>
             </li>
           ))}
 

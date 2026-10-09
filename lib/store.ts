@@ -88,7 +88,7 @@ export function findCampaign(
 
 export type PhoenixRole = "phoenixLeaderId" | "phoenixCoachId" | "projectManagerId";
 
-const ROLE_TO_ASSIGNMENT: Record<
+export const ROLE_TO_ASSIGNMENT: Record<
   PhoenixRole,
   import("./types").PhoenixAssignmentRole
 > = {

@@ -6,6 +6,11 @@ import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import { CalendarDays, ChevronRight, Layers, Search, Users } from "lucide-react";
 import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
 import { NewCampaignWizard } from "@/components/new-campaign-wizard";
+import {
+  CampaignStatusSelect,
+  RoleSelect,
+  SenderSelect,
+} from "@/components/row-editors";
 import { useData } from "@/lib/state";
 import {
   campaignCompletion,
@@ -281,12 +286,13 @@ export default function CampaignsPage() {
       {/* List */}
       <div className="card overflow-hidden">
         {/* header row */}
-        <div className="hidden grid-cols-[minmax(0,2.4fr)_6rem_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,1.5fr)_8.5rem_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client / campaign</span>
           <span>Status</span>
           <span>Progress</span>
           <span>Phoenix leader</span>
           <span>Phoenix coach</span>
+          <span>Emails sent from</span>
           <span />
         </div>
 
@@ -311,21 +317,33 @@ export default function CampaignsPage() {
               .sort((a, b) => a.date!.localeCompare(b.date!))[0];
             return (
               <li key={campaign.id}>
-                <Link
-                  href={`/campaigns/${campaign.id}`}
-                  className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2.4fr)_6rem_minmax(0,1.7fr)_minmax(0,1.1fr)_minmax(0,1.1fr)_1rem] lg:gap-4"
-                >
-                  {/* client first, campaign type underneath */}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">{client.name}</p>
+                <div className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.5fr)_8.5rem_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] lg:gap-4">
+                  {/* client first, campaign type underneath. Only the name
+                      and the arrow navigate now: the rest of the row is
+                      editable, and a dropdown inside a link is a trap. */}
+                  <Link href={`/campaigns/${campaign.id}`} className="min-w-0 group">
+                    <p className="truncate text-sm font-bold group-hover:underline">
+                      {client.name}
+                    </p>
                     <p className="mt-0.5 flex items-center gap-2 truncate text-xs text-mist">
                       <Chip color="#a3a4f0">{campaign.code}</Chip>
                       <span className="truncate">{campaign.name}</span>
                     </p>
-                  </div>
+                  </Link>
 
-                  <div className="lg:justify-self-start">
-                    <StatusPill status={st} />
+                  {/* no justify-self here: it shrinks the cell to its
+                      content instead of filling the column, which is
+                      what was clipping "Upcoming" to "Upcomi…" */}
+                  <div className="min-w-0">
+                    <CampaignStatusSelect
+                      client={client}
+                      campaign={campaign}
+                      derived={campaignStatus(
+                        { ...campaign, statusOverride: undefined },
+                        templates,
+                        today
+                      )}
+                    />
                   </div>
 
                   <div className="min-w-0">
@@ -349,21 +367,28 @@ export default function CampaignsPage() {
                     </p>
                   </div>
 
-                  <div className="min-w-0">
-                    <StaffTag
-                      id={effectiveRole(client, campaign, "phoenixLeaderId", staff)?.id}
-                      fallback="Unassigned"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <StaffTag
-                      id={effectiveRole(client, campaign, "phoenixCoachId", staff)?.id}
-                      fallback="Unassigned"
-                    />
-                  </div>
+                  <RoleSelect
+                    client={client}
+                    campaign={campaign}
+                    role="phoenixLeaderId"
+                    staff={staff}
+                  />
+                  <RoleSelect
+                    client={client}
+                    campaign={campaign}
+                    role="phoenixCoachId"
+                    staff={staff}
+                  />
+                  <SenderSelect client={client} campaign={campaign} staff={staff} />
 
-                  <ChevronRight size={16} className="hidden text-mist lg:block" />
-                </Link>
+                  <Link
+                    href={`/campaigns/${campaign.id}`}
+                    data-tip="Open this campaign"
+                    className="hidden text-mist hover:text-paper lg:block"
+                  >
+                    <ChevronRight size={16} />
+                  </Link>
+                </div>
               </li>
             );
           })}
