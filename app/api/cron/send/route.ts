@@ -96,6 +96,26 @@ async function recordRun(pool: any, run: Record<string, unknown>) {
 }
 
 export async function GET(req: Request) {
+  try {
+    return await runEngine(req);
+  } catch (err) {
+    // A run that throws used to disappear without a word: no sends, no
+    // heartbeat, and a banner reporting that the engine had not run —
+    // which is true but useless, because it does not say the run was
+    // attempted and died. The crash is the heartbeat now.
+    if (dbConfigured)
+      await recordRun(getPool(), {
+        crashed: true,
+        error: String(err instanceof Error ? err.message : err).slice(0, 300),
+      }).catch(() => {});
+    return NextResponse.json(
+      { error: "the run failed", detail: String(err).slice(0, 300) },
+      { status: 500 }
+    );
+  }
+}
+
+async function runEngine(req: Request) {
   // Vercel Cron authenticates with the CRON_SECRET env var
   const secret = process.env.CRON_SECRET;
   const header = req.headers.get("authorization") ?? "";
@@ -139,8 +159,16 @@ export async function GET(req: Request) {
 
   const [campaigns, clients, members, staff, loaded, sessions, steps, contents, links, logged, logoRows, overrideRows, skipRows, dateRows] =
     await Promise.all([
+      // sender_staff_id arrived with migration 0020. Asking for a
+      // column that is not there yet throws, and this whole run is one
+      // Promise.all — so one unapplied migration stopped every email in
+      // the system, silently. Never ask for a new column without this.
       q(`select id, client_id, code, name, timezone, status_override,
-                sender_member_id, sender_staff_id, shadow_emails from campaigns`),
+                sender_member_id, sender_staff_id, shadow_emails from campaigns`)
+        .catch(() =>
+          q(`select id, client_id, code, name, timezone, status_override,
+                    sender_member_id, shadow_emails from campaigns`)
+        ),
       q(`select id, name, phoenix_leader_id, phoenix_coach_id, project_manager_id from clients`),
       // select * so a database without the status column still answers;
       // people who left the team are filtered out below

@@ -52,15 +52,21 @@ export async function campaignContext(
   pool: Pool,
   campaignId: string
 ): Promise<CampaignContext | { error: string }> {
-  const { rows: campaignRows } = await pool.query(
+  // sender_staff_id arrived with migration 0020; without it the sender
+  // falls back to the role, rather than the invitation failing outright
+  const campaignSelect = (withSender: boolean) =>
+    pool.query(
     `select c.id, c.code, c.name, c.status_override, c.sender_member_id,
-            c.sender_staff_id,
+            ${withSender ? "c.sender_staff_id," : ""}
             cl.id as client_id, cl.name as client_name,
             cl.short_name as client_short_name, cl.invite_url,
             cl.phoenix_leader_id, cl.phoenix_coach_id, cl.project_manager_id
        from campaigns c join clients cl on cl.id = c.client_id
       where c.id = $1`,
-    [campaignId]
+      [campaignId]
+    );
+  const { rows: campaignRows } = await campaignSelect(true).catch(() =>
+    campaignSelect(false)
   );
   const campaign = campaignRows[0];
   if (!campaign) return { error: "that campaign no longer exists" };

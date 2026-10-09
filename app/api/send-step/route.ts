@@ -75,14 +75,21 @@ export async function POST(req: Request) {
   const dryRun =
     new URL(req.url).searchParams.get("dryrun") === "1" || body?.dryrun === true;
 
-  const { rows: campaignRows } = await pool.query(
-    `select c.id, c.code, c.name, c.timezone, c.status_override,
-            c.sender_member_id, c.sender_staff_id, c.shadow_emails,
-            cl.id as client_id, cl.name as client_name,
-            cl.phoenix_leader_id, cl.phoenix_coach_id, cl.project_manager_id
-       from campaigns c join clients cl on cl.id = c.client_id
-      where c.id = $1`,
-    [campaignId]
+  // sender_staff_id arrived with migration 0020; a database without it
+  // still answers, and the sender falls back to the role as before
+  const campaignSelect = (withSender: boolean) =>
+    pool.query(
+      `select c.id, c.code, c.name, c.timezone, c.status_override,
+              c.sender_member_id, c.shadow_emails,
+              ${withSender ? "c.sender_staff_id," : ""}
+              cl.id as client_id, cl.name as client_name,
+              cl.phoenix_leader_id, cl.phoenix_coach_id, cl.project_manager_id
+         from campaigns c join clients cl on cl.id = c.client_id
+        where c.id = $1`,
+      [campaignId]
+    );
+  const { rows: campaignRows } = await campaignSelect(true).catch(() =>
+    campaignSelect(false)
   );
   const campaign = campaignRows[0];
   const { rows: stepRows } = await pool.query(

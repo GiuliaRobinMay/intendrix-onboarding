@@ -20,7 +20,7 @@ export function EngineBanner() {
   const { settings, backend } = useData();
   if (backend !== "database") return null;
 
-  let last: { at?: string; off?: boolean } | null = null;
+  let last: { at?: string; off?: boolean; crashed?: boolean; error?: string } | null = null;
   try {
     last = settings.engineLastRun ? JSON.parse(settings.engineLastRun) : null;
   } catch {
@@ -45,7 +45,9 @@ export function EngineBanner() {
         <p className="text-sm font-bold text-[#ff7a55]">
           {last.off
             ? "Email sending is switched off"
-            : `Nothing has been sent for ${when}`}
+            : last.crashed
+              ? "The last run failed"
+              : `Nothing has been sent for ${when}`}
         </p>
         <p className="mt-0.5 text-xs leading-relaxed text-mist">
           {last.off ? (
@@ -56,6 +58,18 @@ export function EngineBanner() {
                 Turn it on in Settings
               </Link>
               .
+            </>
+          ) : last.crashed ? (
+            // The run was attempted and died. Printing what the database
+            // or the provider actually said beats "something is stopping
+            // it" by the whole distance between a guess and a cause.
+            <>
+              The daily engine tried to run on{" "}
+              {new Date(last.at).toLocaleString("en-US")} and stopped on an
+              error. Nothing was sent. It said:{" "}
+              <span className="font-mono text-[11px] text-paper">
+                {String(last.error ?? "no reason given")}
+              </span>
             </>
           ) : (
             <>
