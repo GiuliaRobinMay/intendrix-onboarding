@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { CAMPAIGN_TONE, wash } from "@/lib/status-colors";
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
-import { CalendarDays, ChevronRight, Layers, Search, Users } from "lucide-react";
+import { CalendarDays, ChevronRight, Search, Users } from "lucide-react";
 import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
 import { NewCampaignWizard } from "@/components/new-campaign-wizard";
 import {
@@ -24,10 +25,10 @@ import {
 import type { CampaignStatus } from "@/lib/types";
 
 const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: string }> = {
-  active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
-  upcoming: { bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Upcoming" },
-  paused: { bg: "rgba(250,204,21,0.15)", fg: "#facc15", label: "Paused" },
-  closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
+  active: { bg: wash(CAMPAIGN_TONE.active), fg: CAMPAIGN_TONE.active, label: "Active" },
+  upcoming: { bg: wash(CAMPAIGN_TONE.upcoming), fg: CAMPAIGN_TONE.upcoming, label: "Upcoming" },
+  paused: { bg: wash(CAMPAIGN_TONE.paused), fg: CAMPAIGN_TONE.paused, label: "Paused" },
+  closed: { bg: wash(CAMPAIGN_TONE.closed), fg: CAMPAIGN_TONE.closed, label: "Closed" },
 };
 
 const STATUS_TIP: Record<CampaignStatus, string> = {
@@ -286,7 +287,7 @@ export default function CampaignsPage() {
       {/* List */}
       <div className="card overflow-hidden">
         {/* header row */}
-        <div className="hidden grid-cols-[minmax(0,1.6fr)_8.5rem_minmax(0,1.15fr)_minmax(0,1.1fr)_minmax(0,1.5fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,1.3fr)_7.5rem_minmax(0,1.5fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client / campaign</span>
           <span>Status</span>
           <span>Progress</span>
@@ -316,7 +317,7 @@ export default function CampaignsPage() {
               .sort((a, b) => a.date!.localeCompare(b.date!))[0];
             return (
               <li key={campaign.id}>
-                <div className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.6fr)_8.5rem_minmax(0,1.15fr)_minmax(0,1.1fr)_minmax(0,1.5fr)_1rem] lg:gap-4">
+                <div className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.3fr)_7.5rem_minmax(0,1.5fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] lg:gap-4">
                   {/* client first, campaign type underneath. Only the name
                       and the arrow navigate now: the rest of the row is
                       editable, and a dropdown inside a link is a trap. */}
@@ -347,21 +348,22 @@ export default function CampaignsPage() {
 
                   <div className="min-w-0">
                     <ProgressBar pct={completion.pct} />
-                    <p className="mt-1.5 flex flex-wrap gap-x-3 text-[11px] text-mist">
+                    {/* One line under the bar. The series count was a
+                        number with no unit beside it — nobody could
+                        tell what a bare 6 was counting — and four
+                        facts stacked four deep made the row twice the
+                        height it needed. */}
+                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 text-[11px] whitespace-nowrap text-mist">
                       <span>
                         {completion.sent}/{completion.total} lessons
                       </span>
                       <span className="flex items-center gap-1">
-                        <CalendarDays size={11} />
-                        {next ? fmtDate(new Date(`${next.date}T00:00:00`)) : "no next session"}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Layers size={11} />
-                        {campaign.series.length}
-                      </span>
-                      <span className="flex items-center gap-1">
                         <Users size={11} />
                         {client.members.length}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <CalendarDays size={11} />
+                        {next ? fmtDate(new Date(`${next.date}T00:00:00`)) : "no next session"}
                       </span>
                     </p>
                   </div>

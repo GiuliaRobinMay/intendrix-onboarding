@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { TONE } from "@/lib/status-colors";
 
 export function PageHeader({
   title,
@@ -137,19 +138,19 @@ export function StatusChip({
       tip: "Waits until its trigger session gets a date",
     },
     paused: {
-      fg: "#facc15", label: "Paused",
+      fg: TONE.red, label: "Paused",
       tip: "The campaign is paused — this send is on hold until it reopens",
     },
     active: {
-      fg: "#4ade80", label: "Active",
+      fg: TONE.green, label: "Active",
       tip: "This client has work in progress",
     },
     onboarding: {
-      fg: "#ff7a55", label: "Onboarding",
+      fg: TONE.indigo, label: "Onboarding",
       tip: "Client is being set up — no campaign running yet",
     },
     archived: {
-      fg: "#aeb0b2", label: "Archived",
+      fg: TONE.grey, label: "Archived",
       tip: "No longer active",
     },
   };

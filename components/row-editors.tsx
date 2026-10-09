@@ -9,6 +9,7 @@
 // the campaign page writes, through the same action.
 
 import { RowSelect } from "@/components/row-select";
+import { CAMPAIGN_TONE, CLIENT_TONE } from "@/lib/status-colors";
 import { useData } from "@/lib/state";
 import { ROLE_TO_ASSIGNMENT, findStaff, type PhoenixRole } from "@/lib/store";
 import type { Campaign, CampaignStatus, Client, StaffMember } from "@/lib/types";
@@ -26,12 +27,7 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
   closed: "Closed",
 };
 
-const STATUS_TONE: Record<CampaignStatus, string> = {
-  upcoming: "#ff7a55",
-  active: "#4ade80",
-  paused: "#facc15",
-  closed: "#aeb0b2",
-};
+const STATUS_TONE = CAMPAIGN_TONE;
 
 /** Status, where empty means "whatever the dates and the schedule say".
  *  Choosing the derived value is the same as choosing nothing, so it
@@ -195,9 +191,9 @@ export function SenderSelect({
 }
 
 const CLIENT_STATUS: Record<string, { label: string; tone: string }> = {
-  active: { label: "Active", tone: "#4ade80" },
-  onboarding: { label: "Onboarding", tone: "#a3a4f0" },
-  archived: { label: "Archived", tone: "#aeb0b2" },
+  active: { label: "Active", tone: CLIENT_TONE.active },
+  onboarding: { label: "Onboarding", tone: CLIENT_TONE.onboarding },
+  archived: { label: "Archived", tone: CLIENT_TONE.archived },
 };
 
 /** A client's own status, set outright — there is nothing to derive it

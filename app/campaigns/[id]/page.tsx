@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CAMPAIGN_TONE, wash } from "@/lib/status-colors";
 import { useState, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -60,10 +61,10 @@ import type {
 } from "@/lib/types";
 
 const STATUS_STYLE: Record<CampaignStatus, { bg: string; fg: string; label: string }> = {
-  active: { bg: "rgba(74,222,128,0.14)", fg: "#4ade80", label: "Active" },
-  upcoming: { bg: "rgba(235,50,15,0.16)", fg: "#ff7a55", label: "Upcoming" },
-  paused: { bg: "rgba(250,204,21,0.15)", fg: "#facc15", label: "Paused" },
-  closed: { bg: "rgba(174,176,178,0.14)", fg: "#aeb0b2", label: "Closed" },
+  active: { bg: wash(CAMPAIGN_TONE.active), fg: CAMPAIGN_TONE.active, label: "Active" },
+  upcoming: { bg: wash(CAMPAIGN_TONE.upcoming), fg: CAMPAIGN_TONE.upcoming, label: "Upcoming" },
+  paused: { bg: wash(CAMPAIGN_TONE.paused), fg: CAMPAIGN_TONE.paused, label: "Paused" },
+  closed: { bg: wash(CAMPAIGN_TONE.closed), fg: CAMPAIGN_TONE.closed, label: "Closed" },
 };
 
 const STATUS_ORDER: CampaignStatus[] = ["upcoming", "active", "paused", "closed"];
