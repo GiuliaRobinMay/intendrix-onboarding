@@ -77,8 +77,10 @@ const SESSION_STATE = {
 } as const;
 
 const STATUS_TIP: Record<CampaignStatus, string> = {
-  upcoming: "Hasn't started yet — the first sends are still ahead",
-  active: "Running — scheduled emails go out",
+  upcoming:
+    "Hasn't started yet — set by the Runs dates when the start is still ahead",
+  active:
+    "Running — set by the Runs dates from the morning the campaign starts, so nobody has to remember",
   paused: "Pause the campaign — every send is on hold until you reopen it",
   closed: "Finished — nothing more will be sent",
 };
@@ -495,7 +497,7 @@ export default function CampaignDetailPage() {
               <span className="flex items-center gap-1.5 text-mist">
                 <span>Runs</span>
                 <DateField
-                  tip="Campaign start date — shown as a milestone in the Calendar"
+                  tip="Campaign start date — the campaign turns Active on this day by itself, and it is a milestone in the Calendar"
                   value={campaign.startDate ?? ""}
                   onChange={(v) =>
                     dispatch({
@@ -509,7 +511,7 @@ export default function CampaignDetailPage() {
                 />
                 <span>→</span>
                 <DateField
-                  tip="Campaign end date — shown as a milestone in the Calendar"
+                  tip="Campaign end date — the campaign reads Closed after this day, and it is a milestone in the Calendar"
                   value={campaign.endDate ?? ""}
                   onChange={(v) =>
                     dispatch({

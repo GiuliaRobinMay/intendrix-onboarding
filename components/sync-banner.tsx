@@ -9,6 +9,7 @@
 // column a migration has not added yet, and that message names it.
 
 import { useState } from "react";
+import Link from "next/link";
 import { TriangleAlert, X } from "lucide-react";
 import { useData } from "@/lib/state";
 
@@ -18,19 +19,39 @@ export function SyncBanner() {
 
   if (!syncError || dismissed === syncError) return null;
 
+  // "column X does not exist" has one cause and one fix, and printing
+  // Postgres at somebody is not telling them what it is.
+  const behind = /does not exist/i.test(syncError);
+
   return (
     <div className="fixed inset-x-0 bottom-0 z-[58] flex justify-center px-4 pb-4">
       <div className="flex w-full max-w-2xl items-start gap-3 rounded-lg border border-[#eb320f]/60 bg-[#2a1410] px-4 py-3 shadow-2xl shadow-black/50">
         <TriangleAlert size={16} className="mt-0.5 shrink-0 text-[#ff7a55]" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-[#ff7a55]">
-            That change was not saved
+            {behind
+              ? "That change was not saved — the database is behind"
+              : "That change was not saved"}
           </p>
           <p className="mt-0.5 text-xs leading-relaxed text-mist">
             What you see on screen has not reached the database, and it will be
             gone when this page reloads. The database said:{" "}
             <span className="font-mono text-[11px] text-paper">{syncError}</span>
           </p>
+          {behind && (
+            <p className="mt-1.5 text-xs leading-relaxed text-mist">
+              The app is asking for something a database update has not added
+              yet.{" "}
+              <Link
+                href="/settings"
+                className="font-semibold text-paper underline"
+              >
+                Settings
+              </Link>{" "}
+              names what is missing and hands you the SQL to paste into
+              Supabase.
+            </p>
+          )}
           <button
             onClick={() => window.location.reload()}
             className="mt-2 cursor-pointer rounded-md border border-white/15 px-2.5 py-1 text-[11px] font-semibold text-paper transition-colors hover:border-white/35"

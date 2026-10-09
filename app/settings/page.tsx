@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SchemaCard } from "@/components/schema-card";
 import { Building2, Check, DatabaseBackup, Mail, Palette, Plug, Type } from "lucide-react";
 import { Chip, GhostButton } from "@/components/ui";
 import { useData } from "@/lib/state";
@@ -122,6 +123,10 @@ export default function AppSettingsPage() {
 
   return (
     <div className="grid gap-6 xl:grid-cols-2">
+      {/* Whether the database has caught up with the code. First,
+          because everything below assumes it has. */}
+      <SchemaCard />
+
       {/* The master switch — nothing automatic leaves the system while
           this is off. Test sends to yourself always work. */}
       <section

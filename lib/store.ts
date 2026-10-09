@@ -11,6 +11,7 @@ import type {
   SeriesTemplate,
   StaffMember,
 } from "./types";
+import { isoDay } from "./dates";
 import { tzLabel } from "./timezones";
 import { addWorkdays } from "./workdays";
 
@@ -298,6 +299,15 @@ export function campaignStatus(
 ): CampaignStatus {
   if (campaign.statusOverride) return campaign.statusOverride;
 
+  // The dates on the campaign decide, when it has them. A programme
+  // whose run has started is Active the morning it starts, without
+  // anybody remembering to come and say so — and people do not
+  // remember, which left campaigns reading Upcoming weeks into
+  // themselves. Paused and Closed stay a human's word: they say
+  // something happened, and no date can know that.
+  const span = campaignSpan(campaign, today);
+  if (span) return span;
+
   let sent = 0;
   let scheduled = 0;
   for (const loaded of campaign.series) {
@@ -316,6 +326,28 @@ export function campaignStatus(
   if (sent === 0 && !sessionsPast) return "upcoming";
   if (scheduled === 0 && sent > 0) return "closed";
   return "active";
+}
+
+/**
+ * The status the campaign's own Runs dates imply, or null when it has
+ * none and the schedule has to answer instead.
+ *
+ * Dates are compared as calendar days, not instants: a campaign that
+ * starts today is Active from midnight wherever you are reading it,
+ * rather than at some hour that depends on the reader.
+ */
+function campaignSpan(
+  campaign: Campaign,
+  today: Date
+): CampaignStatus | null {
+  const start = campaign.startDate ?? null;
+  const end = campaign.endDate ?? null;
+  if (!start && !end) return null;
+  const now = isoDay(today);
+  if (start && now < start) return "upcoming";
+  if (end && now > end) return "closed";
+  // inside the run, or past a start with no end in sight
+  return start ? "active" : null;
 }
 
 // ——— mailbox ———————————————————————————————————————————————
