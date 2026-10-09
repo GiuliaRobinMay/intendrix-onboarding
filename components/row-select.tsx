@@ -56,7 +56,10 @@ export function RowSelect({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           style={tone ? { color: tone } : undefined}
-          className={`w-full max-w-full cursor-pointer appearance-none truncate rounded-lg border border-white/15 bg-navy/60 py-1.5 pl-2.5 pr-7 text-[11px] font-semibold transition-colors focus:border-white/40 focus:outline-none hover:border-white/30 ${
+          // h-8 on the nose: every cell's first row is this tall, so
+          // the dropdowns, the client name and the progress bar all
+          // start on one line instead of floating at three heights
+          className={`h-8 w-full max-w-full cursor-pointer appearance-none truncate rounded-lg border border-white/15 bg-navy/60 pl-2.5 pr-7 text-[11px] font-semibold transition-colors focus:border-white/40 focus:outline-none hover:border-white/30 ${
             empty ? "text-mist" : "text-paper"
           }`}
         >

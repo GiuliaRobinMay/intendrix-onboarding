@@ -5,7 +5,7 @@ import { CAMPAIGN_TONE, wash } from "@/lib/status-colors";
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState, type CSSProperties } from "react";
 import { CalendarDays, ChevronRight, Search, Users } from "lucide-react";
-import { PageHeader, Chip, ProgressBar, GradientButton } from "@/components/ui";
+import { PageHeader, ProgressBar, GradientButton } from "@/components/ui";
 import { NewCampaignWizard } from "@/components/new-campaign-wizard";
 import {
   CampaignStatusSelect,
@@ -317,18 +317,21 @@ export default function CampaignsPage() {
               .sort((a, b) => a.date!.localeCompare(b.date!))[0];
             return (
               <li key={campaign.id}>
-                <div className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.3fr)_7.5rem_minmax(0,1.5fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] lg:gap-4">
+                <div className="grid grid-cols-1 items-start gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.3fr)_7.5rem_minmax(0,1.5fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] lg:gap-4">
                   {/* client first, campaign type underneath. Only the name
                       and the arrow navigate now: the rest of the row is
                       editable, and a dropdown inside a link is a trap. */}
-                  <Link href={`/campaigns/${campaign.id}`} className="min-w-0 group">
-                    <p className="truncate text-sm font-bold group-hover:underline">
-                      {client.name}
-                    </p>
-                    <p className="mt-0.5 flex items-center gap-2 truncate text-xs text-mist">
-                      <Chip color="#a3a4f0">{campaign.code}</Chip>
-                      <span className="truncate">{campaign.name}</span>
-                    </p>
+                  <Link href={`/campaigns/${campaign.id}`} className="group min-w-0">
+                    <span className="flex h-8 items-center">
+                      <span className="truncate text-sm font-bold group-hover:underline">
+                        {client.name}
+                      </span>
+                    </span>
+                    {/* the code chip said the same thing as the name
+                        beside it, in a colour of its own, twice per row */}
+                    <span className="block truncate text-xs text-mist">
+                      {campaign.name}
+                    </span>
                   </Link>
 
                   {/* no justify-self here: it shrinks the cell to its
@@ -347,13 +350,15 @@ export default function CampaignsPage() {
                   </div>
 
                   <div className="min-w-0">
-                    <ProgressBar pct={completion.pct} />
+                    <span className="flex h-8 items-center">
+                      <ProgressBar pct={completion.pct} />
+                    </span>
                     {/* One line under the bar. The series count was a
                         number with no unit beside it — nobody could
                         tell what a bare 6 was counting — and four
                         facts stacked four deep made the row twice the
                         height it needed. */}
-                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 text-[11px] whitespace-nowrap text-mist">
+                    <p className="flex flex-wrap items-center gap-x-2.5 text-[11px] whitespace-nowrap text-mist">
                       <span>
                         {completion.sent}/{completion.total} lessons
                       </span>
@@ -379,7 +384,7 @@ export default function CampaignsPage() {
                   <Link
                     href={`/campaigns/${campaign.id}`}
                     data-tip="Open this campaign"
-                    className="hidden text-mist hover:text-paper lg:block"
+                    className="hidden h-8 items-center text-mist hover:text-paper lg:flex"
                   >
                     <ChevronRight size={16} />
                   </Link>
