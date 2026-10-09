@@ -53,6 +53,8 @@ export function CampaignStatusSelect({
       // dimmed and italic already means "nobody set this, it is
       // being worked out" — the same convention as the two columns
       // beside it. Spelling out "Automatic" as well did not fit.
+      // the colour is the status, not how it was arrived at: an Active
+      // campaign is green whether somebody said so or the dates did
       placeholder={STATUS_LABEL[derived]}
       tone={STATUS_TONE[campaign.statusOverride ?? derived]}
       options={(Object.keys(STATUS_LABEL) as CampaignStatus[]).map((s) => ({
@@ -103,9 +105,9 @@ export function RoleSelect({
             : `No ${roleName} anywhere — on this campaign or on the client`
       }
       value={own?.staffId ?? ""}
-      // just the name: italic and dimmed already says it is
-      // inherited rather than chosen here, and the tooltip says it
-      // in words. The sentence did not fit in a table column.
+      // the name, however it got here. Where it came from is in the
+      // tooltip, which is the right weight for a detail nobody needs
+      // while scanning a list.
       placeholder={inherited ? inherited.name : "Unassigned"}
       options={staff.map((p) => ({ value: p.id, label: p.name }))}
       onChange={(v) => {

@@ -286,12 +286,11 @@ export default function CampaignsPage() {
       {/* List */}
       <div className="card overflow-hidden">
         {/* header row */}
-        <div className="hidden grid-cols-[minmax(0,1.5fr)_8.5rem_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
+        <div className="hidden grid-cols-[minmax(0,1.6fr)_8.5rem_minmax(0,1.15fr)_minmax(0,1.1fr)_minmax(0,1.5fr)_1rem] items-center gap-4 border-b border-white/8 px-5 py-3 text-[11px] font-medium text-mist lg:grid">
           <span>Client / campaign</span>
           <span>Status</span>
           <span>Progress</span>
           <span>Phoenix leader</span>
-          <span>Phoenix coach</span>
           <span>Emails sent from</span>
           <span />
         </div>
@@ -317,7 +316,7 @@ export default function CampaignsPage() {
               .sort((a, b) => a.date!.localeCompare(b.date!))[0];
             return (
               <li key={campaign.id}>
-                <div className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.5fr)_8.5rem_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.05fr)_minmax(0,1.2fr)_1rem] lg:gap-4">
+                <div className="grid grid-cols-1 items-center gap-3 px-5 py-4 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,1.6fr)_8.5rem_minmax(0,1.15fr)_minmax(0,1.1fr)_minmax(0,1.5fr)_1rem] lg:gap-4">
                   {/* client first, campaign type underneath. Only the name
                       and the arrow navigate now: the rest of the row is
                       editable, and a dropdown inside a link is a trap. */}
@@ -371,12 +370,6 @@ export default function CampaignsPage() {
                     client={client}
                     campaign={campaign}
                     role="phoenixLeaderId"
-                    staff={staff}
-                  />
-                  <RoleSelect
-                    client={client}
-                    campaign={campaign}
-                    role="phoenixCoachId"
                     staff={staff}
                   />
                   <SenderSelect client={client} campaign={campaign} staff={staff} />

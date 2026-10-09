@@ -1,9 +1,13 @@
 "use client";
 
-// A dropdown that reads as plain text in a table row until you reach
-// for it. Lists are for scanning first and fixing second, so a column
-// of boxed form controls costs more than it gives — but having to open
-// nine campaigns to correct nine senders costs more still.
+// A dropdown in a table row.
+//
+// It used to render differently depending on where the value came
+// from — dimmed italic for inherited or derived, solid for chosen by
+// hand — which meant a column of Actives in two colours and a column
+// of names in two styles. The distinction is real but nobody asked for
+// it, and a list that needs a legend is a worse list. One appearance:
+// a value looks like a value.
 //
 // It lives inside rows whose background is a link, so it swallows the
 // click: picking a value must never also navigate away from the list
@@ -43,9 +47,9 @@ export function RowSelect({
         data-tip={tip}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={tone && !empty ? { color: tone } : undefined}
-        className={`-ml-1 w-full max-w-full cursor-pointer truncate rounded-md border border-transparent bg-transparent px-1 py-0.5 text-xs font-semibold focus:border-white/30 focus:outline-none hover:border-white/20 hover:bg-navy/60 ${
-          empty ? "text-mist/60 italic" : "text-paper"
+        style={tone ? { color: tone } : undefined}
+        className={`w-full max-w-full cursor-pointer truncate rounded-md border border-white/12 bg-navy/50 px-1.5 py-1 text-[11px] font-semibold focus:border-white/40 focus:outline-none hover:border-white/30 ${
+          empty ? "text-mist" : "text-paper"
         }`}
       >
         <option value="">{placeholder}</option>
