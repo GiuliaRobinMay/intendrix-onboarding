@@ -21,27 +21,20 @@ const BASE = (process.env.MIGHTY_API_BASE || "https://api.mn.co/admin/v1").repla
   ""
 );
 
-// Which path holds the roster.
+// Which path holds the roster, read off the published spec at
+// api.mn.co/admin/v1/spec.json rather than guessed at.
 //
-// The documented one hangs off the network: /networks/{id}/members. The
-// flat spellings below are what this file tried first and they answer
-// 404 — a token with no network in the path addresses no roster at all,
-// which is why the check reported an unreadable community rather than
-// an empty one.
+// It is GET /admin/v1/networks/{network_id}/members. Two earlier
+// attempts both missed: the flat /members, which addresses no network
+// and 404s, and then a discovery call to /networks to find the id,
+// which is not an endpoint — the spec has no "list my networks".
 //
-// The network id comes from MIGHTY_NETWORK_ID when it is set, and is
-// otherwise asked for once per run. The flat paths stay as fallbacks:
-// they cost one request each and they are the only safety net if Mighty
-// moves this corner again.
-const FLAT_PATHS = ["/members", "/network/members", "/memberships", "/people"];
+// It does not need one. network_id accepts the subdomain as well as the
+// number, and the subdomain is in the address bar of the community.
+const NETWORK = process.env.MIGHTY_NETWORK_ID?.trim() || "transformational-leaders";
 
-const pinnedPath = process.env.MIGHTY_MEMBERS_PATH
-  ? [
-      process.env.MIGHTY_MEMBERS_PATH.startsWith("/")
-        ? process.env.MIGHTY_MEMBERS_PATH
-        : `/${process.env.MIGHTY_MEMBERS_PATH}`,
-    ]
-  : null;
+const MEMBERS_PATH =
+  process.env.MIGHTY_MEMBERS_PATH?.trim() || `/networks/${NETWORK}/members`;
 
 export const mightyConfigured = Boolean(process.env.MIGHTY_API_TOKEN);
 
@@ -257,76 +250,18 @@ export async function fetchCommunityRoster(): Promise<RosterResult> {
         "no Mighty Networks token yet — put MIGHTY_API_TOKEN in Vercel (Mighty Networks → Admin → Settings → API Keys) and redeploy",
     };
 
-  const tried: string[] = [];
-  const paths = pinnedPath ?? [];
-  if (!pinnedPath) {
-    const network = await findNetworkId(token);
-    if (network.id) paths.push(`/networks/${network.id}/members`);
-    else tried.push(`/networks: ${network.reason}`);
-    paths.push(...FLAT_PATHS);
-  }
+  const out = await readAll(
+    MEMBERS_PATH.startsWith("/") ? MEMBERS_PATH : `/${MEMBERS_PATH}`,
+    token
+  );
+  if (out.ok) return { ok: true, members: out.members };
 
-  for (const path of paths) {
-    const out = await readAll(path, token);
-    if (out.ok && out.members.length > 0) return { ok: true, members: out.members };
-    // an empty list from a path that answered cleanly is still an
-    // answer — keep it in case every other path fails outright
-    if (out.ok) {
-      tried.push(`${path}: answered, but with nobody in it`);
-      continue;
-    }
-    tried.push(`${path}: ${out.reason}`);
-  }
-
+  // One address, one reason. The old version tried five spellings and
+  // reported all five, which read as five different faults.
   return {
     ok: false,
-    reason: `could not read the roster. ${tried.join(" · ")}`,
+    reason:
+      `could not read the roster at ${MEMBERS_PATH} — ${out.reason}. ` +
+      `If the community is not "${NETWORK}", set MIGHTY_NETWORK_ID in Vercel to its subdomain or numeric id.`,
   };
-}
-
-/**
- * Which network this token belongs to.
- *
- * The roster lives under /networks/{id}/members, so without an id there
- * is no roster to read — and every flat spelling this file used to try
- * answers 404, which reads as "the community could not be reached"
- * rather than "we asked the wrong question".
- *
- * MIGHTY_NETWORK_ID settles it outright. Otherwise the token is asked
- * what it can see, and the single network it names is used.
- */
-async function findNetworkId(
-  token: string
-): Promise<{ id: string | null; reason: string }> {
-  const pinned = process.env.MIGHTY_NETWORK_ID?.trim();
-  if (pinned) return { id: pinned, reason: "set by hand" };
-
-  let res: Response;
-  try {
-    res = await get(`${BASE}/networks`, token);
-  } catch (err) {
-    return { id: null, reason: `could not be reached — ${String(err).slice(0, 100)}` };
-  }
-  const text = await res.text();
-  if (!res.ok) return { id: null, reason: `answered ${res.status} — ${text.slice(0, 120)}` };
-
-  let body: any;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    return { id: null, reason: `did not answer with JSON — ${text.slice(0, 100)}` };
-  }
-  const rows = rowsOf(body) ?? (body?.id ? [body] : null);
-  const id = rows?.length
-    ? firstString(rows[0], ["id", "network_id", "networkId", "resource_id", "resourceId"]) ??
-      (typeof rows[0]?.id === "number" ? String(rows[0].id) : null)
-    : null;
-  if (!id)
-    return {
-      id: null,
-      reason: `named no network — the answer held ${
-        Object.keys(body ?? {}).slice(0, 8).join(", ") || "nothing"
-      }`,
-    };
-  return { id, reason: "found" };
 }
