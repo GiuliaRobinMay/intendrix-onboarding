@@ -1,8 +1,9 @@
 // POST /api/send-invite — invite a campaign's members into the client's
 // community space, each via the client's own plan link. Deliberately
 // unrelated to the user agreement: the invitation can always go out.
-// People who already joined (or were already invited, unless
-// remind: true) are skipped. ?dryrun=1 only counts.
+// People who already joined are skipped. Without remind, so is anyone
+// this app has already invited; with remind: true, everyone still
+// outside the community is written to. ?dryrun=1 only counts.
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
@@ -87,10 +88,18 @@ export async function POST(req: Request) {
 
   const joined = members.filter((m: any) => m.community_joined_at);
   const notJoined = members.filter((m: any) => !m.community_joined_at);
-  const invited = notJoined.filter((m: any) => m.community_invited_at);
   const fresh = notJoined.filter((m: any) => !m.community_invited_at);
-  const targets = (remind ? invited : fresh).filter((m: any) => m.email);
-  const noEmail = (remind ? invited : fresh).filter((m: any) => !m.email).length;
+
+  // A reminder goes to everyone who has not joined. It used to go only
+  // to the people this app had itself recorded sending an invitation
+  // to — so a client whose first invitations went out any other way had
+  // nobody in that state, and the button found nobody to remind while
+  // five people sat there unjoined.
+  //
+  // Who sent the first invitation is not the question a reminder asks.
+  // The question is who is not in the community yet.
+  const targets = (remind ? notJoined : fresh).filter((m: any) => m.email);
+  const noEmail = (remind ? notJoined : fresh).filter((m: any) => !m.email).length;
 
   if (dryRun || !emailConfigured)
     return NextResponse.json({
@@ -98,7 +107,8 @@ export async function POST(req: Request) {
       dryRun: true,
       toSend: targets.length,
       joined: joined.length,
-      invited: invited.length,
+      // everyone still outside the community — what a reminder is for
+      invited: notJoined.length,
       noEmail,
       from: `${from.name} <${from.address}>`,
       ...(emailConfigured ? {} : { reason: "email sending is not configured" }),

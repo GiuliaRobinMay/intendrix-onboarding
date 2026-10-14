@@ -134,9 +134,7 @@ function OnboardingSendButton({
         problem(
           "Nothing to send",
           mode === "remind"
-            ? check.joined
-              ? "Nobody is waiting — everyone who was invited has joined."
-              : "Nobody has been invited yet, so there is nobody to remind."
+            ? "Everyone on this campaign is already in the community."
             : kind === "agreement"
               ? "Everyone has accepted the user agreement."
               : "Everyone has joined or been invited."
