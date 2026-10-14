@@ -33,6 +33,9 @@ const BASE = (process.env.MIGHTY_API_BASE || "https://api.mn.co/admin/v1").repla
 // number, and the subdomain is in the address bar of the community.
 const NETWORK = process.env.MIGHTY_NETWORK_ID?.trim() || "transformational-leaders";
 
+/** The endpoint's documented maximum. */
+const PER_PAGE = 100;
+
 const MEMBERS_PATH =
   process.env.MIGHTY_MEMBERS_PATH?.trim() || `/networks/${NETWORK}/members`;
 
@@ -77,8 +80,13 @@ function toMember(row: any): CommunityMember | null {
     "user.email",
     "member.email",
   ]);
+  // The roster masks addresses as a***@***.*** for a token whose plan
+  // does not include member-email visibility. That is not an address,
+  // it just looks like one — treating it as real would match nobody and
+  // report it as nobody having joined.
+  const real = email && !email.includes("***") ? email.toLowerCase() : "";
   return {
-    email: email ? email.toLowerCase() : "",
+    email: real,
     name:
       firstString(row, ["name", "full_name", "fullName", "display_name"]) ??
       ([firstString(row, ["first_name", "firstName"]), firstString(row, ["last_name", "lastName"])]
@@ -139,13 +147,6 @@ function rowsOf(body: any): any[] | null {
   return null;
 }
 
-/** The cursor or page pointer for the next slice, if there is one. */
-function nextPageOf(body: any): string | null {
-  const meta = body?.meta ?? body?.pagination ?? body;
-  const next =
-    meta?.next_cursor ?? meta?.nextCursor ?? meta?.next_page ?? meta?.nextPage ?? null;
-  return typeof next === "string" || typeof next === "number" ? String(next) : null;
-}
 
 /**
  * Everyone in the community, with their email address.
@@ -173,16 +174,16 @@ async function readAll(
   token: string
 ): Promise<{ ok: true; members: CommunityMember[] } | { ok: false; reason: string }> {
   const members: CommunityMember[] = [];
-  let cursor: string | null = null;
-  let page = 1;
 
-  // a hard stop, so a pagination field read wrongly cannot loop forever
-  for (let round = 0; round < 40; round++) {
+  // page and per_page, and nothing else. This endpoint rejects any
+  // parameter it does not know with a 400, so the hopeful extras this
+  // used to send alongside them — limit, cursor — failed every request
+  // outright rather than being ignored. Paging is by page number; there
+  // is no cursor.
+  for (let page = 1; page <= 40; page++) {
     const url = new URL(`${BASE}${path}`);
-    url.searchParams.set("per_page", "100");
-    url.searchParams.set("limit", "100");
-    if (cursor) url.searchParams.set("cursor", cursor);
-    else if (page > 1) url.searchParams.set("page", String(page));
+    url.searchParams.set("per_page", String(PER_PAGE));
+    url.searchParams.set("page", String(page));
 
     let res: Response;
     try {
@@ -221,12 +222,8 @@ async function readAll(
       };
 
     members.push(...mapped);
-    cursor = nextPageOf(body);
-    page += 1;
-    // no cursor and a short page means the end; a full page with no
-    // cursor means page numbers, so keep going
-    if (!cursor && rows.length < 100) break;
-    if (rows.length === 0) break;
+    // a short page is the last one
+    if (rows.length < PER_PAGE) break;
   }
 
   return { ok: true, members };
