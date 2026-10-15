@@ -17,7 +17,6 @@ import { useEffect, useRef, useState } from "react";
 import { Copy, MailSearch, Search, X } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { PageHeader } from "@/components/ui";
-import { usDate } from "@/lib/dates";
 import { emailState, emailTroubled } from "@/lib/email-state";
 
 interface Row {
@@ -31,6 +30,8 @@ interface Row {
   campaignId: string;
   campaign: string;
   campaignCode: string;
+  /** the campaign's timezone — the clock the email was due by */
+  timezone: string;
   lesson: string;
   lessonCode: string | null;
   status: string;
@@ -54,8 +55,23 @@ const SCOPES: Array<{ id: Scope; label: string; tip: string }> = [
   { id: "notsent", label: "Not sent", tip: "Scheduled or held — nothing has left yet" },
 ];
 
-const timeOf = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+// The moment in the campaign's own zone, with that zone named: an email
+// due at 8:00 AM Eastern reads 8:00 AM EDT wherever you sit, not 2:00 PM
+// because your browser is in Amsterdam.
+const dateOf = (iso: string, tz: string) =>
+  new Date(iso).toLocaleDateString("en-US", {
+    timeZone: tz,
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+  });
+const timeOf = (iso: string, tz: string) =>
+  new Date(iso).toLocaleTimeString("en-US", {
+    timeZone: tz,
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
 
 export default function EmailLogPage() {
   const router = useRouter();
@@ -218,8 +234,8 @@ export default function EmailLogPage() {
                     <td className="whitespace-nowrap px-4 py-2.5 align-top">
                       {r.at ? (
                         <>
-                          <span className="block font-semibold">{usDate(new Date(r.at))}</span>
-                          <span className="block text-[11px] text-mist">{timeOf(r.at)}</span>
+                          <span className="block font-semibold">{dateOf(r.at, r.timezone)}</span>
+                          <span className="block text-[11px] text-mist">{timeOf(r.at, r.timezone)}</span>
                         </>
                       ) : (
                         <span className="text-mist">—</span>
@@ -256,14 +272,8 @@ export default function EmailLogPage() {
                       >
                         {r.campaign}
                       </Link>
-                      <span className="block text-[11px] text-mist">{r.campaignCode}</span>
                     </td>
-                    <td className="px-3 py-2.5 align-top">
-                      {r.lessonCode && (
-                        <span className="mr-1.5 font-semibold text-mist">{r.lessonCode}</span>
-                      )}
-                      {r.lesson}
-                    </td>
+                    <td className="px-3 py-2.5 align-top">{r.lesson}</td>
                     <td className="px-4 py-2.5 align-top">
                       <span
                         data-tip={st.tip}

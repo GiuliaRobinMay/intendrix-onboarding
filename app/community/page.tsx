@@ -29,7 +29,6 @@ import {
 import { authHeaders } from "@/lib/supabase-browser";
 import { PageHeader, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
-import { OnboardingChips, OnboardingLegend } from "@/components/onboarding";
 import { useData } from "@/lib/state";
 import { usDate } from "@/lib/dates";
 import type { Client, Member } from "@/lib/types";
@@ -271,13 +270,10 @@ function ClientRows({
         </td>
         <td className="px-2 py-3">
           <span className="block text-sm font-bold">{client.name}</span>
-          {live?.reason && (
-            <span className="block text-[11px] text-[#ff7a55]">{live.reason}</span>
-          )}
         </td>
         <td className="whitespace-nowrap px-3 py-3">
           {people.length === 0 ? (
-            <span className="text-mist">no people yet</span>
+            <span className="text-mist">no members yet</span>
           ) : (
             <span className="flex items-center gap-2">
               <span className="font-semibold">
@@ -374,19 +370,25 @@ function ClientRows({
               })}
             </div>
 
-            {/* the people, the way the client page shows them */}
+            {plan && live?.reason && (
+              <p className="mt-3 text-[11px] text-mist">{live.reason}</p>
+            )}
+
+            {/* the members, the way the client page shows them */}
             {people.length === 0 && extra.length === 0 ? (
-              <p className="mt-4 text-[11px] text-mist">No people on this client yet.</p>
+              <p className="mt-4 text-[11px] text-mist">No members yet.</p>
             ) : (
               <div className="mt-4">
                 {people.map((m) => {
                   const hit = inside[m.id];
-                  // the community's answer shows as the blue mark, whether
-                  // or not the last check has stamped it yet
-                  const shown: Member =
-                    connected && hit && !m.communityJoinedAt
-                      ? { ...m, communityJoinedAt: hit.joinedAt ?? new Date().toISOString() }
-                      : m;
+                  // the date they came in, in the community's blue; the
+                  // rest say where they stand, in yellow or grey
+                  const when = hit?.joinedAt ?? m.communityJoinedAt ?? null;
+                  const state = isInside(m)
+                    ? { text: when ? usDate(new Date(when)) : "inside", color: "#6ea8ff" }
+                    : m.communityInvitedAt
+                      ? { text: `invited ${usDate(new Date(m.communityInvitedAt))}`, color: "#facc15" }
+                      : { text: "not invited", color: "#5a5c6b" };
                   return (
                     <PersonRow
                       key={m.id}
@@ -394,18 +396,7 @@ function ClientRows({
                       email={m.email}
                       href={`/members/${m.id}`}
                       leader={m.role === "leader"}
-                      chips={<OnboardingChips member={shown} />}
-                      note={
-                        isInside(m)
-                          ? hit?.joinedAt
-                            ? `joined ${usDate(new Date(hit.joinedAt))}`
-                            : m.communityJoinedAt
-                              ? `joined ${usDate(new Date(m.communityJoinedAt))}`
-                              : "inside"
-                          : m.communityInvitedAt
-                            ? `invited ${usDate(new Date(m.communityInvitedAt))}`
-                            : "not invited yet"
-                      }
+                      state={state}
                       sub={hit && hit.email && hit.email !== m.email.toLowerCase() ? `joined as ${hit.email}` : null}
                     />
                   );
@@ -416,21 +407,14 @@ function ClientRows({
                     name={p.name ?? p.email}
                     email={p.email}
                     leader={false}
-                    chips={
-                      <span
-                        data-tip="On this client's plan in the community, but not on the client's list here — add them, or ask who they are"
-                        className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#facc15]"
-                      >
-                        NOT ON THE LIST
-                      </span>
-                    }
-                    note={p.joinedAt ? `joined ${usDate(new Date(p.joinedAt))}` : "inside"}
+                    tag="NOT ON THE LIST"
+                    state={{
+                      text: p.joinedAt ? usDate(new Date(p.joinedAt)) : "inside",
+                      color: "#6ea8ff",
+                    }}
                     sub={null}
                   />
                 ))}
-                <div className="mt-3">
-                  <OnboardingLegend />
-                </div>
               </div>
             )}
           </td>
@@ -479,20 +463,22 @@ function PersonRow({
   email,
   href,
   leader,
-  chips,
-  note,
+  tag,
+  state,
   sub,
 }: {
   name: string;
   email: string;
   href?: string;
   leader: boolean;
-  chips: React.ReactNode;
-  note: string;
+  /** a word on the row that is not like the others */
+  tag?: string;
+  /** where they stand, in the colour that says so */
+  state: { text: string; color: string };
   sub: string | null;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto_auto] items-center gap-x-3 border-b border-white/5 px-1 py-1.5 transition-colors hover:bg-white/4">
+    <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-center gap-x-3 border-b border-white/5 px-1 py-1.5 transition-colors hover:bg-white/4">
       <div className="flex min-w-0 items-center gap-2.5">
         <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-bold text-mist">
           {initials(name)}
@@ -516,8 +502,17 @@ function PersonRow({
         </div>
       </div>
       <span className="min-w-0 truncate text-xs text-mist">{email || "no email"}</span>
-      {chips}
-      <span className="whitespace-nowrap text-[11px] text-mist/80">{note}</span>
+      <span className="flex items-center gap-2 whitespace-nowrap text-[11px] font-semibold">
+        {tag && (
+          <span
+            data-tip="On this client's plan in the community, but not on the client's list here — add them, or ask who they are"
+            className="rounded bg-[#facc15]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#facc15]"
+          >
+            {tag}
+          </span>
+        )}
+        <span style={{ color: state.color }}>{state.text}</span>
+      </span>
     </div>
   );
 }

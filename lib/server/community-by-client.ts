@@ -60,11 +60,17 @@ function planFor(
   const name = squash(client.name);
   const short = squash(client.short_name ?? "");
   const firstWord = squash(client.name.split(/\s+/)[0] ?? "");
+  // "2|42 Community Church | Intendrix Access" is the client's name and a
+  // tail; the tail goes, the bar inside the name stays
+  const stem = (p: CommunityPlan) => squash(p.name.replace(/\s*\|\s*[^|]*$/, ""));
+  const either = (a: string, b: string) =>
+    a.length >= 5 && b.length >= 5 && (a.startsWith(b) || b.startsWith(a));
   const candidates = plans.filter((p) => !/phoenix|template|tester/i.test(p.name));
   const hit =
-    candidates.find((p) => name && squash(p.name).startsWith(name)) ??
-    candidates.find((p) => short.length > 3 && squash(p.name).startsWith(short)) ??
-    candidates.find((p) => firstWord.length > 4 && squash(p.name).startsWith(firstWord));
+    candidates.find((p) => either(stem(p), name)) ??
+    candidates.find((p) => either(squash(p.name), name)) ??
+    candidates.find((p) => short.length > 3 && stem(p).startsWith(short)) ??
+    candidates.find((p) => firstWord.length > 4 && stem(p).startsWith(firstWord));
   return hit ? { plan: hit, guessed: true } : null;
 }
 

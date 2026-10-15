@@ -93,7 +93,7 @@ export async function GET(req: Request) {
              (e.shadow_to is not null) as is_copy,
              m.id as member_id,
              cl.id as client_id, cl.name as client_name, cl.short_name as client_short,
-             c.id as campaign_id, c.name as campaign_name, c.code as campaign_code,
+             c.id as campaign_id, c.name as campaign_name, c.code as campaign_code, c.timezone,
              ss.code as step_code, ss.title as step_title,
              e.status, e.error, e.scheduled_for, e.sent_at,
              (e.sent_at is null and ${SUPERSEDED}) as superseded
@@ -133,6 +133,7 @@ export async function GET(req: Request) {
       campaignId: r.campaign_id,
       campaign: r.campaign_name,
       campaignCode: r.campaign_code,
+      timezone: r.timezone ?? "America/New_York",
       lesson: r.step_title ?? r.step_code ?? "lesson",
       lessonCode: r.step_code ?? null,
       status: r.status,
