@@ -38,6 +38,8 @@ interface Row {
   event: string | null;
   at: string | null;
   sent: boolean;
+  /** refused by the engine then, sent by hand since */
+  superseded: boolean;
 }
 
 type Scope = "all" | "trouble" | "notsent";
@@ -265,7 +267,9 @@ export default function EmailLogPage() {
                     <td className="px-4 py-2.5 align-top">
                       <span
                         data-tip={st.tip}
-                        className="inline-flex items-center gap-1.5 font-semibold"
+                        className={`inline-flex items-center gap-1.5 font-semibold ${
+                          r.superseded ? "opacity-50" : ""
+                        }`}
                         style={{ color: st.color }}
                       >
                         <span
@@ -275,9 +279,17 @@ export default function EmailLogPage() {
                         />
                         {st.text}
                       </span>
-                      {trouble && r.error && (
-                        <span className="block max-w-64 truncate text-[11px] text-mist">
+                      {(trouble || r.status === "held") && r.error && (
+                        <span className="block max-w-72 truncate text-[11px] text-mist">
                           {r.error}
+                        </span>
+                      )}
+                      {r.superseded && (
+                        <span
+                          data-tip="The engine refused it then; somebody sent it by hand afterwards — see the sent row"
+                          className="mt-0.5 inline-block rounded bg-white/8 px-1.5 text-[10px] font-semibold text-mist"
+                        >
+                          sent later by hand
                         </span>
                       )}
                     </td>

@@ -61,6 +61,20 @@ export async function GET(req: Request) {
     )`);
   }
 
+  // The engine writes one row when it refuses to send — held, failed —
+  // and a hand send afterwards writes a fresh "sent" row rather than
+  // touching the old one. So the refusal stays in the log next to the
+  // send that answered it. That is the right record, but it is not an
+  // email still waiting, and "Not sent" must not list it as one.
+  const SUPERSEDED = `exists (
+      select 1 from email_sends s
+       where s.campaign_id = e.campaign_id
+         and s.step_id = e.step_id
+         and s.status = 'sent'
+         and s.id <> e.id
+         and (s.member_id = e.member_id
+              or (e.shadow_to is not null and s.shadow_to = e.shadow_to)))`;
+
   const build = (withEvents: boolean) => {
     const w = [...where];
     if (scope === "trouble")
@@ -69,7 +83,7 @@ export async function GET(req: Request) {
           ? `(e.status = 'failed' or e.last_event in ('bounced','complained','failed'))`
           : `e.status = 'failed'`
       );
-    else if (scope === "notsent") w.push(`e.sent_at is null`);
+    else if (scope === "notsent") w.push(`e.sent_at is null and not ${SUPERSEDED}`);
 
     params.push(limit);
     const sql = `
@@ -81,7 +95,8 @@ export async function GET(req: Request) {
              cl.id as client_id, cl.name as client_name, cl.short_name as client_short,
              c.id as campaign_id, c.name as campaign_name, c.code as campaign_code,
              ss.code as step_code, ss.title as step_title,
-             e.status, e.error, e.scheduled_for, e.sent_at
+             e.status, e.error, e.scheduled_for, e.sent_at,
+             (e.sent_at is null and ${SUPERSEDED}) as superseded
              ${withEvents ? ", e.last_event, e.last_event_at" : ""},
              count(*) over () as total
         from email_sends e
@@ -125,6 +140,8 @@ export async function GET(req: Request) {
       event: r.last_event ?? null,
       at: r.sent_at ?? r.scheduled_for ?? null,
       sent: Boolean(r.sent_at),
+      // refused then, sent by hand since — shown, but not as waiting
+      superseded: Boolean(r.superseded),
     })),
   });
 }
