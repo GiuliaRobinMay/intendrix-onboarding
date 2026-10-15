@@ -36,6 +36,9 @@ const NETWORK = process.env.MIGHTY_NETWORK_ID?.trim() || "transformational-leade
 /** The endpoint's documented maximum. */
 const PER_PAGE = 100;
 
+/** Where the community lives for people — plan and space links point here. */
+const SITE = (process.env.MIGHTY_SITE_URL || "https://intendrix.ai").replace(/\/+$/, "");
+
 const MEMBERS_PATH =
   process.env.MIGHTY_MEMBERS_PATH?.trim() || `/networks/${NETWORK}/members`;
 
@@ -48,6 +51,15 @@ export interface CommunityMember {
   joinedAt: string | null;
   /** the plan that let them in; this is what names the client */
   plan: string | null;
+  /** a Host — the Phoenix team and admins, never a client's person */
+  host: boolean;
+}
+
+export interface CommunityPlan {
+  id: string;
+  name: string;
+  /** the admin page of the plan, when the API says; built from the id otherwise */
+  url: string;
 }
 
 export type RosterResult =
@@ -102,6 +114,33 @@ function toMember(row: any): CommunityMember | null {
         "membership.created_at",
       ]) ?? null,
     plan: planOf(row),
+    host: isHost(row),
+  };
+}
+
+/** Hosts run the network; they are on every client's plan and on
+ *  nobody's client list, so a per-client view leaves them out. */
+function isHost(row: any): boolean {
+  for (const k of ["network_role", "networkRole", "role", "member_type", "memberType", "membership.role"]) {
+    const v = k.split(".").reduce((o: any, part) => o?.[part], row);
+    if (typeof v === "string" && /host|moderator|admin/i.test(v)) return true;
+  }
+  for (const k of ["is_host", "isHost", "host", "is_admin", "isAdmin"])
+    if (row?.[k] === true) return true;
+  return false;
+}
+
+/** One plan row, whatever Mighty calls its columns. */
+function toPlan(row: any): CommunityPlan | null {
+  const id = row?.id ?? row?.resource_id ?? row?.resourceId ?? row?.plan_id;
+  const name = firstString(row, ["name", "title", "plan_name"]);
+  if (id === undefined || id === null || !name) return null;
+  return {
+    id: String(id),
+    name,
+    url:
+      firstString(row, ["url", "admin_url", "adminUrl"]) ??
+      `${SITE}/settings/payments/plans/${id}`,
   };
 }
 
@@ -173,7 +212,20 @@ async function readAll(
   path: string,
   token: string
 ): Promise<{ ok: true; members: CommunityMember[] } | { ok: false; reason: string }> {
-  const members: CommunityMember[] = [];
+  const out = await readPages(path, token, toMember, (m) => Boolean(m.email || m.name));
+  return out.ok ? { ok: true, members: out.rows } : out;
+}
+
+/** Every page of one list, mapped; or why the list could not be read.
+ *  `sane` says whether a mapped row looks like the kind expected, so a
+ *  page of the wrong shape is reported rather than counted as empty. */
+async function readPages<T>(
+  path: string,
+  token: string,
+  map: (row: any) => T | null,
+  sane: (row: T) => boolean
+): Promise<{ ok: true; rows: T[] } | { ok: false; reason: string }> {
+  const all: T[] = [];
 
   // page and per_page, and nothing else. This endpoint rejects any
   // parameter it does not know with a 400, so the hopeful extras this
@@ -209,24 +261,52 @@ async function readAll(
         reason: `no list in the answer — it held ${Object.keys(body ?? {}).slice(0, 8).join(", ") || "nothing"}`,
       };
 
-    const mapped = rows.map(toMember).filter(Boolean) as CommunityMember[];
-    // a page where not one row carries a name or an address is not a
-    // roster at all — it is the wrong shape, and saying so beats
-    // reporting a community with nobody in it
-    if (rows.length > 0 && !mapped.some((m) => m.email || m.name))
+    const mapped = rows.map(map).filter((r): r is T => r !== null);
+    // a page where not one row reads as expected is not this list at
+    // all — it is the wrong shape, and saying so beats reporting a
+    // community with nobody in it
+    if (rows.length > 0 && !mapped.some(sane))
       return {
         ok: false,
-        reason: `rows carried neither name nor email — one row held ${Object.keys(rows[0] ?? {})
+        reason: `rows were not the expected shape — one row held ${Object.keys(rows[0] ?? {})
           .slice(0, 10)
           .join(", ")}`,
       };
 
-    members.push(...mapped);
+    all.push(...mapped);
     // a short page is the last one
     if (rows.length < PER_PAGE) break;
   }
 
-  return { ok: true, members };
+  return { ok: true, rows: all };
+}
+
+const tokenOr = () =>
+  process.env.MIGHTY_API_TOKEN ||
+  null;
+
+/** Every plan in the network — each client has one, and its name
+ *  carries the client's name. */
+export async function fetchPlans(): Promise<
+  { ok: true; plans: CommunityPlan[] } | { ok: false; reason: string }
+> {
+  const token = tokenOr();
+  if (!token) return { ok: false, reason: "no Mighty Networks token yet" };
+  const out = await readPages(`/networks/${NETWORK}/plans`, token, toPlan, (p) => Boolean(p.name));
+  return out.ok
+    ? { ok: true, plans: out.rows }
+    : { ok: false, reason: `could not read the plans — ${out.reason}` };
+}
+
+/** Everyone who came in through one plan: a client's people, exactly,
+ *  plus the hosts who are on every plan. */
+export async function fetchPlanMembers(planId: string): Promise<RosterResult> {
+  const token = tokenOr();
+  if (!token) return { ok: false, reason: "no Mighty Networks token yet" };
+  const out = await readAll(`/networks/${NETWORK}/plans/${encodeURIComponent(planId)}/members`, token);
+  return out.ok
+    ? out
+    : { ok: false, reason: `could not read the plan's members — ${out.reason}` };
 }
 
 /**

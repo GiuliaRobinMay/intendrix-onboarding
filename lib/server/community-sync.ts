@@ -17,6 +17,7 @@
 
 import type { Pool } from "pg";
 import { fetchCommunityRoster } from "@/lib/server/mighty";
+import { communityByClient } from "@/lib/server/community-by-client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -48,6 +49,60 @@ async function remember(pool: Pool, value: Record<string, unknown>) {
 }
 
 export async function syncCommunity(pool: Pool, dryRun: boolean): Promise<SyncResult> {
+  // The plan's member list first: it names a client's people exactly,
+  // and matches by name as well as address — so somebody who joined
+  // with another address than the one on the list is still found.
+  const byClient = await communityByClient(pool);
+  if (byClient.ok) {
+    const { rows: members } = await pool
+      .query(
+        `select m.id, m.name, m.email, m.community_joined_at, c.short_name as client
+           from members m join clients c on c.id = m.client_id`
+      )
+      .catch(() => ({ rows: null as any }));
+    if (!members)
+      return {
+        ok: false,
+        reason:
+          "the database is missing the onboarding columns — run the onboarding migration first",
+      };
+    const byId = new Map((members as any[]).map((m) => [m.id, m]));
+    const joined: SyncResult["joined"] = [];
+    let inCommunity = 0;
+    let unmatched = 0;
+    for (const entry of Object.values(byClient.clients)) {
+      unmatched += entry.extra.length;
+      for (const [memberId, hit] of Object.entries(entry.inside)) {
+        inCommunity++;
+        const m = byId.get(memberId);
+        if (!m || m.community_joined_at) continue;
+        joined.push({ name: m.name, client: m.client, email: hit.email, at: hit.joinedAt });
+        if (!dryRun)
+          await pool.query(
+            `update members
+                set community_joined_at = coalesce(community_joined_at, $2::timestamptz, now())
+              where id = $1`,
+            [memberId, hit.joinedAt]
+          );
+      }
+    }
+    if (!dryRun)
+      await remember(pool, { ok: true, inCommunity, newlyJoined: joined.length, unmatched });
+    return {
+      ok: true,
+      dryRun,
+      inCommunity,
+      newlyJoined: joined.length,
+      joined,
+      unmatched,
+      unmatchedPeople: Object.values(byClient.clients)
+        .flatMap((e) => e.extra.map((p) => ({ email: p.email, name: p.name, plan: e.plan?.name ?? null })))
+        .slice(0, 50),
+    };
+  }
+
+  // the whole roster, matched by address — the older way, kept for a
+  // token that can read members but not plans
   const roster = await fetchCommunityRoster();
   if (!roster.ok) {
     if (!dryRun) await remember(pool, { ok: false, reason: roster.reason });
