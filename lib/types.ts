@@ -285,6 +285,8 @@ export interface Client {
   projectManagerId?: string;
   /** the client's space inside Mighty Networks */
   spaceUrl?: string;
+  /** the plan — the access rule that opens that space */
+  planUrl?: string;
   /** the plan invitation link members use to join that space */
   inviteUrl?: string;
   members: Member[];

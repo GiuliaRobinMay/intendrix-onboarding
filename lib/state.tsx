@@ -146,6 +146,7 @@ export type Action =
           | "phoenixCoachId"
           | "projectManagerId"
           | "spaceUrl"
+          | "planUrl"
           | "inviteUrl"
         >
       >;

@@ -30,7 +30,7 @@ export function ClientFactsCard({
   return (
     <section className="card p-4">
       <h2 className="mb-3 text-base font-bold">
-        Location, space and invitation link
+        Location, space, plan and invitation link
       </h2>
 
       {/* one under the other: four short facts read faster in a column
@@ -80,6 +80,28 @@ export function ClientFactsCard({
             <a
               data-tip="Open the client's space in Mighty Networks"
               href={client.spaceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 text-mist hover:text-paper"
+            >
+              <ExternalLink size={13} />
+            </a>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <span className={label}>Plan</span>
+          <EditableText
+            value={client.planUrl ?? ""}
+            placeholder="Paste the plan URL…"
+            invalid={!client.planUrl}
+            onCommit={(v) => patch({ planUrl: v.trim() })}
+            className="text-xs text-mist"
+          />
+          {client.planUrl && (
+            <a
+              data-tip="Open the client's plan in Mighty Networks — the access rule behind the invitation"
+              href={client.planUrl}
               target="_blank"
               rel="noreferrer"
               className="shrink-0 text-mist hover:text-paper"

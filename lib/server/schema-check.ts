@@ -83,6 +83,13 @@ update campaigns c
    and c.sender_staff_id is null
    and c.sender_member_id is null;`,
   },
+  {
+    migration: "0022_client_plan_url",
+    table: "clients",
+    column: "plan_url",
+    cost: "The plan link cannot be saved — the Community tab shows it red for every client, whatever you paste.",
+    sql: `alter table clients add column if not exists plan_url text;`,
+  },
 ];
 
 export interface SchemaReport {

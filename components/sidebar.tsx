@@ -7,6 +7,7 @@ import { useData } from "@/lib/state";
 import { authConfigured, getSupabase } from "@/lib/supabase-browser";
 import { HelpButton } from "@/components/help";
 import {
+  Globe,
   LayoutDashboard,
   LogOut,
   Users,
@@ -39,6 +40,7 @@ const groups: Array<{
     links: [
       { href: "/clients", label: "Clients", icon: Users, tip: "All client organizations" },
       { href: "/campaigns", label: "Campaigns", icon: Megaphone, tip: "Every campaign across all clients" },
+      { href: "/community", label: "Community", icon: Globe, tip: "Each client's space, plan and invitation link, and who of their people is inside" },
     ],
   },
   {

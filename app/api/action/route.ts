@@ -145,6 +145,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         phoenixCoachId: "phoenix_coach_id",
         projectManagerId: "project_manager_id",
         spaceUrl: "space_url",
+        planUrl: "plan_url",
         inviteUrl: "invite_url",
       });
       return;

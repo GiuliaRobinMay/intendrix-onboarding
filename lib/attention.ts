@@ -155,6 +155,7 @@ export function attentionItems(
     if (!client.state) missing.push("state");
     if (!client.inviteUrl) missing.push("invitation link");
     if (!client.spaceUrl) missing.push("space link");
+    if (!client.planUrl) missing.push("plan link");
     if (!findStaff(staff, client.phoenixLeaderId)) missing.push("Phoenix Leader");
     if (!findStaff(staff, client.phoenixCoachId)) missing.push("Phoenix Coach");
     if (!client.members.length) missing.push("their team");

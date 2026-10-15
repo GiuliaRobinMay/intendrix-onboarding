@@ -29,6 +29,7 @@ import { GradientButton, GhostButton } from "@/components/ui";
 import { OnboardingChips } from "@/components/onboarding";
 import { useConfirm } from "@/components/confirm";
 import { useData } from "@/lib/state";
+import { ImportMembers } from "@/components/import-members";
 import { fmtDate } from "@/lib/store";
 import type { Client, Member, MemberRole, MemberStatus } from "@/lib/types";
 
@@ -192,6 +193,7 @@ export function MembersSection({ client }: { client: Client }) {
   const { dispatch } = useData();
   const confirmDelete = useConfirm();
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [openInfo, setOpenInfo] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   // the list opens on the people who are actually on the team
@@ -512,6 +514,13 @@ export function MembersSection({ client }: { client: Client }) {
             />
           </div>
           <button
+            data-tip="Import a list of people from Excel, CSV or a text file"
+            onClick={() => setImporting(true)}
+            className="cursor-pointer rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper"
+          >
+            Import list
+          </button>
+          <button
             data-tip="Add a member to this client"
             onClick={() => setAdding(true)}
             className="cursor-pointer rounded-md border border-white/10 p-1.5 text-mist transition-colors hover:border-white/25 hover:text-paper"
@@ -520,6 +529,10 @@ export function MembersSection({ client }: { client: Client }) {
           </button>
         </div>
       </div>
+
+      {importing && (
+        <ImportMembers client={client} onClose={() => setImporting(false)} />
+      )}
 
       {adding && (
         <AddMemberForm
