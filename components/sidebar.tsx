@@ -14,6 +14,7 @@ import {
   CalendarDays,
   ChevronsUpDown,
   Inbox,
+  MailSearch,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -45,6 +46,7 @@ const groups: Array<{
     links: [
       { href: "/calendar", label: "Calendar", icon: CalendarDays, tip: "Meetings and milestones in one agenda" },
       { href: "/mailbox", label: "Mailbox", icon: Inbox, tip: "Every email that goes out to members" },
+      { href: "/emails", label: "Email log", icon: MailSearch, tip: "Every email sent to a person — search by name, address or company" },
     ],
   },
 ];

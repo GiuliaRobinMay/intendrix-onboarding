@@ -8,11 +8,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { OnboardingChips, OnboardingLegend } from "@/components/onboarding";
 import { useData } from "@/lib/state";
+import { RecordNav } from "@/components/record-nav";
 import { fmtDate } from "@/lib/store";
+import { emailState } from "@/lib/email-state";
 
 interface Row {
   title: string;
@@ -22,49 +24,6 @@ interface Row {
   event: string | null;
   at: string | null;
 }
-
-/** what the send log + the provider say about one email */
-const STATE: Record<string, { text: string; color: string; tip: string }> = {
-  clicked: {
-    text: "clicked",
-    color: "var(--tone-green)",
-    tip: "Delivered, opened, and a link was clicked",
-  },
-  opened: { text: "opened", color: "var(--tone-green)", tip: "Delivered and opened" },
-  delivered: {
-    text: "delivered",
-    color: "var(--color-mist)",
-    tip: "Accepted by their mail server — no sign of it being opened yet",
-  },
-  delivery_delayed: {
-    text: "delayed",
-    color: "var(--tone-yellow)",
-    tip: "Their mail server is holding it — usually it still arrives",
-  },
-  bounced: {
-    text: "bounced",
-    color: "#ff7a55",
-    tip: "Refused by their mail server — the address is wrong or closed",
-  },
-  complained: {
-    text: "marked as spam",
-    color: "#ff7a55",
-    tip: "They reported it as spam — stop sending to this address",
-  },
-  failed: { text: "failed", color: "#ff7a55", tip: "It never left — see the reason" },
-  held: { text: "held", color: "var(--tone-yellow)", tip: "Waiting, not sent yet" },
-  scheduled: { text: "scheduled", color: "var(--color-mist)", tip: "Still ahead" },
-  sent: {
-    text: "sent",
-    color: "var(--color-mist)",
-    tip: "Handed to the provider — no delivery report yet",
-  },
-};
-
-const stateOf = (r: Row) =>
-  r.status === "sent"
-    ? STATE[r.event ?? "sent"] ?? STATE.sent
-    : STATE[r.status] ?? { text: r.status, color: "#ff7a55", tip: r.error ?? r.status };
 
 export default function MemberMailPage() {
   const { id } = useParams<{ id: string }>();
@@ -125,12 +84,18 @@ export default function MemberMailPage() {
 
   return (
     <>
-      <Link
-        href={`/clients/${client.id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mist transition-colors hover:text-paper"
-      >
-        <ArrowLeft size={13} /> {client.shortName}
-      </Link>
+      {/* the arrows walk this client's team, so checking everyone's mail
+          is one pass rather than one trip back to the client each time */}
+      <RecordNav
+        backHref={`/clients/${client.id}`}
+        backLabel={client.shortName}
+        items={client.members.map((m) => ({
+          id: m.id,
+          name: m.name,
+          href: `/members/${m.id}`,
+        }))}
+        currentId={member.id}
+      />
 
       <section className="card mb-6 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -199,7 +164,7 @@ export default function MemberMailPage() {
                 <span>What happened</span>
               </div>
               {rows.map((r, i) => {
-                const s = stateOf(r);
+                const s = emailState(r);
                 return (
                   <div
                     key={i}

@@ -1,40 +1,46 @@
 "use client";
 
+// The dashboard asks one question: what needs me today?
+//
+// It used to count things — active clients, campaigns, lessons in the
+// library. All true, and none of it answerable: nobody can act on
+// "12 campaigns". Meanwhile the things that actually cost this team
+// weeks were invisible, because each one is small and lives inside a
+// page nobody reopens: an address that bounced, a session nobody
+// dated, a campaign with nobody to send from.
+//
+// Every row here is something a person can fix, and goes to the place
+// they fix it.
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Megaphone, Mail, ArrowRight } from "lucide-react";
-import { PageHeader, StatCard, Chip, StatusChip, ProgressBar, GradientButton } from "@/components/ui";
-import { useData } from "@/lib/state";
+import { ArrowRight, Check } from "lucide-react";
+import { PageHeader, GradientButton } from "@/components/ui";
 import { EngineBanner } from "@/components/engine-banner";
-import {
-  dashboardStats,
-  upcomingSends,
-  findTemplate,
-  campaignCompletion,
-  seriesProgress,
-  triggerSession,
-  fmtDate,
-  fmtDateShort,
-  fmtWeekday,
-} from "@/lib/store";
+import { useData } from "@/lib/state";
+import { attentionCount, attentionItems } from "@/lib/attention";
+import { fmtDate } from "@/lib/store";
+import { TONE } from "@/lib/status-colors";
 
 export default function DashboardPage() {
-  const { clients, templates } = useData();
+  const { clients, templates, staff } = useData();
   const router = useRouter();
   const today = new Date();
-  const stats = dashboardStats(clients, templates, today);
-  const sends = upcomingSends(clients, templates, today).slice(0, 6);
-
-  const campaignRows = clients.flatMap((client) =>
-    client.campaigns.map((campaign) => ({ client, campaign }))
-  );
+  const groups = attentionItems(clients, templates, staff, today);
+  const { total, now } = attentionCount(groups);
 
   return (
     <>
       <EngineBanner />
       <PageHeader
-        title="Dashboard"
-        subtitle={`Today is ${fmtDate(today)} — here's what's moving.`}
+        title="What needs you"
+        subtitle={
+          total === 0
+            ? `${fmtDate(today)} — nothing is waiting.`
+            : `${fmtDate(today)} — ${total} thing${total === 1 ? "" : "s"} waiting${
+                now ? `, ${now} of them today` : ""
+              }.`
+        }
         action={
           <GradientButton onClick={() => router.push("/clients?new=1")}>
             + New client
@@ -42,145 +48,69 @@ export default function DashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatCard
-          accent
-          label="Active clients"
-          value={stats.activeClients}
-          hint={
-            stats.onboardingClients
-              ? `${stats.onboardingClients} more onboarding`
-              : "all live"
-          }
-        />
-        <StatCard
-          label="Campaigns"
-          value={stats.campaigns}
-          hint={`${stats.membersEnrolled} members enrolled`}
-        />
-        <StatCard label="Sends · next 30 days" value={stats.scheduledNext30} hint="emails scheduled" />
-        <StatCard
-          label="Module library"
-          value={stats.seriesInLibrary}
-          hint={`${stats.totalLessons} lessons in ${stats.seriesInLibrary} series`}
-        />
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-5">
-        {/* Upcoming sends */}
-        <section className="card p-5 xl:col-span-3">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-base font-bold">
-              <Mail size={17} className="text-mist" /> Upcoming sends
-            </h2>
-            <Link
-              href="/calendar"
-              data-tip="Open the full calendar"
-              className="flex items-center gap-1 text-xs font-semibold text-mist transition-colors hover:text-paper"
-            >
-              View all <ArrowRight size={13} />
-            </Link>
-          </div>
-          <ul className="divide-y divide-white/5">
-            {sends.map((s) => (
-              <li key={`${s.campaign.id}-${s.step.id}`} className="flex items-center gap-4 py-3">
-                <div className="w-14 shrink-0 text-center">
-                  <p className="text-[10px] font-bold uppercase text-mist">
-                    {fmtWeekday(s.date!)}
-                  </p>
-                  <p className="text-sm font-bold tabular-nums">{fmtDateShort(s.date!)}</p>
-                </div>
-                <div
-                  className="h-9 w-1 shrink-0 rounded-full"
-                  style={{ backgroundColor: s.series.color }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">
-                    {s.step.code} · {s.step.title}
-                  </p>
-                  <p className="truncate text-xs text-mist">
-                    {s.client.shortName} · {s.campaign.code} · {s.step.sendTime} ·
-                    Participant + Leader
-                  </p>
-                </div>
-                <Chip color={s.series.color}>{s.series.code}</Chip>
-              </li>
-            ))}
-            {sends.length === 0 && (
-              <li className="py-6 text-sm text-mist">No sends scheduled yet.</li>
-            )}
-          </ul>
+      {total === 0 ? (
+        <section className="card flex flex-col items-center gap-2 p-12 text-center">
+          <Check size={22} className="text-[#4ade80]" />
+          <p className="text-sm font-bold">Nothing needs you</p>
+          <p className="max-w-md text-xs leading-relaxed text-mist">
+            Every email went out, every address works, every session has a date
+            and every client is set up. This page fills itself when that stops
+            being true.
+          </p>
         </section>
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-2">
+          {groups.map((group) => (
+            <section key={group.kind} className="card overflow-hidden">
+              <div className="border-b border-white/8 px-5 py-3.5">
+                <h2 className="flex items-center gap-2 text-sm font-bold">
+                  {group.title}
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-mist">
+                    {group.items.length}
+                  </span>
+                </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-mist">
+                  {group.hint}
+                </p>
+              </div>
 
-        {/* Campaigns overview */}
-        <section className="card p-5 xl:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-base font-bold">
-              <Megaphone size={17} className="text-mist" /> Campaigns
-            </h2>
-            <Link
-              href="/campaigns"
-              data-tip="Open the full campaigns list"
-              className="flex items-center gap-1 text-xs font-semibold text-mist transition-colors hover:text-paper"
-            >
-              All campaigns <ArrowRight size={13} />
-            </Link>
-          </div>
-
-          <div className="flex flex-col gap-5">
-            {campaignRows.map(({ client, campaign }) => {
-              const completion = campaignCompletion(campaign, templates, today);
-              return (
-                <Link
-                  key={campaign.id}
-                  href={`/campaigns/${campaign.id}`}
-                  data-tip="Open this campaign"
-                  className="card card-hover block p-4"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-sm font-bold">{campaign.name}</p>
-                    <StatusChip status={client.status} />
-                  </div>
-                  <p className="mt-0.5 text-xs text-mist">
-                    {client.name} · {campaign.sessions.length} sessions ·{" "}
-                    {client.members.length} members
-                  </p>
-                  <div className="mt-3">
-                    <ProgressBar pct={completion.pct} />
-                    <p className="mt-1.5 text-[11px] text-mist">
-                      {completion.sent} of {completion.total} lessons sent
-                    </p>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {campaign.series.map((loaded) => {
-                      const series = findTemplate(templates, loaded.templateId);
-                      if (!series) return null;
-                      const p = seriesProgress(campaign, loaded, series, today);
-                      const bound = triggerSession(campaign, loaded);
-                      return (
-                        <Chip
-                          key={loaded.templateId}
-                          color={p.scheduled ? series.color : undefined}
-                        >
-                          {series.code}{" "}
-                          {p.scheduled
-                            ? `${p.sent}/${p.total}`
-                            : bound
-                              ? "· no date"
-                              : "· unbound"}
-                        </Chip>
-                      );
-                    })}
-                  </div>
-                </Link>
-              );
-            })}
-            {campaignRows.length === 0 && (
-              <p className="text-sm text-mist">No campaigns yet.</p>
-            )}
-          </div>
-        </section>
-      </div>
+              <ul className="divide-y divide-white/5">
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      href={item.href}
+                      className="flex items-start gap-3 px-5 py-3 transition-colors hover:bg-white/4"
+                    >
+                      {/* red cannot wait, amber should not wait long */}
+                      <span
+                        aria-hidden
+                        className="mt-1.5 size-2 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor:
+                            item.urgency === "now" ? TONE.red : TONE.yellow,
+                        }}
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-bold">
+                          {item.title}
+                        </span>
+                        <span className="block truncate text-[11px] text-mist">
+                          {item.where}
+                          {item.detail ? ` · ${item.detail}` : ""}
+                        </span>
+                      </span>
+                      <ArrowRight
+                        size={14}
+                        className="mt-0.5 shrink-0 text-mist"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
     </>
   );
 }

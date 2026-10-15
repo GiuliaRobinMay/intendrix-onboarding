@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowDown, ArrowLeft, ArrowUp, Clock, Trash2, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, Trash2, X, Zap } from "lucide-react";
 import { Chip, GradientButton, GhostButton } from "@/components/ui";
 import { EditableText, Field } from "@/components/editable";
 import { useData } from "@/lib/state";
+import { RecordNav } from "@/components/record-nav";
 import { useConfirm } from "@/components/confirm";
 import { seriesOfCampaignTemplate } from "@/lib/store";
 import type { SessionKey } from "@/lib/types";
@@ -121,12 +122,16 @@ export default function CampaignTemplateDetailPage() {
 
   return (
     <>
-      <Link
-        href="/settings/campaigns"
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mist transition-colors hover:text-paper"
-      >
-        <ArrowLeft size={13} /> All campaigns
-      </Link>
+      <RecordNav
+        backHref="/settings/campaigns"
+        backLabel="All campaigns"
+        items={campaignTemplates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          href: `/settings/campaigns/${t.id}`,
+        }))}
+        currentId={ct.id}
+      />
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">

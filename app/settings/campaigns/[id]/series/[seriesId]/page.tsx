@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import {
-  ArrowLeft,
   ArrowDown,
   ArrowUp,
   Clock,
@@ -22,6 +21,8 @@ import { Chip, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { TestSendButton } from "@/components/test-send";
 import { useData, type Action } from "@/lib/state";
+import { RecordNav } from "@/components/record-nav";
+import { seriesOfCampaignTemplate } from "@/lib/store";
 import { MERGE_FIELDS } from "@/lib/merge";
 import { useConfirm } from "@/components/confirm";
 import type { SeriesStep, SeriesTemplate, StepContent } from "@/lib/types";
@@ -399,12 +400,18 @@ export default function SeriesEditorPage() {
 
   return (
     <>
-      <Link
-        href={`/settings/campaigns/${ct.id}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mist transition-colors hover:text-paper"
-      >
-        <ArrowLeft size={13} /> {ct.name}
-      </Link>
+      {/* the arrows walk the series of this blueprint, in the order they
+          run — editing a trajectory end to end without going back up */}
+      <RecordNav
+        backHref={`/settings/campaigns/${ct.id}`}
+        backLabel={ct.name}
+        items={seriesOfCampaignTemplate(templates, ct.id).map((t) => ({
+          id: t.id,
+          name: `${t.code} · ${t.name}`,
+          href: `/settings/campaigns/${ct.id}/series/${t.id}`,
+        }))}
+        currentId={series.id}
+      />
 
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>

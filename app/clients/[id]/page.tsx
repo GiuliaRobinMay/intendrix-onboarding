@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   CalendarDays,
   CalendarRange,
   Copy,
@@ -30,6 +29,7 @@ import {
   GhostButton,
 } from "@/components/ui";
 import { EditableText } from "@/components/editable";
+import { RecordNav } from "@/components/record-nav";
 import { NewCampaignWizard } from "@/components/new-campaign-wizard";
 import { MembersSection } from "@/components/members-table";
 import { ClientFactsCard } from "@/components/client-facts";
@@ -248,6 +248,12 @@ export default function ClientDetailPage() {
   const client = clients.find((c) => c.id === id);
   const today = new Date();
 
+  // the arrows follow the order of the clients list — alphabetical —
+  // so reading down the column and stepping sideways agree
+  const clientOrder = [...clients]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((c) => ({ id: c.id, name: c.name, href: `/clients/${c.id}` }));
+
   const campaignsByStatus = new Map<CampaignStatus, Campaign[]>();
   for (const campaign of client?.campaigns ?? []) {
     const st = campaignStatus(campaign, templates, today);
@@ -275,12 +281,12 @@ export default function ClientDetailPage() {
 
   return (
     <>
-      <Link
-        href="/clients"
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mist transition-colors hover:text-paper"
-      >
-        <ArrowLeft size={13} /> All clients
-      </Link>
+      <RecordNav
+        backHref="/clients"
+        backLabel="All clients"
+        items={clientOrder}
+        currentId={client.id}
+      />
 
       <PageHeader
         title={

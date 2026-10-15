@@ -5,7 +5,6 @@ import { CAMPAIGN_TONE, wash } from "@/lib/status-colors";
 import { useState, type CSSProperties } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   CalendarDays,
   ChevronDown,
   CopyPlus,
@@ -33,6 +32,7 @@ import { MemberPicker } from "@/components/member-picker";
 import { DateField } from "@/components/date-field";
 import { RefusedNote } from "@/components/refused-note";
 import { SenderPicker } from "@/components/sender-picker";
+import { RecordNav } from "@/components/record-nav";
 import { isoDay } from "@/lib/dates";
 import { TIMEZONES } from "@/lib/timezones";
 import { daysBetweenIso, useData } from "@/lib/state";
@@ -177,6 +177,29 @@ export default function CampaignDetailPage() {
 
   const found = findCampaign(clients, id);
 
+  // the arrows follow the campaigns list: running first, then what lies
+  // ahead, then held, then finished — alphabetical by client inside each
+  const campaignOrder = (() => {
+    const all = clients.flatMap((c) =>
+      c.campaigns.map((cm) => ({
+        client: c,
+        campaign: cm,
+        status: campaignStatus(cm, templates, today),
+      }))
+    );
+    const ORDER: CampaignStatus[] = ["active", "upcoming", "paused", "closed"];
+    return ORDER.flatMap((st) =>
+      all
+        .filter((r) => r.status === st)
+        .sort((a, b) => a.client.name.localeCompare(b.client.name))
+        .map((r) => ({
+          id: r.campaign.id,
+          name: `${r.client.shortName} · ${r.campaign.name}`,
+          href: `/campaigns/${r.campaign.id}`,
+        }))
+    );
+  })();
+
   if (!found) {
     return (
       <div className="card p-10 text-center text-sm text-mist">
@@ -319,12 +342,12 @@ export default function CampaignDetailPage() {
 
   return (
     <>
-      <Link
-        href="/campaigns"
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-mist transition-colors hover:text-paper"
-      >
-        <ArrowLeft size={13} /> All campaigns
-      </Link>
+      <RecordNav
+        backHref="/campaigns"
+        backLabel="All campaigns"
+        items={campaignOrder}
+        currentId={campaign.id}
+      />
 
       {/* Header: title, client, owners */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
