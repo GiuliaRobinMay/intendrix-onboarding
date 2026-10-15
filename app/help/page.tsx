@@ -12,7 +12,8 @@
 // reading one never costs you the list you found it in.
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, HelpCircle, Send, Sparkles } from "lucide-react";
+import { Bot, ChevronRight, HelpCircle, Send } from "lucide-react";
+import { Answer } from "@/components/answer";
 import { PageHeader } from "@/components/ui";
 import { authHeaders } from "@/lib/supabase-browser";
 import { HELP_CATEGORIES, HELP_TOPICS, type HelpTopic } from "@/lib/help-guide";
@@ -57,6 +58,20 @@ function matchTopics(question: string): HelpTopic[] {
     .map((x) => x.t);
 }
 
+/** The dot that marks an answer as the assistant's — the same face
+ *  every time, so the eye finds the answers without reading the
+ *  bubbles. */
+function Avatar() {
+  return (
+    <span
+      aria-hidden
+      className="brand-gradient mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full"
+    >
+      <Bot size={15} strokeWidth={2.25} />
+    </span>
+  );
+}
+
 /** Three more questions from the same group — what you probably wanted
  *  next, rather than what you happened to click. */
 function relatedTo(topic: HelpTopic): HelpTopic[] {
@@ -77,7 +92,10 @@ export default function HelpPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [turns, busy]);
 
-  const ask = async (question: string) => {
+  // `topic` is set when a question was picked from the list: the
+  // assistant still answers it — laid out as steps — and the guide's own
+  // paragraph is the fallback when the assistant is not there
+  const ask = async (question: string, topic?: HelpTopic) => {
     if (!question.trim() || busy) return;
     setDraft("");
     setRelated([]);
@@ -93,6 +111,10 @@ export default function HelpPage() {
       const out = await res.json();
       if (out.ok) {
         setTurns((t) => [...t, { role: "assistant", content: out.answer }]);
+        if (topic) setRelated(relatedTo(topic));
+      } else if (topic) {
+        setTurns((t) => [...t, { role: "assistant", local: true, content: topic.body }]);
+        setRelated(relatedTo(topic));
       } else if (out.reason === "assistant not configured") {
         const hits = matchTopics(question);
         setTurns((t) => [
@@ -119,21 +141,17 @@ export default function HelpPage() {
     } catch {
       setTurns((t) => [
         ...t,
-        { role: "assistant", local: true, content: "Could not reach the server — try again." },
+        topic
+          ? { role: "assistant", local: true, content: topic.body }
+          : { role: "assistant", local: true, content: "Could not reach the server — try again." },
       ]);
+      if (topic) setRelated(relatedTo(topic));
     } finally {
       setBusy(false);
     }
   };
 
-  const showTopic = (topic: HelpTopic) => {
-    setTurns((t) => [
-      ...t,
-      { role: "user", content: topic.title },
-      { role: "assistant", content: topic.body, local: true },
-    ]);
-    setRelated(relatedTo(topic));
-  };
+  const showTopic = (topic: HelpTopic) => ask(topic.title, topic);
 
   return (
     <>
@@ -184,23 +202,24 @@ export default function HelpPage() {
                       {t.content}
                     </p>
                   ) : (
-                    <div
-                      key={i}
-                      className="mr-8 self-start rounded-lg rounded-bl-sm bg-navy/60 px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap text-paper/90"
-                    >
-                      {t.content}
-                      {t.local && (
-                        <span className="mt-1.5 block text-[10px] text-mist/60">
-                          from the built-in guide
-                        </span>
-                      )}
+                    <div key={i} className="mr-8 flex items-start gap-2.5 self-start">
+                      <Avatar />
+                      <div className="min-w-0 rounded-lg rounded-tl-sm bg-navy/60 px-4 py-3 text-xs text-paper/90">
+                        <Answer text={t.content} />
+                        {t.local && (
+                          <span className="mt-2 block text-[10px] text-mist/60">
+                            from the built-in guide
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )
                 )}
                 {busy && (
-                  <p className="flex items-center gap-1.5 text-xs text-mist">
-                    <Sparkles size={12} /> Thinking…
-                  </p>
+                  <div className="flex items-center gap-2.5 self-start">
+                    <Avatar />
+                    <p className="text-xs text-mist">Thinking…</p>
+                  </div>
                 )}
 
                 {related.length > 0 && !busy && (
