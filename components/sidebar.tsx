@@ -38,9 +38,9 @@ const groups: Array<{
   {
     label: "Work",
     links: [
+      { href: "/community", label: "Intendrix Hub", icon: Globe, tip: "The starting point: every client space in the community, its links, and who of their people is inside" },
       { href: "/clients", label: "Clients", icon: Users, tip: "All client organizations" },
       { href: "/campaigns", label: "Campaigns", icon: Megaphone, tip: "Every campaign across all clients" },
-      { href: "/community", label: "Community", icon: Globe, tip: "Each client's space, plan and invitation link, and who of their people is inside" },
     ],
   },
   {

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { RecordNav } from "@/components/record-nav";
+import { SetupChecklist } from "@/components/setup-checklist";
 import { NewCampaignWizard } from "@/components/new-campaign-wizard";
 import { MembersSection } from "@/components/members-table";
 import { ClientFactsCard } from "@/components/client-facts";
@@ -361,6 +362,7 @@ export default function ClientDetailPage() {
               <option value="active">Active</option>
               <option value="archived">Archived</option>
             </select>
+            <SetupChecklist client={client} />
             <GradientButton onClick={() => setAddingCampaign(true)}>
               + New campaign
             </GradientButton>

@@ -90,6 +90,13 @@ update campaigns c
     cost: "The plan link cannot be saved — the Community tab shows it red for every client, whatever you paste.",
     sql: `alter table clients add column if not exists plan_url text;`,
   },
+  {
+    migration: "0023_client_website",
+    table: "clients",
+    column: "website",
+    cost: "The client's website cannot be saved, and the set-up checklist keeps saying it is missing.",
+    sql: `alter table clients add column if not exists website text;`,
+  },
 ];
 
 export interface SchemaReport {

@@ -139,6 +139,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         location: "location",
         state: "state",
         city: "city",
+        website: "website",
         sector: "sector",
         status: "status",
         phoenixLeaderId: "phoenix_leader_id",

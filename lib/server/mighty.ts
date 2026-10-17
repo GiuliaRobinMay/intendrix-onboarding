@@ -55,6 +55,15 @@ export interface CommunityMember {
   host: boolean;
 }
 
+export interface CommunitySpace {
+  id: string;
+  name: string;
+  url: string;
+  /** the sidebar group it sits in — TEAM CONNECT holds the client spaces */
+  collection: string | null;
+  collectionId: string | null;
+}
+
 export interface CommunityPlan {
   id: string;
   name: string;
@@ -128,6 +137,32 @@ function isHost(row: any): boolean {
   for (const k of ["is_host", "isHost", "host", "is_admin", "isAdmin"])
     if (row?.[k] === true) return true;
   return false;
+}
+
+/** One space row, whatever Mighty calls its columns. */
+function toSpace(row: any): CommunitySpace | null {
+  const id = row?.id ?? row?.resource_id ?? row?.resourceId ?? row?.space_id;
+  const name = firstString(row, ["name", "title"]);
+  if (id === undefined || id === null || !name) return null;
+  const col =
+    row?.collection_id ??
+    row?.collection?.id ??
+    row?.spaces_collection_id ??
+    row?.spaces_collection?.id ??
+    row?.spacesCollection?.id ??
+    null;
+  return {
+    id: String(id),
+    name,
+    url: firstString(row, ["url", "web_url", "webUrl", "link"]) ?? `${SITE}/spaces/${id}`,
+    collection: firstString(row, [
+      "collection.name",
+      "spaces_collection.name",
+      "spacesCollection.name",
+      "collection_name",
+    ]),
+    collectionId: col === null || col === undefined ? null : String(col),
+  };
 }
 
 /** One plan row, whatever Mighty calls its columns. */
@@ -296,6 +331,18 @@ export async function fetchPlans(): Promise<
   return out.ok
     ? { ok: true, plans: out.rows }
     : { ok: false, reason: `could not read the plans — ${out.reason}` };
+}
+
+/** Every space in the network, with the group it sits in. */
+export async function fetchSpaces(): Promise<
+  { ok: true; spaces: CommunitySpace[] } | { ok: false; reason: string }
+> {
+  const token = tokenOr();
+  if (!token) return { ok: false, reason: "no Mighty Networks token yet" };
+  const out = await readPages(`/networks/${NETWORK}/spaces`, token, toSpace, (sp) => Boolean(sp.name));
+  return out.ok
+    ? { ok: true, spaces: out.rows }
+    : { ok: false, reason: `could not read the spaces — ${out.reason}` };
 }
 
 /** Everyone who came in through one plan: a client's people, exactly,

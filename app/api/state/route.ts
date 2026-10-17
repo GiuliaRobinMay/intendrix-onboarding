@@ -85,12 +85,18 @@ export async function GET(req: Request) {
                   else 'none'
                 end as access
            from staff s order by s.created_at, s.id`),
-      // plan_url (0022) and state/city (0014) arrive by hand-run
-      // migration; each older shape still answers
-      q(`select id, name, short_name, location, state, city, sector, status,
+      // website (0023), plan_url (0022) and state/city (0014) arrive by
+      // hand-run migration; each older shape still answers
+      q(`select id, name, short_name, location, state, city, website, sector, status,
                 phoenix_leader_id, phoenix_coach_id, project_manager_id,
                 space_url, plan_url, invite_url
            from clients order by created_at, id`)
+        .catch(() =>
+          q(`select id, name, short_name, location, state, city, sector, status,
+                    phoenix_leader_id, phoenix_coach_id, project_manager_id,
+                    space_url, plan_url, invite_url
+               from clients order by created_at, id`)
+        )
         .catch(() =>
           q(`select id, name, short_name, location, state, city, sector, status,
                     phoenix_leader_id, phoenix_coach_id, project_manager_id,
@@ -445,6 +451,7 @@ export async function GET(req: Request) {
       location: c.location,
       ...(c.state ? { state: c.state } : {}),
       ...(c.city ? { city: c.city } : {}),
+      ...(c.website ? { website: c.website } : {}),
       sector: c.sector,
       status: c.status,
       ...(c.phoenix_leader_id ? { phoenixLeaderId: c.phoenix_leader_id } : {}),

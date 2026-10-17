@@ -14,6 +14,7 @@
 // name when its link is not filled in yet, and offered to save.
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Check,
@@ -22,6 +23,7 @@ import {
   Crown,
   ExternalLink,
   Link2,
+  Plus,
   RefreshCw,
   Search,
   TriangleAlert,
@@ -40,9 +42,18 @@ interface ClientLive {
   extra: Array<{ name: string | null; email: string; joinedAt: string | null }>;
 }
 
+interface NewSpace {
+  id: string;
+  name: string;
+  url: string;
+  plan: { id: string; name: string; url: string } | null;
+}
+
 interface Live {
   at: string;
   clients: Record<string, ClientLive>;
+  spaces: NewSpace[];
+  spacesReason?: string;
 }
 
 type LinkKey = "spaceUrl" | "planUrl" | "inviteUrl";
@@ -78,6 +89,7 @@ const initials = (name: string) =>
 
 export default function CommunityPage() {
   const { clients, dispatch } = useData();
+  const router = useRouter();
   const [live, setLive] = useState<Live | null>(null);
   const [reason, setReason] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,18 +157,26 @@ export default function CommunityPage() {
   return (
     <>
       <PageHeader
-        title="Community"
-        subtitle="Each client's space, plan and invitation link — and who of their people is inside."
+        title="Intendrix Hub"
+        subtitle="Every client space in the community, its links, and who of their people is inside. New clients start here."
         action={
-          <GhostButton
-            onClick={check}
-            tip="Read the community again and mark everyone it has as joined"
-          >
-            <span className="flex items-center gap-1.5">
-              <RefreshCw size={13} className={checking ? "animate-spin" : ""} />
-              {checking ? "Checking…" : "Check who joined"}
-            </span>
-          </GhostButton>
+          <span className="flex items-center gap-2">
+            <GhostButton onClick={load} tip="Read the community again — new spaces, new members">
+              <span className="flex items-center gap-1.5">
+                <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+                Refresh
+              </span>
+            </GhostButton>
+            <GhostButton
+              onClick={check}
+              tip="Read the community again and mark everyone it has as joined"
+            >
+              <span className="flex items-center gap-1.5">
+                <Check size={13} />
+                {checking ? "Checking…" : "Check who joined"}
+              </span>
+            </GhostButton>
+          </span>
         }
       />
 
@@ -189,6 +209,81 @@ export default function CommunityPage() {
           )}
         </p>
       </div>
+
+      {live && (live.spaces.length > 0 || live.spacesReason) && (
+        <section className="card mb-4 p-4">
+          <h2 className="flex items-center gap-2 text-sm font-bold">
+            <Plus size={14} className="text-[#4ade80]" />
+            In the community, not here yet
+            {live.spaces.length > 0 && (
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-mist">
+                {live.spaces.length}
+              </span>
+            )}
+          </h2>
+          {live.spacesReason ? (
+            <p className="mt-1 text-[11px] text-mist">{live.spacesReason}</p>
+          ) : (
+            <>
+              <p className="mt-1 text-[11px] text-mist">
+                Client spaces under TEAM CONNECT that no client here points at. Create the
+                client from the space and its links come along.
+              </p>
+              <ul className="mt-3 divide-y divide-white/5">
+                {live.spaces.map((sp) => (
+                  <li key={sp.id} className="flex flex-wrap items-center gap-3 py-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{sp.name}</span>
+                      <span className="block truncate text-[11px] text-mist">
+                        {sp.plan ? `plan: ${sp.plan.name}` : "no plan with this name yet"}
+                      </span>
+                    </span>
+                    <a
+                      href={sp.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      data-tip="Open the space"
+                      className="flex items-center gap-1 text-[11px] font-semibold text-[#6ea8ff] hover:underline"
+                    >
+                      <Link2 size={13} /> space
+                    </a>
+                    {sp.plan && (
+                      <a
+                        href={sp.plan.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        data-tip="Open the plan"
+                        className="flex items-center gap-1 text-[11px] font-semibold text-[#6ea8ff] hover:underline"
+                      >
+                        <Link2 size={13} /> plan
+                      </a>
+                    )}
+                    <button
+                      data-tip="Create this client here, with the space and plan links filled in — the checklist on the client page says what comes next"
+                      onClick={() => {
+                        const id = crypto.randomUUID();
+                        dispatch({ type: "addClient", id, name: sp.name, location: "", sector: "" });
+                        dispatch({
+                          type: "updateClient",
+                          clientId: id,
+                          patch: {
+                            spaceUrl: sp.url,
+                            ...(sp.plan ? { planUrl: sp.plan.url } : {}),
+                          },
+                        });
+                        router.push(`/clients/${id}`);
+                      }}
+                      className="brand-gradient cursor-pointer rounded-md px-3 py-1.5 text-[12px] font-semibold transition-opacity hover:opacity-90"
+                    >
+                      + Create client
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       <div className="card overflow-hidden">
         <table className="w-full text-left text-xs">

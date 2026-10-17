@@ -30,7 +30,7 @@ export function ClientFactsCard({
   return (
     <section className="card p-4">
       <h2 className="mb-3 text-base font-bold">
-        Location, space, plan and invitation link
+        Location, website, space, plan and invitation link
       </h2>
 
       {/* one under the other: four short facts read faster in a column
@@ -65,6 +65,27 @@ export function ClientFactsCard({
             onCommit={(v) => patch({ city: v.trim() })}
             className="text-xs"
           />
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <span className={label}>Website</span>
+          <EditableText
+            value={client.website ?? ""}
+            placeholder="e.g. www.example.org"
+            onCommit={(v) => patch({ website: v.trim() })}
+            className="text-xs"
+          />
+          {client.website && (
+            <a
+              data-tip="Open the client's website"
+              href={/^https?:\/\//i.test(client.website) ? client.website : `https://${client.website}`}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 text-mist hover:text-paper"
+            >
+              <ExternalLink size={13} />
+            </a>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5">

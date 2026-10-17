@@ -11,7 +11,8 @@
 // The answer stays on the left and the questions stay on the right, so
 // reading one never costs you the list you found it in.
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Bot, ChevronRight, HelpCircle, Send } from "lucide-react";
 import { Answer } from "@/components/answer";
 import { PageHeader } from "@/components/ui";
@@ -81,6 +82,15 @@ function relatedTo(topic: HelpTopic): HelpTopic[] {
 }
 
 export default function HelpPage() {
+  return (
+    <Suspense fallback={null}>
+      <HelpContent />
+    </Suspense>
+  );
+}
+
+function HelpContent() {
+  const params = useSearchParams();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [related, setRelated] = useState<HelpTopic[]>([]);
   const [draft, setDraft] = useState("");
@@ -152,6 +162,17 @@ export default function HelpPage() {
   };
 
   const showTopic = (topic: HelpTopic) => ask(topic.title, topic);
+
+  // arrived with a question in the address: ask it, once
+  const asked = useRef(false);
+  useEffect(() => {
+    const q = params.get("q");
+    if (q && !asked.current) {
+      asked.current = true;
+      ask(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

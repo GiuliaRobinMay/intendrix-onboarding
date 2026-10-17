@@ -33,6 +33,7 @@ import { DateField } from "@/components/date-field";
 import { RefusedNote } from "@/components/refused-note";
 import { SenderPicker } from "@/components/sender-picker";
 import { RecordNav } from "@/components/record-nav";
+import { SetupChecklist } from "@/components/setup-checklist";
 import { isoDay } from "@/lib/dates";
 import { TIMEZONES } from "@/lib/timezones";
 import { daysBetweenIso, useData } from "@/lib/state";
@@ -355,6 +356,7 @@ export default function CampaignDetailPage() {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{campaign.name}</h1>
             <Chip color="#a3a4f0">{campaign.code}</Chip>
+            <SetupChecklist client={client} campaignId={campaign.id} />
             <button
               data-tip="Make the same programme again for the next group — same series, same people responsible, same wording. Dates are left empty, so nothing can go out until you fill them in."
               onClick={async () => {

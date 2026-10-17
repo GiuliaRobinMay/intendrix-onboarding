@@ -276,6 +276,8 @@ export interface Client {
   /** two-letter US state code — drives new campaigns' default timezone */
   state?: string;
   city?: string;
+  /** the organisation's website */
+  website?: string;
   sector: string;
   status: ClientStatus;
   /** Phoenix staff responsible for this organization. Campaigns can

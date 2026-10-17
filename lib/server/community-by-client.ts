@@ -21,9 +21,11 @@ import type { Pool } from "pg";
 import {
   fetchPlanMembers,
   fetchPlans,
+  fetchSpaces,
   mightyConfigured,
   type CommunityMember,
   type CommunityPlan,
+  type CommunitySpace,
 } from "@/lib/server/mighty";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -37,8 +39,23 @@ export interface ClientCommunity {
   extra: Array<{ name: string | null; email: string; joinedAt: string | null }>;
 }
 
+/** A client space in the community that no client here points at yet. */
+export interface NewSpace {
+  id: string;
+  name: string;
+  url: string;
+  plan: { id: string; name: string; url: string } | null;
+}
+
 export type CommunityByClient =
-  | { ok: true; at: string; clients: Record<string, ClientCommunity> }
+  | {
+      ok: true;
+      at: string;
+      clients: Record<string, ClientCommunity>;
+      spaces: NewSpace[];
+      /** why the spaces could not be told apart, when they could not */
+      spacesReason?: string;
+    }
   | { ok: false; reason: string };
 
 const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
@@ -82,11 +99,14 @@ export async function communityByClient(pool: Pool): Promise<CommunityByClient> 
   if (!plansOut.ok) return { ok: false, reason: plansOut.reason };
   const plans = plansOut.plans;
 
-  const [{ rows: clients }, { rows: members }] = await Promise.all([
+  const [{ rows: clients }, { rows: members }, spacesOut] = await Promise.all([
     pool
-      .query(`select id, name, short_name, plan_url from clients`)
-      .catch(() => pool.query(`select id, name, short_name, null as plan_url from clients`)),
+      .query(`select id, name, short_name, plan_url, space_url from clients`)
+      .catch(() =>
+        pool.query(`select id, name, short_name, null as plan_url, space_url from clients`)
+      ),
     pool.query(`select id, client_id, name, email from members`),
+    fetchSpaces(),
   ]);
 
   // the Phoenix team comes in through its own plan; whoever is on it is
@@ -147,5 +167,53 @@ export async function communityByClient(pool: Pool): Promise<CommunityByClient> 
     }
   }
 
-  return { ok: true, at: new Date().toISOString(), clients: out };
+  // ——— client spaces in the community that are not here yet ————————
+  // The client spaces live together under TEAM CONNECT. When the API
+  // names the group, that is the test; when it only numbers it, the
+  // group that holds the spaces of the clients already here is the one.
+  const spaceIdOf = (url: string | null) => url?.match(/\/spaces\/(\d+)/)?.[1] ?? null;
+  const knownIds = new Set(
+    (clients as any[]).map((c) => spaceIdOf(c.space_url)).filter(Boolean) as string[]
+  );
+  const claimed = (sp: CommunitySpace) =>
+    knownIds.has(sp.id) ||
+    (clients as any[]).some((c) => {
+      const cn = squash(c.name);
+      const sn = squash(sp.name);
+      const short = squash(c.short_name ?? "");
+      return (cn && cn === sn) || (short.length > 3 && sn.startsWith(short)) || (cn.length > 5 && (sn.startsWith(cn) || cn.startsWith(sn)));
+    });
+
+  let newSpaces: NewSpace[] = [];
+  let spacesReason: string | undefined;
+  if (!spacesOut.ok) spacesReason = spacesOut.reason;
+  else {
+    let team = spacesOut.spaces.filter((sp) => /team\s*connect/i.test(sp.collection ?? ""));
+    if (!team.length) {
+      const groups = new Set(
+        spacesOut.spaces
+          .filter((sp) => knownIds.has(sp.id) && sp.collectionId)
+          .map((sp) => sp.collectionId as string)
+      );
+      if (groups.size)
+        team = spacesOut.spaces.filter((sp) => sp.collectionId && groups.has(sp.collectionId));
+    }
+    if (!team.length)
+      spacesReason =
+        "could not tell the client spaces apart — the spaces list names no TEAM CONNECT group and no client here has a space link yet";
+    newSpaces = team
+      .filter((sp) => !claimed(sp))
+      .map((sp) => {
+        const found = planFor({ name: sp.name, short_name: null, plan_url: null }, plans);
+        return {
+          id: sp.id,
+          name: sp.name,
+          url: sp.url,
+          plan: found ? { id: found.plan.id, name: found.plan.name, url: found.plan.url } : null,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  return { ok: true, at: new Date().toISOString(), clients: out, spaces: newSpaces, spacesReason };
 }
