@@ -117,6 +117,28 @@ alter table lesson_assets enable row level security;
 create policy lesson_assets_all on lesson_assets for all to authenticated
   using (true) with check (true);`,
   },
+  {
+    migration: "0025_lesson_code_and_images",
+    table: "lesson_assets",
+    column: "code",
+    cost: "A lesson's code (S1 M1) cannot be saved on the Lessons tab.",
+    sql: `alter table lesson_assets add column if not exists code text;`,
+  },
+  {
+    migration: "0025_lesson_code_and_images",
+    table: "lesson_images",
+    column: null,
+    cost: "Lesson images cannot be uploaded or copied in — the Lessons tab can only link to one elsewhere.",
+    sql: `create table if not exists lesson_images (
+  coursework_id text primary key,
+  content_type  text not null,
+  bytes         bytea not null,
+  updated_at    timestamptz not null default now()
+);
+alter table lesson_images enable row level security;
+create policy lesson_images_all on lesson_images for all to authenticated
+  using (true) with check (true);`,
+  },
 ];
 
 export interface SchemaReport {

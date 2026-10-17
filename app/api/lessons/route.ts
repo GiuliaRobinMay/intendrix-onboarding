@@ -27,11 +27,29 @@ export const maxDuration = 60;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface LessonAssets {
+  /** S1 M1 — printed on the lesson's PDF */
+  code: string | null;
   about: string;
   imageUrl: string | null;
   pdfUrl: string | null;
   videoUrl: string | null;
   podcastUrl: string | null;
+}
+
+// Mighty's lesson body names things the team would otherwise retype:
+// the PDF it embeds carries the code in its file name (S1_M1_…pdf),
+// and an image in the body has an address. Read, offered as a start,
+// never written down by itself.
+function suggest(description: string | null) {
+  const d = description ?? "";
+  const code = d.match(/\b(S\d{1,2})[\s_-]*(M\d{1,2})\b/i);
+  const pdf = d.match(/https?:\/\/[^\s"'<>]+\.pdf(?:\?[^\s"'<>]*)?/i);
+  const img = d.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return {
+    code: code ? `${code[1].toUpperCase()} ${code[2].toUpperCase()}` : null,
+    pdfUrl: pdf ? pdf[0] : null,
+    imageUrl: img ? img[1] : null,
+  };
 }
 
 async function admin(req: Request) {
@@ -96,10 +114,14 @@ export async function GET(req: Request) {
   if (!spacesOut.ok) return NextResponse.json({ ok: false, reason: spacesOut.reason });
 
   // the lesson spaces sit together under PREP LESSONS; when the API
-  // names no group, every space that holds lessons counts
+  // names no group, every space that holds lessons counts — minus the
+  // welcome, the member guide, the templates and the testers
   let lessonSpaces = spacesOut.spaces.filter((s) => /lesson/i.test(s.collection ?? ""));
   const named = lessonSpaces.length > 0;
-  if (!named) lessonSpaces = spacesOut.spaces;
+  if (!named)
+    lessonSpaces = spacesOut.spaces.filter(
+      (s) => !/welcome|member guide|template|tester|host hub|bombbomb/i.test(s.name)
+    );
 
   const { rows: assetRows } = await pool
     .query(`select * from lesson_assets`)
@@ -108,6 +130,7 @@ export async function GET(req: Request) {
     assetRows.map((r: any) => [
       String(r.coursework_id),
       {
+        code: r.code ?? null,
         about: r.about ?? "",
         imageUrl: r.image_url ?? null,
         pdfUrl: r.pdf_url ?? null,
@@ -118,25 +141,38 @@ export async function GET(req: Request) {
   );
 
   const spaces = await Promise.all(
-    lessonSpaces.map(async (sp) => {
+    lessonSpaces.map(async (sp, spaceIndex) => {
       const out = await fetchCourseworks(sp.id);
       if (!out.ok) return { id: sp.id, name: sp.name, url: sp.url, reason: out.reason, modules: [] };
+      let lessonIndex = 0;
       const modules = tree(out.items).map((m) => ({
         ...m,
-        lessons: m.lessons.map((l) => ({
-          id: l.id,
-          title: l.title,
-          url: l.url,
-          status: l.status,
-          type: l.type,
-          assets: assets.get(l.id) ?? {
-            about: "",
-            imageUrl: null,
-            pdfUrl: null,
-            videoUrl: null,
-            podcastUrl: null,
-          },
-        })),
+        lessons: m.lessons.map((l) => {
+          lessonIndex++;
+          const saved = assets.get(l.id);
+          const hint = suggest(l.description);
+          return {
+            id: l.id,
+            title: l.title,
+            url: l.url,
+            status: l.status,
+            type: l.type,
+            assets: saved ?? {
+              code: null,
+              about: "",
+              imageUrl: null,
+              pdfUrl: null,
+              videoUrl: null,
+              podcastUrl: null,
+            },
+            // what Mighty's own text suggests, for the fields still empty
+            suggested: {
+              code: hint.code ?? `S${spaceIndex + 1} M${lessonIndex}`,
+              pdfUrl: hint.pdfUrl,
+              imageUrl: hint.imageUrl,
+            },
+          };
+        }),
       }));
       return { id: sp.id, name: sp.name, url: sp.url, modules };
     })
@@ -169,6 +205,7 @@ export async function PATCH(req: Request) {
 
   const str = (v: unknown) => (typeof v === "string" ? v.trim() : null);
   const fields: Record<string, string | null> = {};
+  if ("code" in body) fields.code = str(body.code) || null;
   if ("about" in body) fields.about = str(body.about) ?? "";
   if ("imageUrl" in body) fields.image_url = str(body.imageUrl) || null;
   if ("pdfUrl" in body) fields.pdf_url = str(body.pdfUrl) || null;
