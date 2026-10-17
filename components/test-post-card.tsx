@@ -67,8 +67,9 @@ export function TestPostCard() {
         Test post to Mighty Networks
       </h2>
       <p className="mt-1 text-xs leading-relaxed text-mist">
-        Makes one article in <strong>App Testers — Do Not Delete</strong> with an image at the
-        top. Open it there and check two things: is the image showing, and did the testers get
+        Makes one article in <strong>App Testers — Do Not Delete</strong>. The API refuses
+        images and links in a post, so this one is plain text with a bare web address in it.
+        Open it there and check two things: is that address clickable, and did the testers get
         a notification. Then delete it here.
       </p>
 
@@ -101,9 +102,7 @@ export function TestPostCard() {
       {made && (
         <p className="mt-3 text-[11px] leading-relaxed text-mist">
           Post {made.id} in space {made.space}.{" "}
-          {made.images.length
-            ? `Mighty reports ${made.images.length} image${made.images.length === 1 ? "" : "s"} on it — the picture came through.`
-            : "Mighty reports no image on it — look at the post itself before deciding; the list may simply be empty in the answer."}
+          Open it and look at the address line.
         </p>
       )}
       {note && <p className="mt-3 text-[11px] font-semibold text-[#ff7a55]">{note}</p>}

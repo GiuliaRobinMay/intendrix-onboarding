@@ -9,7 +9,6 @@ import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
 import { createPost, deletePost, mightyConfigured } from "@/lib/server/mighty";
-import { SPACE_BANNERS } from "@/lib/space-banners";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -38,16 +37,19 @@ export async function POST(req: Request) {
   const refused = await gate(req);
   if (refused) return refused;
 
-  const banner = SPACE_BANNERS["23014040"];
+  // The API refuses images and links in a post's body — only bold and
+  // italic get through. What is left to learn: whether a bare address
+  // in plain text is kept, and whether Mighty makes it clickable.
   const when = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
   const out = await createPost({
     spaceId: TEST_SPACE,
     title: `Intendrix test post — ${when}`,
     postType: "article",
     description:
-      `<p><img src="${banner}" alt="Start Your Journey" /></p>` +
-      `<p>This is a test post made by the Intendrix app to see two things: whether an image at the top of a post comes through, and whether making a post this way notifies the members of the space.</p>` +
-      `<p>It will be deleted from the app. Nothing to do.</p>`,
+      `<p><strong>S1 M1 · Start living by design, not default.</strong></p>` +
+      `<p>This is a test post made by the Intendrix app. It checks whether a plain web address below shows up as something you can click, and whether making a post this way notifies the members of the space.</p>` +
+      `<p>https://intendrix.ai/spaces/23014040</p>` +
+      `<p><em>It will be deleted from the app. Nothing to do.</em></p>`,
   });
   if (!out.ok) return NextResponse.json({ ok: false, reason: out.reason });
   return NextResponse.json({
