@@ -157,11 +157,11 @@ export default function CommunityPage() {
   return (
     <>
       <PageHeader
-        title="Intendrix Hub"
-        subtitle="Every client space in the community, its links, and who of their people is inside. New clients start here."
+        title="Client Intendrix Hub | Mighty Networks"
+        subtitle="Everything from Mighty Networks: every client space, its links, and who of their people is inside. New clients start here."
         action={
           <span className="flex items-center gap-2">
-            <GhostButton onClick={load} tip="Read the community again — new spaces, new members">
+            <GhostButton onClick={load} tip="Read Mighty Networks again — new spaces, new members">
               <span className="flex items-center gap-1.5">
                 <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
                 Refresh
@@ -169,7 +169,7 @@ export default function CommunityPage() {
             </GhostButton>
             <GhostButton
               onClick={check}
-              tip="Read the community again and mark everyone it has as joined"
+              tip="Read Mighty Networks again and mark everyone it has as joined"
             >
               <span className="flex items-center gap-1.5">
                 <Check size={13} />
@@ -195,11 +195,11 @@ export default function CommunityPage() {
         </div>
         <p className="ml-auto flex items-center gap-1.5 text-xs text-mist">
           {loading ? (
-            "Reading the community…"
+            "Reading Mighty Networks…"
           ) : live ? (
             <>
               <Check size={13} className="text-[#4ade80]" />
-              Read from the community just now
+              Read from Mighty Networks just now
             </>
           ) : (
             <>
@@ -214,7 +214,7 @@ export default function CommunityPage() {
         <section className="card mb-4 p-4">
           <h2 className="flex items-center gap-2 text-sm font-bold">
             <Plus size={14} className="text-[#4ade80]" />
-            In the community, not here yet
+            In Mighty Networks, not here yet
             {live.spaces.length > 0 && (
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-mist">
                 {live.spaces.length}
