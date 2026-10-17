@@ -97,6 +97,26 @@ update campaigns c
     cost: "The client's website cannot be saved, and the set-up checklist keeps saying it is missing.",
     sql: `alter table clients add column if not exists website text;`,
   },
+  {
+    migration: "0024_lesson_assets",
+    table: "lesson_assets",
+    column: null,
+    cost: "The Lessons tab in the Hub cannot save what a lesson is about or its image and links.",
+    sql: `create table if not exists lesson_assets (
+  coursework_id text primary key,
+  space_id      text not null,
+  about         text not null default '',
+  image_url     text,
+  pdf_url       text,
+  video_url     text,
+  podcast_url   text,
+  updated_at    timestamptz not null default now()
+);
+create index if not exists lesson_assets_space_idx on lesson_assets (space_id);
+alter table lesson_assets enable row level security;
+create policy lesson_assets_all on lesson_assets for all to authenticated
+  using (true) with check (true);`,
+  },
 ];
 
 export interface SchemaReport {

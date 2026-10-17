@@ -13,6 +13,7 @@ import {
 } from "@/components/row-editors";
 import { useData } from "@/lib/state";
 import { campaignStatus } from "@/lib/store";
+import { CLIENT_TONE } from "@/lib/status-colors";
 
 function ClientsContent() {
   const { clients, templates, staff, dispatch } = useData();
@@ -137,7 +138,27 @@ function ClientsContent() {
         </div>
 
         <ul className="divide-y divide-white/5">
-          {filtered.map(({ client, activeCount }) => (
+          {/* running clients first, then the ones being set up, then the
+              finished — one block each, so the list reads in three glances */}
+          {(["active", "onboarding", "archived"] as const).flatMap((st) => {
+            const inGroup = filtered.filter((r) => r.client.status === st);
+            if (!inGroup.length) return [];
+            return [
+              <li
+                key={`group-${st}`}
+                className="flex items-center gap-2 bg-white/3 px-5 py-2 text-[11px] font-bold tracking-wider text-mist uppercase"
+              >
+                <span
+                  aria-hidden
+                  className="size-2 rounded-full"
+                  style={{ backgroundColor: CLIENT_TONE[st] }}
+                />
+                {st === "active" ? "Active" : st === "onboarding" ? "Onboarding" : "Archived"}
+                <span className="rounded-full bg-white/10 px-1.5 text-[10px] font-bold normal-case tracking-normal">
+                  {inGroup.length}
+                </span>
+              </li>,
+              ...inGroup.map(({ client, activeCount }) => (
             <li key={client.id}>
               <div
                 className="grid grid-cols-1 items-center gap-3 px-5 py-2.5 transition-colors hover:bg-white/4 lg:grid-cols-[minmax(0,2fr)_8rem_minmax(0,1.4fr)_5rem_minmax(0,1.1fr)_minmax(0,1.1fr)_3.25rem] lg:gap-4"
@@ -231,7 +252,9 @@ function ClientsContent() {
                 </span>
               </div>
             </li>
-          ))}
+              )),
+            ];
+          })}
 
           {filtered.length === 0 && (
             <li className="px-5 py-12 text-center text-sm text-mist">
@@ -242,7 +265,7 @@ function ClientsContent() {
       </div>
 
       <p className="mt-3 text-xs text-mist">
-        Showing {filtered.length} of {rows.length} clients, sorted alphabetically.
+        Showing {filtered.length} of {rows.length} clients — active first, then onboarding, then archived, alphabetical inside each.
       </p>
     </>
   );

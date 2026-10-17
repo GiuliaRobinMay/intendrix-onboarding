@@ -64,6 +64,19 @@ export interface CommunitySpace {
   collectionId: string | null;
 }
 
+export interface Coursework {
+  id: string;
+  /** overview, section, lesson or quiz */
+  type: string;
+  parentId: string | null;
+  title: string;
+  /** the body, as Mighty hands it over — HTML, usually */
+  description: string | null;
+  status: string | null;
+  position: number;
+  url: string | null;
+}
+
 export interface CommunityPlan {
   id: string;
   name: string;
@@ -163,6 +176,41 @@ function toSpace(row: any): CommunitySpace | null {
     ]),
     collectionId: col === null || col === undefined ? null : String(col),
   };
+}
+
+/** One coursework row — a module or a lesson — whatever Mighty calls its columns. */
+function toCoursework(row: any): Coursework | null {
+  const id = row?.id ?? row?.resource_id ?? row?.resourceId;
+  const title = firstString(row, ["title", "name"]);
+  if (id === undefined || id === null || !title) return null;
+  const parent = row?.parent_id ?? row?.parentId ?? row?.parent?.id ?? null;
+  return {
+    id: String(id),
+    type: (firstString(row, ["type", "coursework_type"]) ?? "lesson").toLowerCase(),
+    parentId: parent === null || parent === undefined ? null : String(parent),
+    title,
+    description: firstString(row, ["description", "body", "description_text", "descriptionText"]),
+    status: firstString(row, ["status"])?.toLowerCase() ?? null,
+    position: Number(row?.position ?? 0) || 0,
+    url: firstString(row, ["permalink", "url", "web_url"]),
+  };
+}
+
+/** Every module and lesson of one lesson space, in order. */
+export async function fetchCourseworks(spaceId: string): Promise<
+  { ok: true; items: Coursework[] } | { ok: false; reason: string }
+> {
+  const token = tokenOr();
+  if (!token) return { ok: false, reason: "no Mighty Networks token yet" };
+  const out = await readPages(
+    `/networks/${NETWORK}/spaces/${encodeURIComponent(spaceId)}/courseworks`,
+    token,
+    toCoursework,
+    (c) => Boolean(c.title)
+  );
+  return out.ok
+    ? { ok: true, items: out.rows.sort((a, b) => a.position - b.position) }
+    : { ok: false, reason: `could not read the lessons — ${out.reason}` };
 }
 
 /** One plan row, whatever Mighty calls its columns. */

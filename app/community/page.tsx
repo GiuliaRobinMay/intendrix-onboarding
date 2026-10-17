@@ -31,6 +31,7 @@ import {
 import { authHeaders } from "@/lib/supabase-browser";
 import { PageHeader, GhostButton } from "@/components/ui";
 import { EditableText } from "@/components/editable";
+import { LessonLibrary } from "@/components/lesson-library";
 import { useData } from "@/lib/state";
 import { usDate } from "@/lib/dates";
 import type { Client, Member } from "@/lib/types";
@@ -96,6 +97,8 @@ export default function CommunityPage() {
   const [checking, setChecking] = useState(false);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Set<string>>(new Set());
+  // two faces: the clients and their people, or the lesson spaces
+  const [tab, setTab] = useState<"clients" | "lessons">("clients");
 
   const load = async () => {
     setLoading(true);
@@ -160,6 +163,7 @@ export default function CommunityPage() {
         title="Client Intendrix Hub | Mighty Networks"
         subtitle="Everything from Mighty Networks: every client space, its links, and who of their people is inside. New clients start here."
         action={
+          tab === "clients" && (
           <span className="flex items-center gap-2">
             <GhostButton onClick={load} tip="Read Mighty Networks again — new spaces, new members">
               <span className="flex items-center gap-1.5">
@@ -177,9 +181,35 @@ export default function CommunityPage() {
               </span>
             </GhostButton>
           </span>
+          )
         }
       />
 
+      <div className="mb-4 flex items-center gap-1 border-b border-white/8">
+        {(
+          [
+            ["clients", "Clients"],
+            ["lessons", "Lessons"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`-mb-px cursor-pointer border-b-2 px-3 py-2 text-sm font-semibold transition-colors ${
+              tab === id
+                ? "border-[#ff7a55] text-paper"
+                : "border-transparent text-mist hover:text-paper"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "lessons" && <LessonLibrary />}
+
+      {tab === "clients" && (
+      <>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="relative min-w-64 flex-1 sm:max-w-sm">
           <Search
@@ -320,6 +350,8 @@ export default function CommunityPage() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </>
   );
 }
