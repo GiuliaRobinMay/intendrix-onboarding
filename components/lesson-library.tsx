@@ -70,6 +70,35 @@ export function LessonLibrary() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // every lesson without an image gets one: its own from Mighty's text
+  // when there is one, its space's banner otherwise — copied in and kept
+  const copyAll = async () => {
+    setCopying(true);
+    setCopied(null);
+    try {
+      const res = await fetch("/api/lessons/copy-images", {
+        method: "POST",
+        headers: await authHeaders(),
+      });
+      const out = await res.json();
+      if (!out.ok) setCopied(out.reason ?? "could not copy the images");
+      else
+        setCopied(
+          `${out.stored} copied in` +
+            (out.already ? ` · ${out.already} already had one` : "") +
+            (out.none ? ` · ${out.none} with nothing to copy` : "") +
+            (out.failed?.length ? ` · ${out.failed.length} failed: ${out.failed[0]}` : "")
+        );
+      await load();
+    } catch {
+      setCopied("could not reach the server");
+    } finally {
+      setCopying(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -212,6 +241,16 @@ export function LessonLibrary() {
               <TriangleAlert size={12} /> {saveError}
             </span>
           )}
+          {copied && <span className="text-[11px] text-mist">{copied}</span>}
+          <GhostButton
+            onClick={copyAll}
+            tip="For every lesson without an image: take the image from its own text in Mighty Networks, or its space's banner, and keep a copy here. Lessons that have one are left alone."
+          >
+            <span className="flex items-center gap-1.5">
+              <ImageIcon size={13} className={copying ? "animate-pulse" : ""} />
+              {copying ? "Copying…" : "Copy images from Mighty Networks"}
+            </span>
+          </GhostButton>
           <GhostButton onClick={load} tip="Read the lesson spaces again">
             <span className="flex items-center gap-1.5">
               <RefreshCw size={13} className={loading ? "animate-spin" : ""} />

@@ -393,6 +393,82 @@ export async function fetchSpaces(): Promise<
     : { ok: false, reason: `could not read the spaces — ${out.reason}` };
 }
 
+/** One request that changes something, with everything api.mn.co insists on. */
+async function send(method: "POST" | "DELETE" | "PATCH", path: string, body?: unknown) {
+  const token = tokenOr();
+  if (!token) return { ok: false as const, reason: "no Mighty Networks token yet" };
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/json",
+        "content-type": "application/json",
+        "user-agent": "Intendrix/1.0 (+https://team.intendrix.ai)",
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch (err) {
+    return { ok: false as const, reason: `could not be reached — ${String(err).slice(0, 120)}` };
+  }
+  const text = await res.text();
+  if (!res.ok) return { ok: false as const, reason: `answered ${res.status} — ${text.slice(0, 200)}` };
+  let json: any = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    /* an empty or non-JSON success is still a success */
+  }
+  return { ok: true as const, body: json };
+}
+
+export interface CreatedPost {
+  id: string;
+  url: string | null;
+  /** image addresses Mighty reports on the post — the test of whether an
+   *  image in the body survived */
+  images: string[];
+  raw: any;
+}
+
+/** Write an article into a space. An "article" lands in the space's
+ *  articles tab — Phoenix Updates, in a client space. */
+export async function createPost(input: {
+  spaceId: string;
+  title: string;
+  description: string;
+  postType?: string;
+}): Promise<{ ok: true; post: CreatedPost } | { ok: false; reason: string }> {
+  const out = await send("POST", `/networks/${NETWORK}/posts`, {
+    space_id: Number(input.spaceId),
+    title: input.title,
+    description: input.description,
+    post_type: input.postType ?? "article",
+  });
+  if (!out.ok) return { ok: false, reason: `could not create the post — ${out.reason}` };
+  const row = out.body?.data ?? out.body ?? {};
+  const id = row?.id ?? row?.resource_id;
+  if (id === undefined || id === null)
+    return { ok: false, reason: `the post was made but the answer named no id — it held ${Object.keys(row).slice(0, 8).join(", ")}` };
+  return {
+    ok: true,
+    post: {
+      id: String(id),
+      url: firstString(row, ["permalink", "url"]),
+      images: Array.isArray(row?.images) ? row.images.map(String) : [],
+      raw: row,
+    },
+  };
+}
+
+/** Take a post down. */
+export async function deletePost(postId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const out = await send("DELETE", `/networks/${NETWORK}/posts/${encodeURIComponent(postId)}/`);
+  return out.ok ? { ok: true } : { ok: false, reason: `could not delete the post — ${out.reason}` };
+}
+
 /** Everyone who came in through one plan: a client's people, exactly,
  *  plus the hosts who are on every plan. */
 export async function fetchPlanMembers(planId: string): Promise<RosterResult> {

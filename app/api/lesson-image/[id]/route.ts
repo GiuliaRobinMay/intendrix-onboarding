@@ -14,13 +14,12 @@
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
+import { storeImageBytes, storeImageFromUrl } from "@/lib/server/lesson-images";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-const MAX_BYTES = 8 * 1024 * 1024;
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -56,21 +55,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ ok: false, reason: "sign in first" }, { status: 401 });
   }
 
-  let bytes: Buffer | null = null;
-  let contentType = "";
-  let spaceId = "";
-
   const kind = req.headers.get("content-type") ?? "";
+  let result;
   if (kind.startsWith("multipart/form-data")) {
     const form = await req.formData();
     const file = form.get("file");
-    spaceId = String(form.get("spaceId") ?? "");
+    const spaceId = String(form.get("spaceId") ?? "");
     if (!(file instanceof File))
       return NextResponse.json({ ok: false, reason: "no file" }, { status: 400 });
-    if (file.size > MAX_BYTES)
-      return NextResponse.json({ ok: false, reason: "that file is over 8 MB" }, { status: 400 });
-    contentType = file.type || "application/octet-stream";
-    bytes = Buffer.from(await file.arrayBuffer());
+    if (!spaceId) return NextResponse.json({ ok: false, reason: "space required" }, { status: 400 });
+    result = await storeImageBytes(
+      pool,
+      id,
+      spaceId,
+      file.type || "application/octet-stream",
+      Buffer.from(await file.arrayBuffer())
+    );
   } else {
     let body: any;
     try {
@@ -78,50 +78,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     } catch {
       return NextResponse.json({ ok: false, reason: "invalid body" }, { status: 400 });
     }
-    const url = String(body?.url ?? "").trim();
-    spaceId = String(body?.spaceId ?? "");
-    if (!/^https?:\/\//i.test(url))
-      return NextResponse.json({ ok: false, reason: "that is not a link" }, { status: 400 });
-    let res: Response;
-    try {
-      res = await fetch(url, { headers: { accept: "image/*" }, cache: "no-store" });
-    } catch {
-      return NextResponse.json({ ok: false, reason: "could not reach that link" });
-    }
-    if (!res.ok) return NextResponse.json({ ok: false, reason: `that link answered ${res.status}` });
-    contentType = res.headers.get("content-type")?.split(";")[0].trim() || "";
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length > MAX_BYTES)
-      return NextResponse.json({ ok: false, reason: "that image is over 8 MB" });
-    bytes = buf;
+    const spaceId = String(body?.spaceId ?? "");
+    if (!spaceId) return NextResponse.json({ ok: false, reason: "space required" }, { status: 400 });
+    result = await storeImageFromUrl(pool, id, spaceId, String(body?.url ?? "").trim());
   }
-
-  if (!contentType.startsWith("image/"))
-    return NextResponse.json({ ok: false, reason: `that is not an image (${contentType || "unknown type"})` });
-  if (!spaceId) return NextResponse.json({ ok: false, reason: "space required" }, { status: 400 });
-
-  const address = `/api/lesson-image/${encodeURIComponent(id)}`;
-  try {
-    await pool.query(
-      `insert into lesson_images (coursework_id, content_type, bytes, updated_at)
-       values ($1, $2, $3, now())
-       on conflict (coursework_id) do update
-         set content_type = excluded.content_type, bytes = excluded.bytes, updated_at = now()`,
-      [id, contentType, bytes]
-    );
-    await pool.query(
-      `insert into lesson_assets (coursework_id, space_id, image_url, updated_at)
-       values ($1, $2, $3, now())
-       on conflict (coursework_id) do update set image_url = excluded.image_url, updated_at = now()`,
-      [id, spaceId, address]
-    );
-  } catch (e: any) {
-    return NextResponse.json({
-      ok: false,
-      reason: /lesson_images|lesson_assets/.test(String(e?.message))
-        ? "the database is missing the lesson tables — Settings has the SQL"
-        : `could not save — ${String(e?.message ?? e).slice(0, 140)}`,
-    });
-  }
-  return NextResponse.json({ ok: true, imageUrl: address, bytes: bytes.length });
+  return NextResponse.json(result);
 }
