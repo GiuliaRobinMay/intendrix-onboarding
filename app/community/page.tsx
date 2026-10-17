@@ -210,12 +210,12 @@ export default function CommunityPage() {
         </p>
       </div>
 
-      {live && (live.spaces.length > 0 || live.spacesReason) && (
+      {live && ((live.spaces ?? []).length > 0 || live.spacesReason) && (
         <section className="card mb-4 p-4">
           <h2 className="flex items-center gap-2 text-sm font-bold">
             <Plus size={14} className="text-[#4ade80]" />
             In Mighty Networks, not here yet
-            {live.spaces.length > 0 && (
+            {(live.spaces ?? []).length > 0 && (
               <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-mist">
                 {live.spaces.length}
               </span>
@@ -230,7 +230,7 @@ export default function CommunityPage() {
                 client from the space and its links come along.
               </p>
               <ul className="mt-3 divide-y divide-white/5">
-                {live.spaces.map((sp) => (
+                {(live.spaces ?? []).map((sp) => (
                   <li key={sp.id} className="flex flex-wrap items-center gap-3 py-2">
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold">{sp.name}</span>
@@ -409,7 +409,7 @@ function ClientRows({
 
       {open && (
         <tr>
-          <td colSpan={7} className="bg-white/2 px-5 py-4">
+          <td colSpan={7} className="border-l-2 border-[#6ea8ff]/60 bg-white/7 px-5 py-4">
             {/* the three links, to edit */}
             <div className="flex flex-col gap-2">
               {LINKS.map((l) => {
@@ -573,7 +573,7 @@ function PersonRow({
   sub: string | null;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-center gap-x-3 border-b border-white/5 px-1 py-1.5 transition-colors hover:bg-white/4">
+    <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.6fr)_auto] items-center gap-x-3 border-b border-white/8 px-1 py-1.5 transition-colors hover:bg-white/6">
       <div className="flex min-w-0 items-center gap-2.5">
         <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/8 text-[10px] font-bold text-mist">
           {initials(name)}
