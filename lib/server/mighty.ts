@@ -283,6 +283,9 @@ async function get(url: string, token: string) {
     headers: {
       authorization: `Bearer ${token}`,
       accept: "application/json",
+      // the API answers in the language of the key's account; ask for
+      // English so an error reads the same to everyone on the team
+      "accept-language": "en",
       // api.mn.co refuses a request without one
       "user-agent": "Intendrix/1.0 (+https://team.intendrix.ai)",
     },
@@ -404,6 +407,7 @@ async function send(method: "POST" | "DELETE" | "PATCH", path: string, body?: un
       headers: {
         authorization: `Bearer ${token}`,
         accept: "application/json",
+        "accept-language": "en",
         "content-type": "application/json",
         "user-agent": "Intendrix/1.0 (+https://team.intendrix.ai)",
       },
