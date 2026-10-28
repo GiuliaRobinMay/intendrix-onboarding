@@ -6,9 +6,11 @@
 // /verify. The same API switches open and click tracking on, which is
 // what makes opens and clicks exist at all.
 //
-// POST { action: "status" | "verify" | "tracking" } — status reads the
-// domain and its records; verify asks for a new check, then reads;
-// tracking turns open and click tracking on, then reads.
+// POST { action: "status" | "verify" | "tracking" | "events" } — status
+// reads the domain, its records and the webhooks; verify asks for a new
+// check; tracking turns open and click tracking on; events adds
+// email.opened and email.clicked to the webhook that points at this app.
+// Each then reads again.
 
 import { NextResponse } from "next/server";
 import { dbConfigured, getPool } from "@/lib/server/db";
@@ -80,6 +82,27 @@ function shape(d: any) {
   };
 }
 
+/** The events the app's webhook must hear to know what became of an email. */
+const NEEDED = ["email.delivered", "email.opened", "email.clicked", "email.bounced", "email.complained"];
+
+/** Every webhook at Resend, with which one is ours. */
+async function webhooks() {
+  const list = await resend("GET", "/webhooks");
+  if (!list.ok) return { ok: false as const, reason: list.reason };
+  const rows: any[] = list.body?.data ?? [];
+  return {
+    ok: true as const,
+    hooks: rows.map((w) => ({
+      id: String(w?.id ?? ""),
+      endpoint: String(w?.endpoint ?? ""),
+      status: String(w?.status ?? ""),
+      events: Array.isArray(w?.events) ? w.events.map(String) : [],
+      ours: /resend-webhook/.test(String(w?.endpoint ?? "")),
+      missing: NEEDED.filter((e) => !(Array.isArray(w?.events) ? w.events : []).includes(e)),
+    })),
+  };
+}
+
 export async function POST(req: Request) {
   const who = await verifyUser(req);
   if (!who.ok)
@@ -112,9 +135,31 @@ export async function POST(req: Request) {
       click_tracking: true,
     });
     notes.push(t.ok ? "Open and click tracking switched on." : t.reason);
+  } else if (action === "events") {
+    const w = await webhooks();
+    if (!w.ok) notes.push(w.reason);
+    else {
+      const ours = w.hooks.find((h) => h.ours);
+      if (!ours) notes.push("No webhook at Resend points at this app's /api/resend-webhook — add one in Resend → Webhooks.");
+      else if (!ours.missing.length) notes.push("The webhook already hears every event it needs.");
+      else {
+        const u = await resend("PATCH", `/webhooks/${ours.id}`, {
+          events: [...new Set([...ours.events, ...NEEDED])],
+        });
+        notes.push(u.ok ? `Added ${ours.missing.join(", ")} to the webhook.` : u.reason);
+      }
+    }
   }
 
   const d = await resend("GET", `/domains/${found.id}`);
   if (!d.ok) return NextResponse.json({ ok: false, reason: d.reason, notes });
-  return NextResponse.json({ ok: true, notes, domain: shape(d.body) });
+  const w = await webhooks();
+  return NextResponse.json({
+    ok: true,
+    notes,
+    domain: shape(d.body),
+    webhooks: w.ok ? w.hooks : [],
+    webhooksReason: w.ok ? null : w.reason,
+    secretSet: Boolean(process.env.RESEND_WEBHOOK_SECRET),
+  });
 }

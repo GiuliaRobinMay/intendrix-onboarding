@@ -14,6 +14,15 @@ import { Check, Mail, RefreshCw, TriangleAlert, X } from "lucide-react";
 import { authHeaders } from "@/lib/supabase-browser";
 import { GhostButton, GradientButton } from "@/components/ui";
 
+interface Hook {
+  id: string;
+  endpoint: string;
+  status: string;
+  events: string[];
+  ours: boolean;
+  missing: string[];
+}
+
 interface Domain {
   name: string;
   status: string;
@@ -26,11 +35,14 @@ const good = (s: string) => /verified|success/i.test(s);
 
 export function ResendDnsCard() {
   const [domain, setDomain] = useState<Domain | null>(null);
+  const [hooks, setHooks] = useState<Hook[]>([]);
+  const [hooksReason, setHooksReason] = useState<string | null>(null);
+  const [secretSet, setSecretSet] = useState<boolean | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
   const [reason, setReason] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const call = async (action: "status" | "verify" | "tracking") => {
+  const call = async (action: "status" | "verify" | "tracking" | "events") => {
     setBusy(action);
     try {
       const res = await fetch("/api/resend-verify", {
@@ -41,6 +53,9 @@ export function ResendDnsCard() {
       const out = await res.json();
       if (out.ok) {
         setDomain(out.domain);
+        setHooks(out.webhooks ?? []);
+        setHooksReason(out.webhooksReason ?? null);
+        setSecretSet(out.secretSet ?? null);
         setNotes(out.notes ?? []);
         setReason(null);
       } else setReason(out.reason ?? "could not reach Resend");
@@ -116,6 +131,40 @@ export function ResendDnsCard() {
         <p className="mt-3 text-[11px] text-mist">Reading Resend…</p>
       )}
 
+      {domain && (
+        <div className="mt-4 border-t border-white/8 pt-3">
+          <p className="text-xs font-semibold">Webhook — how Resend tells the app what became of an email</p>
+          {hooksReason ? (
+            <p className="mt-1 text-[11px] text-[#ff7a55]">{hooksReason}</p>
+          ) : hooks.length === 0 ? (
+            <p className="mt-1 text-[11px] text-[#ff7a55]">
+              No webhook at Resend — without one, nothing delivered, opened or clicked ever reaches the app.
+            </p>
+          ) : (
+            <ul className="mt-1 flex flex-col gap-1 text-[11px]">
+              {hooks.map((h) => (
+                <li key={h.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <span className="font-mono text-mist">{h.endpoint}</span>
+                  {h.ours && <span className="rounded bg-white/8 px-1.5 text-[10px] font-bold text-mist">THIS APP</span>}
+                  <span className={h.status === "enabled" ? "text-[#4ade80]" : "text-[#ff7a55]"}>{h.status}</span>
+                  {h.ours &&
+                    (h.missing.length ? (
+                      <span className="text-[#ff7a55]">not hearing: {h.missing.map((e) => e.replace("email.", "")).join(", ")}</span>
+                    ) : (
+                      <span className="text-[#4ade80]">hears delivered, opened, clicked, bounced, complained</span>
+                    ))}
+                </li>
+              ))}
+            </ul>
+          )}
+          {secretSet === false && (
+            <p className="mt-1 text-[11px] text-[#ff7a55]">
+              RESEND_WEBHOOK_SECRET is not set in Vercel — the app refuses every report until it is.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <GhostButton onClick={() => call("verify")} tip="Ask Resend to check the DNS records again now">
           <span className="flex items-center gap-1.5">
@@ -126,6 +175,11 @@ export function ResendDnsCard() {
         {domain && !(domain.openTracking && domain.clickTracking) && (
           <GradientButton onClick={() => call("tracking")} disabled={busy !== null}>
             {busy === "tracking" ? "Switching on…" : "Turn on open and click tracking"}
+          </GradientButton>
+        )}
+        {hooks.some((h) => h.ours && h.missing.length > 0) && (
+          <GradientButton onClick={() => call("events")} disabled={busy !== null}>
+            {busy === "events" ? "Adding…" : "Make the webhook hear opens and clicks"}
           </GradientButton>
         )}
       </div>
