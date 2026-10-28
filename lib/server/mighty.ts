@@ -444,12 +444,19 @@ export async function createPost(input: {
   title: string;
   description: string;
   postType?: string;
+  /** image addresses — events and polls take this field in the spec;
+   *  posts answer with it, and Zapier's "Image URL" has to land somewhere */
+  images?: string[];
+  /** whether the space's members are told; off for a backlog */
+  notify?: boolean;
 }): Promise<{ ok: true; post: CreatedPost } | { ok: false; reason: string }> {
-  const out = await send("POST", `/networks/${NETWORK}/posts`, {
+  const query = input.notify === undefined ? "" : `?notify=${input.notify ? "true" : "false"}`;
+  const out = await send("POST", `/networks/${NETWORK}/posts${query}`, {
     space_id: Number(input.spaceId),
     title: input.title,
     description: input.description,
     post_type: input.postType ?? "article",
+    ...(input.images?.length ? { images: input.images } : {}),
   });
   if (!out.ok) return { ok: false, reason: `could not create the post — ${out.reason}` };
   const row = out.body?.data ?? out.body ?? {};
@@ -465,6 +472,57 @@ export async function createPost(input: {
       raw: row,
     },
   };
+}
+
+export interface UploadedAsset {
+  id: string;
+  url: string | null;
+  raw: any;
+}
+
+/** Hand Mighty an image by link; it keeps a copy and answers with its
+ *  own address for it. `style` is the purpose Mighty files it under —
+ *  "post" for a post's picture. */
+export async function uploadAsset(input: {
+  sourceUrl: string;
+  style: string;
+  mainImage?: boolean;
+}): Promise<{ ok: true; asset: UploadedAsset } | { ok: false; reason: string }> {
+  const token = tokenOr();
+  if (!token) return { ok: false, reason: "no Mighty Networks token yet" };
+  const form = new FormData();
+  form.append("asset_style", input.style);
+  form.append("source_url", input.sourceUrl);
+  if (input.mainImage) form.append("metadata[is_main_image]", "true");
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/networks/${NETWORK}/assets`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        accept: "application/json",
+        "accept-language": "en",
+        "user-agent": "Intendrix/1.0 (+https://team.intendrix.ai)",
+      },
+      body: form,
+      cache: "no-store",
+    });
+  } catch (err) {
+    return { ok: false, reason: `could not be reached — ${String(err).slice(0, 120)}` };
+  }
+  const text = await res.text();
+  if (!res.ok) return { ok: false, reason: `asset upload answered ${res.status} — ${text.slice(0, 200)}` };
+  let body: any = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return { ok: false, reason: `asset upload did not answer with JSON — ${text.slice(0, 120)}` };
+  }
+  const row = body?.data ?? body ?? {};
+  const id = row?.id ?? row?.resource_id;
+  if (id === undefined || id === null)
+    return { ok: false, reason: `asset upload answered without an id — it held ${Object.keys(row).slice(0, 8).join(", ")}` };
+  return { ok: true, asset: { id: String(id), url: firstString(row, ["url", "asset_url", "image_url"]), raw: row } };
 }
 
 /** Take a post down. */

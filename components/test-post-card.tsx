@@ -17,6 +17,10 @@ interface Made {
   url: string | null;
   images: string[];
   space: string;
+  /** which way of adding a picture Mighty accepted */
+  attempt: string;
+  /** what the ways before it said */
+  tried: string[];
 }
 
 export function TestPostCard() {
@@ -67,10 +71,10 @@ export function TestPostCard() {
         Test post to Mighty Networks
       </h2>
       <p className="mt-1 text-xs leading-relaxed text-mist">
-        Makes one article in <strong>App Testers — Do Not Delete</strong>. The API refuses
-        images and links in a post, so this one is plain text with a bare web address in it.
-        Open it there and check two things: is that address clickable, and did the testers get
-        a notification. Then delete it here.
+        Makes one post in <strong>App Testers — Do Not Delete</strong> with the Start Your
+        Journey banner, trying the likely ways of attaching a picture one after the other until
+        Mighty accepts one. It says which way worked. Open the post, check the picture is there,
+        then delete it here. Nobody is notified.
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -100,10 +104,21 @@ export function TestPostCard() {
       </div>
 
       {made && (
-        <p className="mt-3 text-[11px] leading-relaxed text-mist">
-          Post {made.id} in space {made.space}.{" "}
-          Open it and look at the address line.
-        </p>
+        <div className="mt-3 text-[11px] leading-relaxed text-mist">
+          <p>
+            <span className="font-semibold text-paper">Accepted: {made.attempt}.</span>{" "}
+            {made.images.length
+              ? `Mighty reports ${made.images.length} image${made.images.length === 1 ? "" : "s"} on the post.`
+              : "Mighty reports no image on the post — open it to be sure."}
+          </p>
+          {made.tried.length > 0 && (
+            <ul className="mt-1 list-disc pl-4">
+              {made.tried.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
       {note && <p className="mt-3 text-[11px] font-semibold text-[#ff7a55]">{note}</p>}
     </section>
