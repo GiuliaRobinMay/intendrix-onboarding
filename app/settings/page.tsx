@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SchemaCard } from "@/components/schema-card";
 import { TestPostCard } from "@/components/test-post-card";
+import { ResendDnsCard } from "@/components/resend-dns-card";
 import { Building2, Check, DatabaseBackup, Mail, Palette, Plug, Type } from "lucide-react";
 import { Chip, GhostButton } from "@/components/ui";
 import { useData } from "@/lib/state";
@@ -127,6 +128,7 @@ export default function AppSettingsPage() {
       {/* Whether the database has caught up with the code. First,
           because everything below assumes it has. */}
       <SchemaCard />
+      <ResendDnsCard />
       <TestPostCard />
 
       {/* The master switch — nothing automatic leaves the system while
