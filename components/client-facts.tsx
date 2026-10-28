@@ -36,35 +36,33 @@ export function ClientFactsCard({
       {/* one under the other: four short facts read faster in a column
           than spread over two, and the card stays short */}
       <div className="flex flex-col gap-2.5">
+        {/* where they are, on one line: the city they'd say, the state
+            that sets the clock */}
         <div className="flex items-center gap-2.5">
-          <span className={label}>State</span>
+          <span className={label}>Location</span>
+          <EditableText
+            value={client.city ?? ""}
+            placeholder="City, e.g. Ann Arbor"
+            onCommit={(v) => patch({ city: v.trim() })}
+            className="text-xs"
+          />
           <select
             data-tip="The client's US state — new campaigns default to its timezone, so emails land at 8:00 AM in their own morning"
             value={client.state ?? ""}
             onChange={(e) => patch({ state: e.target.value })}
-            className={`min-w-0 flex-1 cursor-pointer rounded-md border bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:outline-none ${
+            className={`w-44 shrink-0 cursor-pointer rounded-md border bg-navy/60 px-2 py-1.5 text-xs font-semibold focus:outline-none ${
               client.state
                 ? "border-white/12 focus:border-white/40"
                 : "border-[#eb320f]/70 bg-[#eb320f]/8 focus:border-[#ff7a55]"
             }`}
           >
-            <option value="">— choose a state —</option>
-            {US_STATES.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.name}
+            <option value="">— state —</option>
+            {US_STATES.map((st) => (
+              <option key={st.code} value={st.code}>
+                {st.name}
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <span className={label}>City</span>
-          <EditableText
-            value={client.city ?? ""}
-            placeholder="e.g. Ann Arbor"
-            onCommit={(v) => patch({ city: v.trim() })}
-            className="text-xs"
-          />
         </div>
 
         <div className="flex items-center gap-2.5">
