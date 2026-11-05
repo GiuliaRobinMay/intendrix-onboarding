@@ -173,19 +173,37 @@ function DeliveryFlag({ member }: { member: Member }) {
     text: member.delivery.event,
     color: "#ff7a55",
   };
-  const when = member.delivery.at ? ` on ${fmtDate(new Date(member.delivery.at))}` : "";
-  // a quiet red mark, not a badge: the address is the thing being
-  // talked about, so the warning sits beside it and explains itself
-  // when you rest on it
+  // a quiet red mark beside the address; the words are on the line
+  // below, because a hover tooltip inside a scrolling table is cut off
+  // by the table's own frame and nobody ever reads it
   return (
-    <span
-      data-tip={`The last email to this address ${label.text}${when}. ${
-        member.delivery.error ? member.delivery.error : "Check the address with them."
-      }`}
-      className="shrink-0 cursor-help text-[#ff4d4d]"
-    >
+    <span className="shrink-0 text-[#ff4d4d]" title={deliveryWords(member)}>
       <TriangleAlert size={12} strokeWidth={2.5} />
     </span>
+  );
+}
+
+/** What went wrong with the last email to this address, in one line. */
+function deliveryWords(member: Member) {
+  if (!member.delivery) return "";
+  const label = HISTORY_LABEL[member.delivery.event] ?? { text: member.delivery.event, color: "" };
+  const when = member.delivery.at ? ` on ${fmtDate(new Date(member.delivery.at))}` : "";
+  return `The last email to this address ${label.text}${when}. ${
+    member.delivery.error ? member.delivery.error : "Check the address with them."
+  }`;
+}
+
+/** The line under a bad address: what happened, when, and why. */
+function DeliveryNote({ member }: { member: Member }) {
+  if (!member.delivery) return null;
+  const label = HISTORY_LABEL[member.delivery.event] ?? { text: member.delivery.event, color: "" };
+  const when = member.delivery.at ? ` ${fmtDate(new Date(member.delivery.at))}` : "";
+  return (
+    <p className="truncate text-[10px] font-semibold text-[#ff7a55]" title={deliveryWords(member)}>
+      {label.text}
+      {when}
+      {member.delivery.error ? ` · ${member.delivery.error}` : " · check the address with them"}
+    </p>
   );
 }
 
@@ -285,16 +303,19 @@ export function MembersSection({ client }: { client: Client }) {
           </div>
 
           {/* address, and what the provider last said about it */}
-          <div className="flex min-w-0 items-center gap-2">
-            <span
-              data-tip={m.email || "No email address yet — nothing can be sent to them"}
-              className={`min-w-0 truncate text-xs ${
-                m.email ? "text-mist" : "font-semibold text-[#ff7a55]"
-              }`}
-            >
-              {m.email || "no email"}
-            </span>
-            <DeliveryFlag member={m} />
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                data-tip={m.email || "No email address yet — nothing can be sent to them"}
+                className={`min-w-0 truncate text-xs ${
+                  m.email ? "text-mist" : "font-semibold text-[#ff7a55]"
+                }`}
+              >
+                {m.email || "no email"}
+              </span>
+              <DeliveryFlag member={m} />
+            </div>
+            <DeliveryNote member={m} />
           </div>
 
           {/* which series */}
