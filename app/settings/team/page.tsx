@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, PenLine, Send, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { CalendarClock, Mail, PenLine, Send, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { Chip, GhostButton, GradientButton } from "@/components/ui";
 import { EditableText, Field } from "@/components/editable";
 import { useData } from "@/lib/state";
@@ -287,15 +287,26 @@ function TeamRow({ person }: { person: StaffMember }) {
         </span>
 
         <span className="flex items-center justify-end gap-1">
+          {person.schedulingUrl && (
+            <a
+              href={person.schedulingUrl}
+              target="_blank"
+              rel="noreferrer"
+              data-tip="Open their scheduling page"
+              className="rounded-md p-1.5 text-mist transition-colors hover:text-paper"
+            >
+              <CalendarClock size={13} />
+            </a>
+          )}
           <button
             data-tip={
-              person.signature?.trim()
-                ? "Edit how their emails sign off"
-                : "Write how their emails sign off"
+              person.signature?.trim() || person.schedulingUrl
+                ? "Edit their sign-off and scheduling link"
+                : "Write how their emails sign off; add their scheduling link"
             }
             onClick={() => setOpen((v) => !v)}
             className={`cursor-pointer rounded-md p-1.5 transition-colors hover:text-paper ${
-              person.signature?.trim() ? "text-paper" : "text-mist"
+              person.signature?.trim() || person.schedulingUrl ? "text-paper" : "text-mist"
             }`}
           >
             <PenLine size={13} />
@@ -337,7 +348,8 @@ function TeamRow({ person }: { person: StaffMember }) {
         </span>
       </div>
       {open && (
-        <label className="mt-2 block pl-11">
+        <div className="mt-2 space-y-3 pl-11">
+        <label className="block">
           <span className="text-[11px] font-medium text-mist">
             How their lesson emails sign off
           </span>
@@ -362,6 +374,32 @@ function TeamRow({ person }: { person: StaffMember }) {
             their name and role.
           </span>
         </label>
+        <label className="block">
+          <span className="block text-[11px] font-medium text-mist">Scheduling link</span>
+          <input
+            type="url"
+            data-tip="Their page where a team member books time with them. Goes under their sign-off in every lesson email they send."
+            defaultValue={person.schedulingUrl ?? ""}
+            placeholder="https://phoenixperform.as.me/…"
+            onBlur={(e) => {
+              const next = e.target.value.trim();
+              if (next === (person.schedulingUrl ?? "")) return;
+              if (next && !/^https?:\/\//.test(next)) return;
+              dispatch({
+                type: "updateStaff",
+                staffId: person.id,
+                patch: { schedulingUrl: next || null },
+              });
+            }}
+            className="mt-1 w-full max-w-md rounded-md border border-white/10 bg-navy/60 px-2.5 py-2 text-xs focus:border-white/30 focus:outline-none"
+          />
+          <span className="mt-1 block text-[11px] text-mist">
+            Shows under their sign-off in every lesson email they send, as
+            “Schedule a call with {person.name}”. Leave it empty and nothing is
+            added.
+          </span>
+        </label>
+        </div>
       )}
       {notice && <p className="mt-1.5 pl-11 text-[11px] text-mist">{notice}</p>}
     </li>
@@ -538,10 +576,11 @@ export default function TeamSettingsPage() {
             <PenLine size={16} className="text-mist" /> Email sign-off
           </h2>
           <p className="mt-1 mb-4 text-xs text-mist">
-            Every lesson email closes with the sender&rsquo;s signature and the
-            company logo. The signature text is personal — the{" "}
+            Every lesson email closes with the sender&rsquo;s signature, their
+            scheduling link and the company logo. The signature text and the
+            link are personal — the{" "}
             <PenLine size={11} className="inline text-paper" /> on each row
-            above edits it. The logo below is one image for the whole team.
+            above edits them. The logo below is one image for the whole team.
           </p>
 
           <div className="flex flex-wrap items-start gap-6">
@@ -577,6 +616,9 @@ export default function TeamSettingsPage() {
               <div className="mt-1 rounded-md border border-white/10 bg-white p-3">
                 <p className="text-[12px] font-semibold text-[#1a1b2e]">Brad Zimmerman</p>
                 <p className="text-[11px] text-[#5f6170]">Phoenix Coach</p>
+                <p className="mt-2 text-[11px] font-semibold text-[#2c2d83] underline">
+                  Schedule a call with Brad Zimmerman
+                </p>
                 {settings.signatureLogoUrl?.startsWith("https://") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

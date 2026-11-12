@@ -187,7 +187,14 @@ export async function POST(req: Request) {
     pickStaffId("project_manager", campaign.project_manager_id);
 
   let from:
-    | { name: string; address: string; replyTo: string; role: string | null; signature: string | null }
+    | {
+        name: string;
+        address: string;
+        replyTo: string;
+        role: string | null;
+        signature: string | null;
+        schedulingUrl: string | null;
+      }
     | null = null;
   let senderStaffId: string | null = null;
   if (campaign.sender_member_id) {
@@ -202,13 +209,22 @@ export async function POST(req: Request) {
         replyTo: rows[0].email || SENDING_ADDRESS,
         role: rows[0].title ?? null,
         signature: null,
+        schedulingUrl: null,
       };
   }
   if (!from && staffId) {
-    const { rows } = await pool.query(
-      `select id, name, email, role_title, signature from staff where id = $1`,
-      [staffId]
-    );
+    // scheduling_url (0026) arrives by hand-run migration
+    const { rows } = await pool
+      .query(
+        `select id, name, email, role_title, signature, scheduling_url from staff where id = $1`,
+        [staffId]
+      )
+      .catch(() =>
+        pool.query(
+          `select id, name, email, role_title, signature from staff where id = $1`,
+          [staffId]
+        )
+      );
     if (rows[0]) {
       senderStaffId = rows[0].id;
       from = {
@@ -217,6 +233,7 @@ export async function POST(req: Request) {
         replyTo: rows[0].email,
         role: rows[0].role_title ?? null,
         signature: rows[0].signature ?? null,
+        schedulingUrl: rows[0].scheduling_url ?? null,
       };
     }
   }
@@ -340,6 +357,7 @@ export async function POST(req: Request) {
       senderName: from!.name,
       senderRole: from!.role,
       signature: from!.signature,
+      schedulingUrl: from!.schedulingUrl,
       logoUrl: campaign.sender_member_id ? null : logoUrl,
     });
   const attachmentsOf = (content: any) =>

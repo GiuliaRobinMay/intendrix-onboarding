@@ -139,6 +139,26 @@ alter table lesson_images enable row level security;
 create policy lesson_images_all on lesson_images for all to authenticated
   using (true) with check (true);`,
   },
+  {
+    migration: "0026_staff_scheduling_link",
+    table: "staff",
+    column: "scheduling_url",
+    cost: "A person's scheduling link cannot be saved on the Team page, and lesson emails go out without the Schedule a call line.",
+    sql: `alter table staff add column if not exists scheduling_url text;
+
+-- the five links the team shared, matched on first name; rows that
+-- already have a link are left alone
+update staff set scheduling_url = v.url
+  from (values
+    ('brad',    'https://phoenixperform.as.me/BradZimmerman'),
+    ('kevin',   'https://phoenixperform.as.me/KevinDavis'),
+    ('natalie', 'https://phoenixperform.as.me/NatalieThompson'),
+    ('tom',     'https://phoenixperform.as.me/Tom'),
+    ('tim',     'https://phoenixperform.as.me/TimMatthews')
+  ) as v (first, url)
+ where lower(split_part(trim(staff.name), ' ', 1)) = v.first
+   and staff.scheduling_url is null;`,
+  },
 ];
 
 export interface SchemaReport {

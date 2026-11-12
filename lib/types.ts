@@ -152,6 +152,10 @@ export interface StaffMember {
   /** how their lesson emails sign off, one line per line. Empty falls
    *  back to their name and role. */
   signature?: string;
+  /** their scheduling page (Acuity, Calendly, …). Shown under the
+   *  sign-off of every lesson email they send, as "Schedule a call
+   *  with <name>". Empty adds nothing. */
+  schedulingUrl?: string | null;
   /** sign-in status — derived, not stored:
    *  active = has an account, invited = invitation sent and pending,
    *  none = in the team list but never invited */

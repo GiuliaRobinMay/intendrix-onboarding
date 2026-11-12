@@ -594,6 +594,7 @@ async function apply(tx: PoolClient, a: any): Promise<void> {
         role: "role_title",
         email: "email",
         signature: "signature",
+        schedulingUrl: "scheduling_url",
       });
       return;
     case "removeStaff":

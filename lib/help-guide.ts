@@ -37,6 +37,7 @@ SENDERS AND EXTRAS
 - Emails are sent from the campaign's Phoenix Coach. A campaign can instead nominate a client member (e.g. their Transformational Champion) in "Emails sent by": recipients see that name, replies go to them, the address stays on the sending domain.
 - "Send a copy of everything to": comma-separated addresses that get one copy of each lesson without being members.
 - Each Phoenix person has a signature (Settings, Team); a company logo can be set there too.
+- Each Phoenix person can also have a scheduling link (Settings, Team, the pen icon). It appears under their sign-off in every lesson email they send, as 'Schedule a call with [their name]'. The link belongs to the sender, so a campaign sent by Brad shows Brad's page. Empty means no line.
 - Every email supports {{first_name}}, {{name}}, {{client}}, {{sender}} merge fields, one attachment, and lesson links.
 
 MASTER TEMPLATES
@@ -142,7 +143,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     title: "Who emails are sent from",
-    body: "The campaign's Phoenix Coach (set on the client or campaign page). A campaign can instead nominate one of the client's own people in 'Emails sent by' - recipients see that person's name and replies reach them, while the address stays on the sending domain. Signatures and the company logo live under Settings > Team.",
+    body: "The campaign's Phoenix Coach (set on the client or campaign page). A campaign can instead nominate one of the client's own people in 'Emails sent by' - recipients see that person's name and replies reach them, while the address stays on the sending domain. Signatures, scheduling links and the company logo live under Settings > Team.",
     keywords: "sender from coach champion reply signature logo who sends",
     category: "Setting up a client",
   },

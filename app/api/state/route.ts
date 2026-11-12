@@ -75,7 +75,10 @@ export async function GET(req: Request) {
       memberDelivery,
     ] = await Promise.all([
       // the team list and each person's sign-in status, in one query
+      // scheduling_url (0026) arrives by hand-run migration; a database
+      // without it still answers, just without the links
       q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
+                s.scheduling_url,
                 case
                   when exists (select 1 from profiles p where p.staff_id = s.id)
                     then 'active'
@@ -84,7 +87,18 @@ export async function GET(req: Request) {
                     then 'invited'
                   else 'none'
                 end as access
-           from staff s order by s.created_at, s.id`),
+           from staff s order by s.created_at, s.id`).catch(() =>
+        q(`select s.id, s.name, s.role_title, s.initials, s.email, s.signature,
+                  case
+                    when exists (select 1 from profiles p where p.staff_id = s.id)
+                      then 'active'
+                    when exists (select 1 from invitations i
+                                  where i.staff_id = s.id and i.accepted_at is null)
+                      then 'invited'
+                    else 'none'
+                  end as access
+             from staff s order by s.created_at, s.id`)
+      ),
       // website (0023), plan_url (0022) and state/city (0014) arrive by
       // hand-run migration; each older shape still answers
       q(`select id, name, short_name, location, state, city, website, sector, status,
@@ -471,6 +485,7 @@ export async function GET(req: Request) {
       initials: s.initials,
       email: s.email,
       signature: s.signature ?? "",
+      schedulingUrl: s.scheduling_url ?? null,
       access: s.access,
     }));
 

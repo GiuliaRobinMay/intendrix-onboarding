@@ -173,7 +173,10 @@ async function runEngine(req: Request) {
       // select * so a database without the status column still answers;
       // people who left the team are filtered out below
       q(`select * from members`),
-      q(`select id, name, email, role_title, signature from staff`),
+      // scheduling_url (0026) arrives by hand-run migration
+      q(`select id, name, email, role_title, signature, scheduling_url from staff`).catch(
+        () => q(`select id, name, email, role_title, signature from staff`)
+      ),
       q(`select campaign_id, series_template_id, trigger_session_id
            from campaign_series order by campaign_id, sort_order, created_at`),
       q(`select id, session_date::text as session_date from campaign_sessions`),
@@ -316,6 +319,7 @@ async function runEngine(req: Request) {
     replyTo: string;
     role: string | null;
     signature: string | null;
+    schedulingUrl: string | null;
   } | null => {
     if (campaign.sender_member_id) {
       const member = memberById.get(campaign.sender_member_id);
@@ -326,6 +330,7 @@ async function runEngine(req: Request) {
           replyTo: member.email || responsible?.email || FALLBACK_SENDING_ADDRESS,
           role: member.title ?? null,
           signature: null, // a client's champion signs with name and title
+          schedulingUrl: null,
         };
     }
     if (!responsible) return null;
@@ -335,6 +340,7 @@ async function runEngine(req: Request) {
       replyTo: responsible.email,
       role: responsible.role_title ?? null,
       signature: responsible.signature ?? null,
+      schedulingUrl: responsible.scheduling_url ?? null,
     };
   };
 
@@ -502,6 +508,7 @@ async function runEngine(req: Request) {
             senderName: from.name,
             senderRole: from.role,
             signature: from.signature,
+            schedulingUrl: from.schedulingUrl,
             logoUrl: campaign.sender_member_id ? null : logoUrl,
           });
           const result = await sendPaced({
@@ -566,6 +573,7 @@ async function runEngine(req: Request) {
             senderName: from.name,
             senderRole: from.role,
             signature: from.signature,
+            schedulingUrl: from.schedulingUrl,
             logoUrl: campaign.sender_member_id ? null : logoUrl,
           });
           const client = clientById.get(campaign.client_id);

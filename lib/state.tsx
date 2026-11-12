@@ -435,7 +435,9 @@ export type Action =
   | {
       type: "updateStaff";
       staffId: string;
-      patch: Partial<Pick<StaffMember, "name" | "role" | "email" | "signature">>;
+      patch: Partial<
+        Pick<StaffMember, "name" | "role" | "email" | "signature" | "schedulingUrl">
+      >;
     }
   | { type: "removeStaff"; staffId: string }
   // invitations (mock of the Supabase invite flow)
