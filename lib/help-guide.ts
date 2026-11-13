@@ -38,6 +38,7 @@ SENDERS AND EXTRAS
 - "Send a copy of everything to": comma-separated addresses that get one copy of each lesson without being members.
 - Each Phoenix person has a signature (Settings, Team); a company logo can be set there too.
 - Each Phoenix person can also have a scheduling link (Settings, Team, the pen icon). It appears under their sign-off in every lesson email they send, as 'Schedule a call with [their name]'. The link belongs to the sender, so a campaign sent by Brad shows Brad's page. Empty means no line.
+- The booking page lists every Phoenix person with a scheduling link, with their community profile photo and a 'Schedule a call' button each. It is made for the 'Schedule a Coaching Call' lesson in the community. Settings, Team, the Booking page card gives its address and the embed code to paste there.
 - Every email supports {{first_name}}, {{name}}, {{client}}, {{sender}} merge fields, one attachment, and lesson links.
 
 MASTER TEMPLATES
@@ -295,6 +296,12 @@ export const HELP_TOPICS: HelpTopic[] = [
     title: "The team's own page",
     body: "Each campaign can publish one page for that team's space in the community: every lesson they have been sent, newest open, the rest to walk back through. Nothing still to come is shown, so it cannot spoil a lesson or promise one that has not arrived. Create it on the campaign's information tab, copy the embed code, and paste it into their space exactly as it is. 'Take it down' stops the link working everywhere at once.",
     keywords: "team page client facing embed iframe mighty space roadmap journey share link",
+    category: "Day to day",
+  },
+  {
+    title: "The booking page",
+    body: "One page with every Phoenix coach who has a scheduling link: their photo from the community, their name and role, and a Schedule a call button each. It is made for the 'Schedule a Coaching Call' lesson in the community. On Settings, Team, the Booking page card gives the address and the embed code; paste the embed code into the lesson exactly as it is. The page reads the Team page, so adding a scheduling link to a person puts them on it, and removing the link takes them off. Phone or Zoom is chosen on the coach's own scheduling page.",
+    keywords: "booking page schedule a call coaches embed mighty lesson coaching call appointment calendar",
     category: "Day to day",
   },
 ];

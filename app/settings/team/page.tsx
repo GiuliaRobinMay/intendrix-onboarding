@@ -6,6 +6,7 @@ import { Chip, GhostButton, GradientButton } from "@/components/ui";
 import { EditableText, Field } from "@/components/editable";
 import { useData } from "@/lib/state";
 import { useConfirm } from "@/components/confirm";
+import { BookingPageCard } from "@/components/booking-page-card";
 import { authHeaders } from "@/lib/supabase-browser";
 import type { Invitation, StaffMember } from "@/lib/types";
 
@@ -640,6 +641,7 @@ export default function TeamSettingsPage() {
         </section>
       </div>
 
+      <div className="flex flex-col gap-6">
       <section className="card self-start p-5">
         <h2 className="mb-3 flex items-center gap-2 text-base font-bold">
           <ShieldCheck size={17} className="text-mist" /> How access works
@@ -670,6 +672,8 @@ export default function TeamSettingsPage() {
           <Chip color="#4ade80">Scoping enforced in the database</Chip>
         </div>
       </section>
+      <BookingPageCard />
+      </div>
     </div>
   );
 }

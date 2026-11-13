@@ -53,6 +53,8 @@ export interface CommunityMember {
   plan: string | null;
   /** a Host — the Phoenix team and admins, never a client's person */
   host: boolean;
+  /** their profile photo, when the roster carries one */
+  avatarUrl: string | null;
 }
 
 export interface CommunitySpace {
@@ -137,6 +139,17 @@ function toMember(row: any): CommunityMember | null {
       ]) ?? null,
     plan: planOf(row),
     host: isHost(row),
+    avatarUrl: firstString(row, [
+      "avatar_url",
+      "avatarUrl",
+      "profile_image_url",
+      "profileImageUrl",
+      "image_url",
+      "photo_url",
+      "avatar.url",
+      "user.avatar_url",
+      "member.avatar_url",
+    ]),
   };
 }
 

@@ -12,12 +12,20 @@ const nextConfig = {
         ],
       },
       {
+        // So is the booking page: the coaches, one button each
+        source: "/book",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors *" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
+      {
         // Everything else refuses to be framed — but the rule has to
         // skip the journey page by hand. Next applies every matching
         // rule, so a catch-all here put X-Frame-Options: SAMEORIGIN on
         // the one page that must not have it, and a browser honouring
         // that header blocks the embed whatever the policy above says.
-        source: "/:path((?!journey/).*)",
+        source: "/:path((?!journey/|book$).*)",
         headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
       },
     ];
