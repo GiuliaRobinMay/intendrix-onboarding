@@ -376,12 +376,14 @@ function TeamRow({ person }: { person: StaffMember }) {
           </span>
         </label>
         <label className="block">
-          <span className="block text-[11px] font-medium text-mist">Scheduling link</span>
+          <span className="block text-[11px] font-medium text-mist">
+            Link under their sign-off
+          </span>
           <input
             type="url"
-            data-tip="Their page where a team member books time with them. Goes under their sign-off in every lesson email they send."
+            data-tip="Their post in the community's 1:1 Coaching Calls space, or their own scheduling page. Goes under their sign-off in every lesson email they send."
             defaultValue={person.schedulingUrl ?? ""}
-            placeholder="https://phoenixperform.as.me/…"
+            placeholder="https://intendrix.ai/posts/…"
             onBlur={(e) => {
               const next = e.target.value.trim();
               if (next === (person.schedulingUrl ?? "")) return;
@@ -395,9 +397,10 @@ function TeamRow({ person }: { person: StaffMember }) {
             className="mt-1 w-full max-w-md rounded-md border border-white/10 bg-navy/60 px-2.5 py-2 text-xs focus:border-white/30 focus:outline-none"
           />
           <span className="mt-1 block text-[11px] text-mist">
-            Shows under their sign-off in every lesson email they send, as
-            “Schedule a call with {person.name}”. Leave it empty and nothing is
-            added.
+            Their post in the community (1:1 Coaching Calls) or their own
+            scheduling page. Shows under their sign-off in every lesson email
+            they send, as “Schedule a call with {person.name}”. Leave it empty
+            and nothing is added.
           </span>
         </label>
         </div>

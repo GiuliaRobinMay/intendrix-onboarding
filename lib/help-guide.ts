@@ -37,7 +37,7 @@ SENDERS AND EXTRAS
 - Emails are sent from the campaign's Phoenix Coach. A campaign can instead nominate a client member (e.g. their Transformational Champion) in "Emails sent by": recipients see that name, replies go to them, the address stays on the sending domain.
 - "Send a copy of everything to": comma-separated addresses that get one copy of each lesson without being members.
 - Each Phoenix person has a signature (Settings, Team); a company logo can be set there too.
-- Each Phoenix person can also have a scheduling link (Settings, Team, the pen icon). It appears under their sign-off in every lesson email they send, as 'Schedule a call with [their name]'. The link belongs to the sender, so a campaign sent by Brad shows Brad's page. Empty means no line.
+- Each Phoenix person can also have a link under their sign-off (Settings, Team, the pen icon): their post in the community's 1:1 Coaching Calls space, or their own scheduling page. It appears under their sign-off in every lesson email they send, as 'Schedule a call with [their name]'. The link belongs to the sender, so a campaign sent by Brad shows Brad's post. Empty means no line.
 - The booking page lists every Phoenix person with a scheduling link, with their community profile photo and a 'Schedule a call' button each. It is made for the 'Schedule a Coaching Call' lesson in the community. Settings, Team, the Booking page card gives its address and the embed code to paste there.
 - Every email supports {{first_name}}, {{name}}, {{client}}, {{sender}} merge fields, one attachment, and lesson links.
 
