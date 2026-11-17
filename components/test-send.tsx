@@ -28,6 +28,8 @@ interface Props {
   variantLabel?: string;
   /** the button's own words, when "Send me a test" is not enough */
   label?: string;
+  /** the row size, next to "Send to everyone now" on a campaign */
+  small?: boolean;
 }
 
 export function TestSendButton({
@@ -40,6 +42,7 @@ export function TestSendButton({
   tipPos = "top",
   variantLabel,
   label,
+  small = false,
 }: Props) {
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -104,13 +107,18 @@ export function TestSendButton({
   return (
     <span className="flex flex-wrap items-center gap-2">
       <button
-        onClick={send}
+        onClick={(e) => {
+          e.stopPropagation();
+          send();
+        }}
         disabled={state === "sending"}
         data-tip={tip}
         data-tip-pos={tipPos}
-        className="flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:opacity-50"
+        className={`flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 font-semibold text-mist transition-colors hover:border-white/25 hover:text-paper disabled:opacity-50 ${
+          small ? "px-2.5 py-1 text-[11px]" : "px-2.5 py-1.5 text-xs"
+        }`}
       >
-        <SendHorizonal size={13} />
+        <SendHorizonal size={small ? 12 : 13} />
         {state === "sending"
           ? "Sending…"
           : state === "sent"

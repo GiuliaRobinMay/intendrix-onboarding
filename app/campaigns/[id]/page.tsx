@@ -24,6 +24,7 @@ import {
 import { Chip, ProgressBar, GhostButton, StatusChip } from "@/components/ui";
 import { EditableText } from "@/components/editable";
 import { SendNowButton } from "@/components/send-now";
+import { TestSendButton } from "@/components/test-send";
 import { OnboardingButtons, OnboardingChips } from "@/components/onboarding";
 import { ClientFactsCard } from "@/components/client-facts";
 import { CampaignNotes } from "@/components/campaign-notes";
@@ -2081,6 +2082,12 @@ export default function CampaignDetailPage() {
                                           clientName={client.shortName}
                                         />
                                       )}
+                                      <TestSendButton
+                                        small
+                                        campaignId={campaign.id}
+                                        stepId={item.step.id}
+                                        tipPos="top"
+                                      />
                                       <Link
                                         href="/mailbox"
                                         onClick={(e) => e.stopPropagation()}
