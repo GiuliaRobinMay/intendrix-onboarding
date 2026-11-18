@@ -436,7 +436,10 @@ export type Action =
       type: "updateStaff";
       staffId: string;
       patch: Partial<
-        Pick<StaffMember, "name" | "role" | "email" | "signature" | "schedulingUrl">
+        Pick<
+          StaffMember,
+          "name" | "role" | "email" | "signature" | "schedulingUrl" | "phoneUrl" | "zoomUrl"
+        >
       >;
     }
   | { type: "removeStaff"; staffId: string }

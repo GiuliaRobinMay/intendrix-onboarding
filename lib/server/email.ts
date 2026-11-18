@@ -229,9 +229,14 @@ export function renderLessonEmail(opts: {
   senderRole?: string | null;
   /** exact sign-off block, one line per line */
   signature?: string | null;
-  /** the sender's scheduling page — one line under the sign-off,
-   *  "Schedule a call with <sender>"; nothing when empty */
+  /** the sender's post in the community — "Schedule a call with
+   *  <sender>", one line, only when the two pages below are empty */
   schedulingUrl?: string | null;
+  /** the sender's scheduling pages: "Schedule a phone call with
+   *  <sender>" and "Schedule a Zoom meeting with <sender>", one line
+   *  each; nothing when empty */
+  phoneUrl?: string | null;
+  zoomUrl?: string | null;
   /** marks a test send, so nobody mistakes one for the real thing */
   test?: boolean;
   /** company logo shown under the sign-off — a public image URL */
@@ -279,10 +284,19 @@ export function renderLessonEmail(opts: {
       : "";
   // right after the signature, as the client asked: one line that
   // books time with the person who sent this
-  const schedule =
-    opts.schedulingUrl && /^https:\/\//.test(opts.schedulingUrl)
-      ? `<p style="margin:12px 0 0;font-size:13px;"><a href="${opts.schedulingUrl}" style="color:#2c2d83;font-weight:600;">Schedule a call with ${esc(opts.senderName)}</a></p>`
-      : "";
+  const isLink = (u?: string | null): u is string => Boolean(u && /^https:\/\//.test(u));
+  const scheduleLine = (url: string, words: string, first: boolean) =>
+    `<p style="margin:${first ? "12px" : "4px"} 0 0;font-size:13px;"><a href="${url}" style="color:#2c2d83;font-weight:600;">${words} ${esc(opts.senderName)}</a></p>`;
+  const scheduleLines: string[] = [];
+  if (isLink(opts.phoneUrl))
+    scheduleLines.push(scheduleLine(opts.phoneUrl, "Schedule a phone call with", true));
+  if (isLink(opts.zoomUrl))
+    scheduleLines.push(
+      scheduleLine(opts.zoomUrl, "Schedule a Zoom meeting with", scheduleLines.length === 0)
+    );
+  if (scheduleLines.length === 0 && isLink(opts.schedulingUrl))
+    scheduleLines.push(scheduleLine(opts.schedulingUrl, "Schedule a call with", true));
+  const schedule = scheduleLines.join("");
   const banner = opts.test
     ? `<p style="margin:0 0 18px;padding:9px 13px;background:#fde8e2;border-radius:6px;font-size:12px;font-weight:600;color:#a52a0c;">TEST — this is a preview. Nobody on the program received it.</p>`
     : "";

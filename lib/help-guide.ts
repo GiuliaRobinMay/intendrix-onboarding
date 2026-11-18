@@ -37,8 +37,8 @@ SENDERS AND EXTRAS
 - Emails are sent from the campaign's Phoenix Coach. A campaign can instead nominate a client member (e.g. their Transformational Champion) in "Emails sent by": recipients see that name, replies go to them, the address stays on the sending domain.
 - "Send a copy of everything to": comma-separated addresses that get one copy of each lesson without being members.
 - Each Phoenix person has a signature (Settings, Team); a company logo can be set there too.
-- Each Phoenix person can also have a link under their sign-off (Settings, Team, the pen icon): their post in the community's 1:1 Coaching Calls space, or their own scheduling page. It appears under their sign-off in every lesson email they send, as 'Schedule a call with [their name]'. The link belongs to the sender, so a campaign sent by Brad shows Brad's post. Empty means no line.
-- The booking page lists every Phoenix person with a scheduling link, with their community profile photo and a 'Schedule a call' button each. It is made for the 'Schedule a Coaching Call' lesson in the community. Settings, Team, the Booking page card gives its address and the embed code to paste there.
+- Each Phoenix person has two scheduling links (Settings, Team, the pen icon): one page for a phone call, one for a Zoom meeting. They appear under their sign-off in every lesson email they send, as two lines: 'Schedule a phone call with [their name]' and 'Schedule a Zoom meeting with [their name]'. The links belong to the sender, so a campaign sent by Brad shows Brad's pages. A third field holds their post in the community's 1:1 Coaching Calls space; the email links to that post, as 'Schedule a call with [their name]', only when the phone and Zoom links are empty. All empty means no line.
+- The booking page lists every Phoenix person with a scheduling link, with their community profile photo and a 'Phone call' and a 'Zoom meeting' button each. It is made for a lesson in the community's 1:1 Coaching Calls space. Settings, Team, the Booking page card gives its address and the embed code to paste there.
 - Every email supports {{first_name}}, {{name}}, {{client}}, {{sender}} merge fields, one attachment, and lesson links.
 
 MASTER TEMPLATES
@@ -300,7 +300,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     title: "The booking page",
-    body: "One page with every Phoenix coach who has a scheduling link: their photo from the community, their name and role, and a Schedule a call button each. It is made for the 'Schedule a Coaching Call' lesson in the community. On Settings, Team, the Booking page card gives the address and the embed code; paste the embed code into the lesson exactly as it is. The page reads the Team page, so adding a scheduling link to a person puts them on it, and removing the link takes them off. Phone or Zoom is chosen on the coach's own scheduling page.",
+    body: "One page with every Phoenix coach who has a scheduling link: their photo from the community, their name and role, and a Phone call and a Zoom meeting button each. It is made for a lesson in the community's 1:1 Coaching Calls space. On Settings, Team, the Booking page card gives the address and the embed code; paste the embed code into the lesson exactly as it is. The page reads the Team page, so adding a scheduling link to a person puts them on it, and removing the links takes them off.",
     keywords: "booking page schedule a call coaches embed mighty lesson coaching call appointment calendar",
     category: "Day to day",
   },

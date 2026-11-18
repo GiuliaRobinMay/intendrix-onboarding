@@ -156,6 +156,10 @@ export interface StaffMember {
    *  sign-off of every lesson email they send, as "Schedule a call
    *  with <name>". Empty adds nothing. */
   schedulingUrl?: string | null;
+  /** their scheduling page for a phone call — one line under the sign-off */
+  phoneUrl?: string | null;
+  /** their scheduling page for a Zoom meeting — the other line */
+  zoomUrl?: string | null;
   /** sign-in status — derived, not stored:
    *  active = has an account, invited = invitation sent and pending,
    *  none = in the team list but never invited */

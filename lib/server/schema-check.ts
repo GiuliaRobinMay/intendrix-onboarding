@@ -159,6 +159,43 @@ update staff set scheduling_url = v.url
  where lower(split_part(trim(staff.name), ' ', 1)) = v.first
    and staff.scheduling_url is null;`,
   },
+  {
+    migration: "0027_staff_phone_and_zoom_links",
+    table: "staff",
+    column: "phone_url",
+    cost: "A person's phone and Zoom links cannot be saved on the Team page, and lesson emails show one line instead of two.",
+    sql: `alter table staff add column if not exists phone_url text;
+alter table staff add column if not exists zoom_url  text;
+
+update staff set phone_url = v.url
+  from (values
+    ('brad',    'https://phoenixperform.as.me/BradZimmerman'),
+    ('kevin',   'https://phoenixperform.as.me/KevinDavis'),
+    ('natalie', 'https://phoenixperform.as.me/NatalieThompson'),
+    ('tom',     'https://phoenixperform.as.me/Tom'),
+    ('tim',     'https://phoenixperform.as.me/TimMatthews')
+  ) as v (first, url)
+ where lower(split_part(trim(staff.name), ' ', 1)) = v.first
+   and staff.phone_url is null;
+
+update staff set zoom_url = v.url
+  from (values
+    ('brad',    'https://phoenixperform.as.me/Zoom-Brad'),
+    ('kevin',   'https://phoenixperform.as.me/Zoom-Kevin60'),
+    ('natalie', 'https://phoenixperform.as.me/ZoomMeetingNatalie50mins'),
+    ('tom',     'https://phoenixperform.as.me/Zoom-Tom'),
+    ('tim',     'https://phoenixperform.as.me/ZoomMeetingTim50mins')
+  ) as v (first, url)
+ where lower(split_part(trim(staff.name), ' ', 1)) = v.first
+   and staff.zoom_url is null;`,
+  },
+  {
+    migration: "0027_staff_phone_and_zoom_links",
+    table: "staff",
+    column: "zoom_url",
+    cost: "A person's Zoom link cannot be saved on the Team page.",
+    sql: `alter table staff add column if not exists zoom_url text;`,
+  },
 ];
 
 export interface SchemaReport {

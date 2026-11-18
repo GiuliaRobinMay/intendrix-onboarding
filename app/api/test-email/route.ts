@@ -7,6 +7,7 @@
 // keeps a "preview" from becoming a way to mail anyone.
 
 import { NextResponse } from "next/server";
+import { linksOf, NO_LINKS, queryStaff, type StaffLinks } from "@/lib/server/staff-links";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { authEnforced, verifyUser } from "@/lib/server/auth";
 import {
@@ -229,14 +230,13 @@ export async function POST(req: Request) {
     pickStaffId("phoenix_leader", campaign.phoenix_leader_id) ??
     pickStaffId("project_manager", campaign.project_manager_id);
 
-  let from: {
+  let from: ({
     name: string;
     address: string;
     replyTo: string;
     role: string | null;
     signature: string | null;
-    schedulingUrl: string | null;
-  } | null =
+  } & StaffLinks) | null =
     null;
   if (campaign.sender_member_id) {
     const { rows } = await pool.query(
@@ -250,21 +250,16 @@ export async function POST(req: Request) {
         replyTo: rows[0].email || SENDING_ADDRESS,
         role: rows[0].title ?? null,
         signature: null,
-        schedulingUrl: null,
+        ...NO_LINKS,
       };
   }
   if (!from && staffId) {
-    // scheduling_url (0026) arrives by hand-run migration
-    const { rows } = await pool
-      .query(
-        `select name, email, role_title, signature, scheduling_url from staff where id = $1`,
-        [staffId]
-      )
-      .catch(() =>
-        pool.query(`select name, email, role_title, signature from staff where id = $1`, [
-          staffId,
-        ])
-      );
+    // the link columns (0026, 0027) arrive by hand-run migration
+    const { rows } = await queryStaff((extra) =>
+      pool.query(`select name, email, role_title, signature${extra} from staff where id = $1`, [
+        staffId,
+      ])
+    );
     if (rows[0])
       from = {
         name: rows[0].name,
@@ -272,7 +267,7 @@ export async function POST(req: Request) {
         replyTo: rows[0].email,
         role: rows[0].role_title ?? null,
         signature: rows[0].signature ?? null,
-        schedulingUrl: rows[0].scheduling_url ?? null,
+        ...linksOf(rows[0]),
       };
   }
   if (!from)
@@ -326,6 +321,8 @@ export async function POST(req: Request) {
     senderRole: from.role,
     signature: from.signature,
     schedulingUrl: from.schedulingUrl,
+    phoneUrl: from.phoneUrl,
+    zoomUrl: from.zoomUrl,
     logoUrl: campaign.sender_member_id ? null : (logoRows[0]?.value || defaultLogoUrl()),
     test: true,
   });

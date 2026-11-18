@@ -20,7 +20,7 @@ export function BookingPageCard() {
   const embed =
     `<iframe src="${url}" title="Schedule a coaching call" ` +
     `style="width:100%;height:520px;border:none;border-radius:14px" loading="lazy"></iframe>`;
-  const listed = staff.filter((s) => s.schedulingUrl);
+  const listed = staff.filter((s) => s.phoneUrl || s.zoomUrl || s.schedulingUrl);
 
   const copy = (what: "link" | "embed") => {
     navigator.clipboard?.writeText(what === "link" ? url : embed);
@@ -35,9 +35,9 @@ export function BookingPageCard() {
       </h2>
       <p className="text-xs leading-relaxed text-mist">
         One page for the community: every person above who has a scheduling
-        link, with their photo and a <em>Schedule a call</em> button. Paste the
-        embed code into the <strong>Schedule a Coaching Call</strong> lesson,
-        exactly as it is.
+        link, with their photo and a <em>Phone call</em> and a <em>Zoom
+        meeting</em> button. Paste the embed code into a lesson in the
+        <strong>1:1 Coaching Calls</strong> space, exactly as it is.
       </p>
       <p className="mt-3 text-xs text-mist">
         {listed.length === 0

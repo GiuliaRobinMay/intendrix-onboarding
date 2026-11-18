@@ -242,12 +242,54 @@ function InviteClientAdminForm({
   );
 }
 
+/** One of a person's links: saved on blur, only when it is a real
+ *  address or cleared. */
+function LinkField({
+  label,
+  tip,
+  value,
+  placeholder,
+  hint,
+  onSave,
+}: {
+  label: string;
+  tip: string;
+  value: string | null;
+  placeholder: string;
+  hint: string;
+  onSave: (next: string | null) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] font-medium text-mist">{label}</span>
+      <input
+        type="url"
+        data-tip={tip}
+        defaultValue={value ?? ""}
+        placeholder={placeholder}
+        onBlur={(e) => {
+          const next = e.target.value.trim();
+          if (next === (value ?? "")) return;
+          if (next && !/^https?:\/\//.test(next)) return;
+          onSave(next || null);
+        }}
+        className="mt-1 w-full max-w-md rounded-md border border-white/10 bg-navy/60 px-2.5 py-2 text-xs focus:border-white/30 focus:outline-none"
+      />
+      <span className="mt-1 block text-[11px] text-mist">{hint}</span>
+    </label>
+  );
+}
+
 function TeamRow({ person }: { person: StaffMember }) {
   const { dispatch } = useData();
   const confirmDelete = useConfirm();
   const [notice, setNotice] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const access = ACCESS[person.access ?? "none"];
+  // the first page that exists: phone, then Zoom, then their post
+  const anyLink = person.phoneUrl || person.zoomUrl || person.schedulingUrl || null;
+  const saveLink = (key: "phoneUrl" | "zoomUrl" | "schedulingUrl") => (next: string | null) =>
+    dispatch({ type: "updateStaff", staffId: person.id, patch: { [key]: next } });
 
   return (
     <li className="group border-b border-white/6 py-2.5 last:border-b-0">
@@ -288,9 +330,9 @@ function TeamRow({ person }: { person: StaffMember }) {
         </span>
 
         <span className="flex items-center justify-end gap-1">
-          {person.schedulingUrl && (
+          {anyLink && (
             <a
-              href={person.schedulingUrl}
+              href={anyLink}
               target="_blank"
               rel="noreferrer"
               data-tip="Open their scheduling page"
@@ -301,13 +343,13 @@ function TeamRow({ person }: { person: StaffMember }) {
           )}
           <button
             data-tip={
-              person.signature?.trim() || person.schedulingUrl
-                ? "Edit their sign-off and scheduling link"
-                : "Write how their emails sign off; add their scheduling link"
+              person.signature?.trim() || anyLink
+                ? "Edit their sign-off and scheduling links"
+                : "Write how their emails sign off; add their scheduling links"
             }
             onClick={() => setOpen((v) => !v)}
             className={`cursor-pointer rounded-md p-1.5 transition-colors hover:text-paper ${
-              person.signature?.trim() || person.schedulingUrl ? "text-paper" : "text-mist"
+              person.signature?.trim() || anyLink ? "text-paper" : "text-mist"
             }`}
           >
             <PenLine size={13} />
@@ -375,34 +417,30 @@ function TeamRow({ person }: { person: StaffMember }) {
             their name and role.
           </span>
         </label>
-        <label className="block">
-          <span className="block text-[11px] font-medium text-mist">
-            Link under their sign-off
-          </span>
-          <input
-            type="url"
-            data-tip="Their post in the community's 1:1 Coaching Calls space, or their own scheduling page. Goes under their sign-off in every lesson email they send."
-            defaultValue={person.schedulingUrl ?? ""}
-            placeholder="https://intendrix.ai/posts/…"
-            onBlur={(e) => {
-              const next = e.target.value.trim();
-              if (next === (person.schedulingUrl ?? "")) return;
-              if (next && !/^https?:\/\//.test(next)) return;
-              dispatch({
-                type: "updateStaff",
-                staffId: person.id,
-                patch: { schedulingUrl: next || null },
-              });
-            }}
-            className="mt-1 w-full max-w-md rounded-md border border-white/10 bg-navy/60 px-2.5 py-2 text-xs focus:border-white/30 focus:outline-none"
-          />
-          <span className="mt-1 block text-[11px] text-mist">
-            Their post in the community (1:1 Coaching Calls) or their own
-            scheduling page. Shows under their sign-off in every lesson email
-            they send, as “Schedule a call with {person.name}”. Leave it empty
-            and nothing is added.
-          </span>
-        </label>
+        <LinkField
+          label="Phone call link"
+          tip="Their scheduling page for a phone call. Goes under their sign-off in every lesson email they send."
+          value={person.phoneUrl ?? null}
+          placeholder="https://phoenixperform.as.me/…"
+          hint={`In the email: “Schedule a phone call with ${person.name}”.`}
+          onSave={saveLink("phoneUrl")}
+        />
+        <LinkField
+          label="Zoom meeting link"
+          tip="Their scheduling page for a Zoom meeting. Goes under their sign-off in every lesson email they send."
+          value={person.zoomUrl ?? null}
+          placeholder="https://phoenixperform.as.me/Zoom-…"
+          hint={`In the email: “Schedule a Zoom meeting with ${person.name}”.`}
+          onSave={saveLink("zoomUrl")}
+        />
+        <LinkField
+          label="Their post in the community"
+          tip="Their post in the 1:1 Coaching Calls space. The email links to it, as “Schedule a call with …”, only when the two links above are empty."
+          value={person.schedulingUrl ?? null}
+          placeholder="https://intendrix.ai/posts/…"
+          hint="Information. Used in the email only when the phone and Zoom links are empty."
+          onSave={saveLink("schedulingUrl")}
+        />
         </div>
       )}
       {notice && <p className="mt-1.5 pl-11 text-[11px] text-mist">{notice}</p>}
@@ -581,8 +619,8 @@ export default function TeamSettingsPage() {
           </h2>
           <p className="mt-1 mb-4 text-xs text-mist">
             Every lesson email closes with the sender&rsquo;s signature, their
-            scheduling link and the company logo. The signature text and the
-            link are personal — the{" "}
+            two scheduling links and the company logo. The signature text and
+            the links are personal — the{" "}
             <PenLine size={11} className="inline text-paper" /> on each row
             above edits them. The logo below is one image for the whole team.
           </p>
@@ -621,7 +659,10 @@ export default function TeamSettingsPage() {
                 <p className="text-[12px] font-semibold text-[#1a1b2e]">Brad Zimmerman</p>
                 <p className="text-[11px] text-[#5f6170]">Phoenix Coach</p>
                 <p className="mt-2 text-[11px] font-semibold text-[#2c2d83] underline">
-                  Schedule a call with Brad Zimmerman
+                  Schedule a phone call with Brad Zimmerman
+                </p>
+                <p className="mt-0.5 text-[11px] font-semibold text-[#2c2d83] underline">
+                  Schedule a Zoom meeting with Brad Zimmerman
                 </p>
                 {settings.signatureLogoUrl?.startsWith("https://") ? (
                   // eslint-disable-next-line @next/next/no-img-element

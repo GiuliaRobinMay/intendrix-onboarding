@@ -17,6 +17,7 @@
 // confirmation dialog is built from that report.
 
 import { NextResponse } from "next/server";
+import { linksOf, NO_LINKS, queryStaff, type StaffLinks } from "@/lib/server/staff-links";
 import { dbConfigured, getPool } from "@/lib/server/db";
 import { defaultLogoUrl } from "@/lib/server/onboarding";
 import { authEnforced, getProfile, verifyUser } from "@/lib/server/auth";
@@ -187,14 +188,13 @@ export async function POST(req: Request) {
     pickStaffId("project_manager", campaign.project_manager_id);
 
   let from:
-    | {
+    | ({
         name: string;
         address: string;
         replyTo: string;
         role: string | null;
         signature: string | null;
-        schedulingUrl: string | null;
-      }
+      } & StaffLinks)
     | null = null;
   let senderStaffId: string | null = null;
   if (campaign.sender_member_id) {
@@ -209,22 +209,17 @@ export async function POST(req: Request) {
         replyTo: rows[0].email || SENDING_ADDRESS,
         role: rows[0].title ?? null,
         signature: null,
-        schedulingUrl: null,
+        ...NO_LINKS,
       };
   }
   if (!from && staffId) {
-    // scheduling_url (0026) arrives by hand-run migration
-    const { rows } = await pool
-      .query(
-        `select id, name, email, role_title, signature, scheduling_url from staff where id = $1`,
+    // the link columns (0026, 0027) arrive by hand-run migration
+    const { rows } = await queryStaff((extra) =>
+      pool.query(
+        `select id, name, email, role_title, signature${extra} from staff where id = $1`,
         [staffId]
       )
-      .catch(() =>
-        pool.query(
-          `select id, name, email, role_title, signature from staff where id = $1`,
-          [staffId]
-        )
-      );
+    );
     if (rows[0]) {
       senderStaffId = rows[0].id;
       from = {
@@ -233,7 +228,7 @@ export async function POST(req: Request) {
         replyTo: rows[0].email,
         role: rows[0].role_title ?? null,
         signature: rows[0].signature ?? null,
-        schedulingUrl: rows[0].scheduling_url ?? null,
+        ...linksOf(rows[0]),
       };
     }
   }
@@ -358,6 +353,8 @@ export async function POST(req: Request) {
       senderRole: from!.role,
       signature: from!.signature,
       schedulingUrl: from!.schedulingUrl,
+      phoneUrl: from!.phoneUrl,
+      zoomUrl: from!.zoomUrl,
       logoUrl: campaign.sender_member_id ? null : logoUrl,
     });
   const attachmentsOf = (content: any) =>
